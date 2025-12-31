@@ -1,0 +1,78 @@
+[gd_scene load_steps=6 format=3 uid="uid://de1ek0y5wi45g"]
+
+[ext_resource type="PackedScene" uid="uid://c10eakv6dta4r" path="res://pickups/pickup.tscn" id="2_wt17y"]
+[ext_resource type="Texture2D" uid="uid://d1k0evdaenwr4" path="res://pickups/codered/codered.png" id="3_m8u5f"]
+[ext_resource type="PackedScene" uid="uid://cof1o04wsy0rc" path="res://player/player.tscn" id="4_is3ju"]
+[ext_resource type="Script" uid="uid://ckbu5wtotmnfl" path="res://root.gd" id="5_4bqqs"]
+[ext_resource type="Script" uid="uid://b2nf43frwech" path="res://scripts/multiplayer_spawner.gd" id="5_o00ia"]
+
+[node name="Playground" type="Node2D"]
+
+[node name="Pickup" parent="." instance=ExtResource("2_wt17y")]
+position = Vector2(89, 71)
+
+[node name="Pickup2" parent="." instance=ExtResource("2_wt17y")]
+position = Vector2(48, 80)
+
+[node name="Sprite2D2" type="Sprite2D" parent="Pickup2"]
+texture_filter = 1
+texture = ExtResource("3_m8u5f")
+
+[node name="MultiplayerSpawner" type="MultiplayerSpawner" parent="."]
+_spawnable_scenes = PackedStringArray("uid://cof1o04wsy0rc")
+spawn_path = NodePath("..")
+script = ExtResource("5_o00ia")
+network_player = ExtResource("4_is3ju")
+
+[node name="Control" type="Control" parent="."]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 575.0
+offset_top = 383.0
+offset_right = 575.0
+offset_bottom = 383.0
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_horizontal = 4
+script = ExtResource("5_4bqqs")
+
+[node name="ColorRect" type="ColorRect" parent="Control"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.14901961, 0.23921569, 0.21960784, 0.84705883)
+
+[node name="VBoxContainer" type="VBoxContainer" parent="Control"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -144.0
+offset_top = -33.0
+offset_right = 144.0
+offset_bottom = 33.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="LineEdit" type="LineEdit" parent="Control/VBoxContainer"]
+layout_mode = 2
+placeholder_text = "Name"
+caret_blink = true
+
+[node name="HBoxContainer" type="HBoxContainer" parent="Control/VBoxContainer"]
+layout_mode = 2
+
+[node name="join" type="Button" parent="Control/VBoxContainer/HBoxContainer"]
+layout_mode = 2
+text = "join game"
+
+[node name="start" type="Button" parent="Control/VBoxContainer/HBoxContainer"]
+layout_mode = 2
+text = "start game"

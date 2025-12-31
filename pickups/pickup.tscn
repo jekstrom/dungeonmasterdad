@@ -1,0 +1,9 @@
+[gd_scene load_steps=2 format=3 uid="uid://c10eakv6dta4r"]
+
+[ext_resource type="Texture2D" uid="uid://d3wb1fbmfd5jv" path="res://pickups/mtdew/mtdew.png" id="1_ra232"]
+
+[node name="Pickup" type="Node2D"]
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+texture_filter = 1
+texture = ExtResource("1_ra232")

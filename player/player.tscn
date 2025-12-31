@@ -1,0 +1,206 @@
+[gd_scene load_steps=19 format=3 uid="uid://cof1o04wsy0rc"]
+
+[ext_resource type="Script" uid="uid://t4prbjbidme4" path="res://player/player.gd" id="1_kwy1i"]
+[ext_resource type="Script" uid="uid://davlq6nrmtd1c" path="res://scripts/hitbox.gd" id="2_h8j5k"]
+[ext_resource type="Texture2D" uid="uid://dkc4x6ya465y1" path="res://player/sprites/PlayerSprite02.png" id="3_4tdu3"]
+[ext_resource type="Script" uid="uid://dbyqwxcdrpqrb" path="res://player/scripts/player_state_machine.gd" id="4_cbkgn"]
+[ext_resource type="Script" uid="uid://bofvq87df5yb3" path="res://player/scripts/player_idle_state.gd" id="5_yfnbg"]
+[ext_resource type="Script" uid="uid://bcjqi08kyb3qs" path="res://player/scripts/player_walk_state.gd" id="6_8be7r"]
+[ext_resource type="Script" uid="uid://cvhu5qbw267oe" path="res://player/scripts/player_camera.gd" id="7_gvdgb"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_f7x0i"]
+
+[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_1yv43"]
+
+[sub_resource type="Animation" id="Animation_wdqou"]
+length = 0.001
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Sprite2D:frame")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": [0]
+}
+
+[sub_resource type="Animation" id="Animation_1yv43"]
+resource_name = "idle_down"
+length = 0.4
+loop_mode = 2
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Sprite2D:frame")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.4),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [0, 2]
+}
+
+[sub_resource type="Animation" id="Animation_5uq1k"]
+resource_name = "idle_side"
+length = 0.4
+loop_mode = 2
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Sprite2D:frame")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.4),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [6, 8]
+}
+
+[sub_resource type="Animation" id="Animation_s1sn4"]
+resource_name = "idle_up"
+length = 0.4
+loop_mode = 2
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Sprite2D:frame")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.4),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [3, 5]
+}
+
+[sub_resource type="Animation" id="Animation_rnenc"]
+resource_name = "walk_down"
+length = 0.3
+loop_mode = 2
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Sprite2D:frame")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.3),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [9, 12]
+}
+
+[sub_resource type="Animation" id="Animation_6hcig"]
+resource_name = "walk_side"
+length = 0.3
+loop_mode = 2
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Sprite2D:frame")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.3),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [17, 20]
+}
+
+[sub_resource type="Animation" id="Animation_ma1ak"]
+resource_name = "walk_up"
+length = 0.3
+loop_mode = 2
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Sprite2D:frame")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.3),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [13, 16]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_5uq1k"]
+_data = {
+&"RESET": SubResource("Animation_wdqou"),
+&"idle_down": SubResource("Animation_1yv43"),
+&"idle_side": SubResource("Animation_5uq1k"),
+&"idle_up": SubResource("Animation_s1sn4"),
+&"walk_down": SubResource("Animation_rnenc"),
+&"walk_side": SubResource("Animation_6hcig"),
+&"walk_up": SubResource("Animation_ma1ak")
+}
+
+[sub_resource type="SceneReplicationConfig" id="SceneReplicationConfig_boad6"]
+properties/0/path = NodePath(".:position")
+properties/0/spawn = true
+properties/0/replication_mode = 1
+properties/1/path = NodePath(".:rotation")
+properties/1/spawn = true
+properties/1/replication_mode = 1
+properties/2/path = NodePath("AnimationPlayer:current_animation")
+properties/2/spawn = true
+properties/2/replication_mode = 1
+properties/3/path = NodePath(".:skew")
+properties/3/spawn = true
+properties/3/replication_mode = 1
+properties/4/path = NodePath(".:scale")
+properties/4/spawn = true
+properties/4/replication_mode = 1
+properties/5/path = NodePath("Sprite2D:scale")
+properties/5/spawn = true
+properties/5/replication_mode = 1
+
+[node name="Player" type="CharacterBody2D"]
+motion_mode = 1
+script = ExtResource("1_kwy1i")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+position = Vector2(0, -2)
+shape = SubResource("CircleShape2D_f7x0i")
+
+[node name="Hitbox" type="Area2D" parent="."]
+position = Vector2(0, -9)
+script = ExtResource("2_h8j5k")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Hitbox"]
+shape = SubResource("CapsuleShape2D_1yv43")
+debug_color = Color(0.88186127, 0.27087694, 0.5170698, 0.41960785)
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+modulate = Color(0.375291, 0.70107734, 0.39509186, 1)
+texture_filter = 1
+position = Vector2(0, -13)
+texture = ExtResource("3_4tdu3")
+hframes = 16
+vframes = 3
+
+[node name="PlayerStateMachine" type="Node" parent="."]
+script = ExtResource("4_cbkgn")
+
+[node name="idle" type="Node" parent="PlayerStateMachine"]
+script = ExtResource("5_yfnbg")
+
+[node name="walk" type="Node" parent="PlayerStateMachine"]
+script = ExtResource("6_8be7r")
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="."]
+libraries = {
+&"": SubResource("AnimationLibrary_5uq1k")
+}
+
+[node name="Camera2D" type="Camera2D" parent="."]
+limit_smoothed = true
+script = ExtResource("7_gvdgb")
+
+[node name="MultiplayerSynchronizer" type="MultiplayerSynchronizer" parent="."]
+replication_config = SubResource("SceneReplicationConfig_boad6")
