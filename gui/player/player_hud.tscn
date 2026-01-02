@@ -1,0 +1,43 @@
+[gd_scene load_steps=5 format=3 uid="uid://bglfuu7ga823v"]
+
+[ext_resource type="Script" uid="uid://m8460fk6uai3" path="res://gui/player/player_hud.gd" id="1_3thna"]
+[ext_resource type="Texture2D" uid="uid://b3lnqh3d8v2xs" path="res://sprites/build_smoke_factory_icon.png" id="1_ou2ku"]
+[ext_resource type="Texture2D" uid="uid://c5mf5evjbeddt" path="res://sprites/build_smoke_factory_icon_pressed.png" id="2_5etht"]
+[ext_resource type="PackedScene" uid="uid://dnejfv6x8ws6j" path="res://player/inventory/inventory_ui.tscn" id="4_ynrnu"]
+
+[node name="PlayerHud" type="CanvasLayer"]
+script = ExtResource("1_3thna")
+
+[node name="MarginContainer" type="MarginContainer" parent="."]
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -75.0
+grow_horizontal = 2
+grow_vertical = 0
+
+[node name="InventoryUi" parent="MarginContainer" instance=ExtResource("4_ynrnu")]
+layout_mode = 2
+
+[node name="HBoxContainer" type="HBoxContainer" parent="MarginContainer"]
+layout_mode = 2
+size_flags_horizontal = 4
+
+[node name="ColorRect" type="ColorRect" parent="MarginContainer/HBoxContainer"]
+custom_minimum_size = Vector2(75, 75)
+layout_mode = 2
+size_flags_horizontal = 4
+color = Color(0.33660764, 0.3366076, 0.3366076, 1)
+
+[node name="TextureButton" type="TextureButton" parent="MarginContainer/HBoxContainer/ColorRect"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+tooltip_text = "Build Smoke Factory"
+texture_normal = ExtResource("1_ou2ku")
+texture_pressed = ExtResource("2_5etht")
+stretch_mode = 0

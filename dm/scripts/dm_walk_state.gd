@@ -25,6 +25,8 @@ func Physics(_delta: float) -> DmState:
 	return null
 	
 func HandleInput(_event: InputEvent) -> DmState:
+	if !is_multiplayer_authority(): return
+	
 	if _event.is_action_pressed("attack"):
 		return null
 		#return attack

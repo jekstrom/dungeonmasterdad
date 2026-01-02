@@ -1,0 +1,31 @@
+[gd_scene load_steps=2 format=3 uid="uid://c20ww05att4o2"]
+
+[ext_resource type="Script" uid="uid://wy0sfm8p73hd" path="res://player/inventory/inventory_slot_ui.gd" id="1_lrksu"]
+
+[node name="InventorySlot" type="Button"]
+custom_minimum_size = Vector2(32, 32)
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_right = -1120.0
+offset_bottom = -616.0
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
+script = ExtResource("1_lrksu")
+
+[node name="TextureRect" type="TextureRect" parent="."]
+custom_minimum_size = Vector2(32, 32)
+layout_mode = 0
+
+[node name="Label" type="Label" parent="."]
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -10.0
+offset_bottom = 12.0
+grow_horizontal = 0
+theme_override_font_sizes/font_size = 8
+text = "99"

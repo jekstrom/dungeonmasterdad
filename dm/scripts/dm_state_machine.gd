@@ -8,6 +8,8 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_DISABLED
 	
 func Initialize(_dm: DM) -> void:
+	if !is_multiplayer_authority(): return
+	
 	states = []
 	
 	for c in get_children():

@@ -1,0 +1,68 @@
+[gd_scene load_steps=2 format=3 uid="uid://dcevmqir2nyr6"]
+
+[ext_resource type="Script" uid="uid://bkl3mfki2o508" path="res://gui/hud.gd" id="1_350da"]
+
+[node name="Hud" type="CanvasLayer"]
+script = ExtResource("1_350da")
+
+[node name="MarginContainer" type="MarginContainer" parent="."]
+anchors_preset = 10
+anchor_right = 1.0
+offset_bottom = 27.0
+grow_horizontal = 2
+size_flags_vertical = 0
+theme_override_constants/margin_left = 5
+theme_override_constants/margin_top = 5
+theme_override_constants/margin_right = 5
+theme_override_constants/margin_bottom = 5
+
+[node name="HBoxContainer" type="HBoxContainer" parent="MarginContainer"]
+custom_minimum_size = Vector2(0, 25)
+layout_mode = 2
+
+[node name="FantasyBar" type="ColorRect" parent="MarginContainer/HBoxContainer"]
+custom_minimum_size = Vector2(150, 0)
+layout_mode = 2
+color = Color(0, 0.8, 0.3254902, 1)
+
+[node name="Label" type="Label" parent="MarginContainer/HBoxContainer/FantasyBar"]
+layout_mode = 1
+anchors_preset = 13
+anchor_left = 0.5
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -52.0
+offset_right = 52.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/outline_size = 2
+theme_override_font_sizes/font_size = 14
+text = "FANTASY LEVEL"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Spacer" type="Control" parent="MarginContainer/HBoxContainer"]
+layout_direction = 3
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 0
+
+[node name="RealityBar" type="ColorRect" parent="MarginContainer/HBoxContainer"]
+custom_minimum_size = Vector2(150, 0)
+layout_mode = 2
+color = Color(0.40045854, 0.41794884, 0.40254727, 1)
+
+[node name="Label" type="Label" parent="MarginContainer/HBoxContainer/RealityBar"]
+layout_mode = 1
+anchors_preset = 13
+anchor_left = 0.5
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -56.0
+offset_right = 56.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/outline_size = 2
+text = "REALITY LEVEL"
+horizontal_alignment = 1
+vertical_alignment = 1

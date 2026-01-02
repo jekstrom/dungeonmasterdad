@@ -4,26 +4,46 @@ const DIR_4 = [Vector2.RIGHT, Vector2.DOWN, Vector2.LEFT, Vector2.UP]
 var cardinal_direction: Vector2 = Vector2.DOWN
 var direction: Vector2 = Vector2.ZERO
 var invulnerable: bool = false
+
 var hitpoints: int = 6
 var max_hp: int = 6
+
+@onready var camera_2d: DmCamera = $Camera2D
 
 @onready var state_machine: DmStateMachine = $DmStateMachine
 signal DirectionChanged(new_direction: Vector2)
 
+
 @onready var animation_player: AnimationPlayer = $AnimationPlayer
 @onready var sprite: Sprite2D = $Sprite2D
+@onready var audio_stream_player_2d: AudioStreamPlayer2D = $AudioStreamPlayer2D
+
+#func _enter_tree() -> void:
+	#var id: int = name.to_int()
+	#print("dm mp id: " + str(id))
+	#set_multiplayer_authority(name.to_int())
+
 func _ready() -> void:
+	if is_multiplayer_authority():
+		camera_2d.make_current()
+	else:
+		camera_2d.enabled = false
+		
 	DmManager.dm = self
 	state_machine.Initialize(self)
 
 func _process(_delta: float) -> void:
+	if !is_multiplayer_authority(): return
+	pass
+	
+func _physics_process(_delta: float) -> void:
+	if !is_multiplayer_authority(): return
+	
 	direction = Vector2(
 		Input.get_axis("left", "right"),
 		Input.get_axis("up", "down")
 	).normalized()
 	velocity = direction * 300
-	
-func _physics_process(_delta: float) -> void:
 	move_and_slide()
 
 func update_animation(state: String) -> void:
@@ -52,3 +72,8 @@ func set_direction() -> bool:
 	DirectionChanged.emit(new_dir)
 	
 	return true
+
+func play_audio(_stream: AudioStream) -> void:
+	print("playing audio")
+	audio_stream_player_2d.stream = _stream
+	audio_stream_player_2d.play()

@@ -1,4 +1,4 @@
-[gd_scene load_steps=18 format=3 uid="uid://dsls3d0radb5f"]
+[gd_scene load_steps=19 format=3 uid="uid://dsls3d0radb5f"]
 
 [ext_resource type="Script" uid="uid://ba4nueqw22frb" path="res://dm/dm.gd" id="1_x8nee"]
 [ext_resource type="Texture2D" uid="uid://doialox14rv6m" path="res://dm/sprites/PlayerSprite02.png" id="2_xojw3"]
@@ -11,6 +11,21 @@
 [sub_resource type="CircleShape2D" id="CircleShape2D_f7x0i"]
 
 [sub_resource type="CapsuleShape2D" id="CapsuleShape2D_1yv43"]
+
+[sub_resource type="Animation" id="Animation_wdqou"]
+length = 0.001
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Sprite2D:frame")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": [0]
+}
 
 [sub_resource type="Animation" id="Animation_1yv43"]
 resource_name = "idle_down"
@@ -27,21 +42,6 @@ tracks/0/keys = {
 "transitions": PackedFloat32Array(1, 1),
 "update": 0,
 "values": [0, 2]
-}
-
-[sub_resource type="Animation" id="Animation_wdqou"]
-length = 0.001
-tracks/0/type = "value"
-tracks/0/imported = false
-tracks/0/enabled = true
-tracks/0/path = NodePath("Sprite2D:frame")
-tracks/0/interp = 1
-tracks/0/loop_wrap = true
-tracks/0/keys = {
-"times": PackedFloat32Array(0),
-"transitions": PackedFloat32Array(1),
-"update": 1,
-"values": [0]
 }
 
 [sub_resource type="Animation" id="Animation_5uq1k"]
@@ -140,7 +140,23 @@ _data = {
 &"walk_up": SubResource("Animation_ma1ak")
 }
 
+[sub_resource type="SceneReplicationConfig" id="SceneReplicationConfig_5uq1k"]
+properties/0/path = NodePath(".:position")
+properties/0/spawn = true
+properties/0/replication_mode = 1
+properties/1/path = NodePath(".:rotation")
+properties/1/spawn = true
+properties/1/replication_mode = 1
+properties/2/path = NodePath("Sprite2D:scale")
+properties/2/spawn = true
+properties/2/replication_mode = 1
+properties/3/path = NodePath("AnimationPlayer:current_animation")
+properties/3/spawn = true
+properties/3/replication_mode = 2
+
 [node name="Dm" type="CharacterBody2D"]
+scale = Vector2(1.2, 1.2)
+collision_mask = 16
 motion_mode = 1
 script = ExtResource("1_x8nee")
 
@@ -180,3 +196,10 @@ libraries = {
 [node name="Camera2D" type="Camera2D" parent="."]
 limit_smoothed = true
 script = ExtResource("7_5uq1k")
+
+[node name="MultiplayerSynchronizer" type="MultiplayerSynchronizer" parent="."]
+replication_config = SubResource("SceneReplicationConfig_5uq1k")
+
+[node name="AudioStreamPlayer2D" type="AudioStreamPlayer2D" parent="."]
+
+[node name="AudioListener2D" type="AudioListener2D" parent="."]
