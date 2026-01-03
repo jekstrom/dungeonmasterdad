@@ -1,4 +1,4 @@
-[gd_scene load_steps=13 format=3 uid="uid://de1ek0y5wi45g"]
+[gd_scene load_steps=14 format=3 uid="uid://de1ek0y5wi45g"]
 
 [ext_resource type="PackedScene" uid="uid://c10eakv6dta4r" path="res://pickups/pickup.tscn" id="2_wt17y"]
 [ext_resource type="Resource" uid="uid://gcosnbiektbt" path="res://pickups/stone.tres" id="2_ynsuh"]
@@ -12,8 +12,10 @@
 [ext_resource type="PackedScene" uid="uid://dcevmqir2nyr6" path="res://gui/hud.tscn" id="8_v7dth"]
 [ext_resource type="PackedScene" uid="uid://f15sgptli5oi" path="res://gui/dm/dm_hud.tscn" id="9_pi42a"]
 [ext_resource type="PackedScene" uid="uid://bglfuu7ga823v" path="res://gui/player/player_hud.tscn" id="12_te8jg"]
+[ext_resource type="Script" uid="uid://b1w5sp8jtdo2y" path="res://_globals/building_manager.gd" id="13_yjl7g"]
 
 [node name="Playground" type="Node2D"]
+y_sort_enabled = true
 
 [node name="Pickup" parent="." instance=ExtResource("2_wt17y")]
 position = Vector2(89, 71)
@@ -61,3 +63,35 @@ gremlin = ExtResource("7_h1jm5")
 [node name="DmHud" parent="." instance=ExtResource("9_pi42a")]
 
 [node name="PlayerHud" parent="." instance=ExtResource("12_te8jg")]
+
+[node name="Buildings" type="Node2D" parent="." groups=["building_root"]]
+y_sort_enabled = true
+script = ExtResource("13_yjl7g")
+
+[node name="BuildingSpawner" type="MultiplayerSpawner" parent="Buildings"]
+_spawnable_scenes = PackedStringArray("uid://d05hkhchi8k3x")
+spawn_path = NodePath("..")
+
+[node name="Pickup8" parent="." instance=ExtResource("2_wt17y")]
+position = Vector2(89, 136)
+item_data = ExtResource("3_pio1y")
+
+[node name="Pickup9" parent="." instance=ExtResource("2_wt17y")]
+position = Vector2(90, 177)
+item_data = ExtResource("3_pio1y")
+
+[node name="Pickup10" parent="." instance=ExtResource("2_wt17y")]
+position = Vector2(96, 215)
+item_data = ExtResource("3_pio1y")
+
+[node name="Pickup11" parent="." instance=ExtResource("2_wt17y")]
+position = Vector2(132, 136)
+item_data = ExtResource("3_pio1y")
+
+[node name="Pickup12" parent="." instance=ExtResource("2_wt17y")]
+position = Vector2(133, 177)
+item_data = ExtResource("3_pio1y")
+
+[node name="Pickup13" parent="." instance=ExtResource("2_wt17y")]
+position = Vector2(139, 215)
+item_data = ExtResource("3_pio1y")

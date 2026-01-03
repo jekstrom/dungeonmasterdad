@@ -12,7 +12,8 @@ var _direction: Vector2
 var _animation_finished: bool = false
 
 func init() -> void:
-	enemy.enemy_damaged.connect(_on_enemy_damaged)
+	pass
+	#enemy.enemy_damaged.connect(_on_enemy_damaged)
 	
 func enter() -> void:
 	enemy.invulnerable = true

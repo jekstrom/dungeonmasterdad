@@ -9,6 +9,8 @@ var player: Player
 var player_spawned: bool = false
 
 @export var max_inv_slots: int = 8
+@export var reality_level: int = 150
+signal reality_level_changed
 
 # Structure: { peer_id: { "inventory": { "item_id": quantity } } }
 var players_data = {}
@@ -18,12 +20,13 @@ func _ready() -> void:
 	await get_tree().create_timer(0.2).timeout
 	player_spawned = true
 	
-func register_player(id: int):
+func register_player(id: int, player_name: String = "Paper Pusher"):
 	if not multiplayer.is_server(): return
 	
 	# Initialize empty data for new player
 	players_data[id] = {
-		"inventory": {} # Empty dictionary: "id": amount
+		"inventory": {}, # Empty dictionary: "id": amount
+		"name": player_name
 	}
 	print("Player ", id, " registered in Global Manager.")
 	
@@ -59,6 +62,31 @@ func update_client_inventory(new_items: Dictionary):
 	
 	SignalBus.emit_signal("inventory_updated", display_list)
 
+@rpc("authority", "reliable")
+func has_resources(player_id, resource_id, cost) -> bool:
+	if not multiplayer.is_server(): 
+		return false
+	if !players_data.has(player_id): 
+		return false
+	
+	var inventory = players_data[player_id]["inventory"]
+	if !inventory.has(resource_id):
+		return false
+	var x = inventory[resource_id] >= cost
+	print("player has resources? ", x)
+	return x
+	
+@rpc("authority", "reliable")
+func consume_resources(player_id, resource_id, cost) -> void:
+	if not multiplayer.is_server(): 
+		return
+	if !players_data.has(player_id): 
+		return
+			
+	var inventory = players_data[player_id]["inventory"]
+	inventory[resource_id] -= cost
+	update_client_inventory.rpc_id(player_id, inventory)
+	
 func add_player_instance() -> void:
 	pass
 	#dm = __DM__.instantiate()
@@ -79,3 +107,13 @@ func set_as_parent(p: Node2D) -> void:
 
 func unparent_player(p: Node2D) -> void:
 	p.remove_child(player)
+
+func update_reality_level(level_inc: int) -> void:
+	if multiplayer.is_server():
+		reality_level += level_inc
+		request_reality_level_incrase.rpc(reality_level)
+
+@rpc("authority", "call_local", "reliable")
+func request_reality_level_incrase(new_reality_level: int):
+		reality_level = new_reality_level
+		reality_level_changed.emit()

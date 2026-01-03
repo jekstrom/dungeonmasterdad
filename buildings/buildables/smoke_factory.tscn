@@ -1,0 +1,178 @@
+[gd_scene load_steps=11 format=3 uid="uid://d05hkhchi8k3x"]
+
+[ext_resource type="Script" uid="uid://dje1bagil86a" path="res://buildings/buildables/smoke_factory.gd" id="1_kt0lt"]
+[ext_resource type="Texture2D" uid="uid://n3gnmd2exhuq" path="res://sprites/smoke_factory.png" id="1_o2stp"]
+[ext_resource type="Texture2D" uid="uid://berqw7xmhodgo" path="res://sprites/smoke_anim.png" id="2_sj170"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_hdexe"]
+size = Vector2(116, 69)
+
+[sub_resource type="SceneReplicationConfig" id="SceneReplicationConfig_o2stp"]
+properties/0/path = NodePath(".:position")
+properties/0/spawn = true
+properties/0/replication_mode = 1
+properties/1/path = NodePath("AnimationPlayer:current_animation")
+properties/1/spawn = true
+properties/1/replication_mode = 1
+properties/2/path = NodePath("Sprite2D2:position")
+properties/2/spawn = true
+properties/2/replication_mode = 1
+properties/3/path = NodePath("Sprite2D3:position")
+properties/3/spawn = true
+properties/3/replication_mode = 1
+properties/4/path = NodePath("CollisionShape2D:disabled")
+properties/4/spawn = true
+properties/4/replication_mode = 2
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_k0ohe"]
+atlas = ExtResource("2_sj170")
+
+[sub_resource type="Animation" id="Animation_kt0lt"]
+resource_name = "idle"
+
+[sub_resource type="Animation" id="Animation_ob6fj"]
+resource_name = "smoke"
+length = 1.2
+loop_mode = 1
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Sprite2D2:frame")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0.033333335, 1.0333333),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [0, 6]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("Sprite2D2:visible")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0.06666666, 1.0333333),
+"transitions": PackedFloat32Array(1, 1),
+"update": 1,
+"values": [true, false]
+}
+tracks/2/type = "value"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("Sprite2D3:frame")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"times": PackedFloat32Array(0.23333333, 1.2),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [0, 6]
+}
+tracks/3/type = "value"
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/path = NodePath("Sprite2D3:visible")
+tracks/3/interp = 1
+tracks/3/loop_wrap = true
+tracks/3/keys = {
+"times": PackedFloat32Array(0.26666668, 1.1333333),
+"transitions": PackedFloat32Array(1, 1),
+"update": 1,
+"values": [true, false]
+}
+
+[sub_resource type="Animation" id="Animation_6f5ed"]
+length = 0.001
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Sprite2D2:frame")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": [2]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("Sprite2D2:visible")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": [true]
+}
+tracks/2/type = "value"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("Sprite2D3:frame")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": [3]
+}
+tracks/3/type = "value"
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/path = NodePath("Sprite2D3:visible")
+tracks/3/interp = 1
+tracks/3/loop_wrap = true
+tracks/3/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": [true]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_i4axp"]
+_data = {
+&"RESET": SubResource("Animation_6f5ed"),
+&"idle": SubResource("Animation_kt0lt"),
+&"smoke": SubResource("Animation_ob6fj")
+}
+
+[node name="SmokeFactory" type="StaticBody2D"]
+y_sort_enabled = true
+script = ExtResource("1_kt0lt")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+y_sort_enabled = true
+position = Vector2(0, -55)
+texture = ExtResource("1_o2stp")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+y_sort_enabled = true
+position = Vector2(5, -35)
+shape = SubResource("RectangleShape2D_hdexe")
+
+[node name="MultiplayerSynchronizer" type="MultiplayerSynchronizer" parent="."]
+replication_config = SubResource("SceneReplicationConfig_o2stp")
+
+[node name="Sprite2D2" type="Sprite2D" parent="."]
+z_index = 1
+texture = SubResource("AtlasTexture_k0ohe")
+offset = Vector2(8, -158)
+hframes = 7
+frame = 2
+
+[node name="Sprite2D3" type="Sprite2D" parent="."]
+z_index = 1
+texture = SubResource("AtlasTexture_k0ohe")
+offset = Vector2(32, -158)
+hframes = 7
+frame = 3
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="."]
+libraries = {
+&"": SubResource("AnimationLibrary_i4axp")
+}

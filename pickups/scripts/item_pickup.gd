@@ -45,7 +45,10 @@ func pick_up_request(item_path: String) -> void:
 		handle_pickup(sender_id, picked_up_item_data)
 
 func handle_pickup(sender_id: int, picked_up_item_data: ItemData) -> void:
-	PlayerManager.add_item_to_inventory(sender_id, picked_up_item_data)
+	if picked_up_item_data.auto_use:
+		picked_up_item_data.use()
+	else:
+		PlayerManager.add_item_to_inventory(sender_id, picked_up_item_data)
 	AudioManager.play_private_sound(sender_id, item_data.pickup_sound.resource_path, Vector2(0.6, 1.0))
 	update_client.rpc()
 

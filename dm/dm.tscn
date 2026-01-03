@@ -153,10 +153,12 @@ properties/2/replication_mode = 1
 properties/3/path = NodePath("AnimationPlayer:current_animation")
 properties/3/spawn = true
 properties/3/replication_mode = 2
+properties/4/path = NodePath("Label:text")
+properties/4/spawn = true
+properties/4/replication_mode = 1
 
 [node name="Dm" type="CharacterBody2D"]
 scale = Vector2(1.2, 1.2)
-collision_mask = 16
 motion_mode = 1
 script = ExtResource("1_x8nee")
 
@@ -196,6 +198,18 @@ libraries = {
 [node name="Camera2D" type="Camera2D" parent="."]
 limit_smoothed = true
 script = ExtResource("7_5uq1k")
+
+[node name="Label" type="Label" parent="."]
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -20.0
+offset_top = -65.0
+offset_right = 20.0
+offset_bottom = -42.0
+grow_horizontal = 2
+text = "DM"
+horizontal_alignment = 1
 
 [node name="MultiplayerSynchronizer" type="MultiplayerSynchronizer" parent="."]
 replication_config = SubResource("SceneReplicationConfig_5uq1k")

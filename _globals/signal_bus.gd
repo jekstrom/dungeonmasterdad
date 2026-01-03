@@ -1,7 +1,9 @@
 extends Node
 
-# --- Inventory Signals ---
-# Emitted when the local player's inventory changes. 
-# 'display_list' will be an Array of Dictionaries: [{"data": ItemData, "quantity": int}]
+@warning_ignore("unused_signal")
 signal inventory_updated(display_list: Array)
+@warning_ignore("unused_signal")
 signal inventory_slots_changed
+@warning_ignore("unused_signal")
+signal build_smoke_building_pressed
+signal on_name_changed(new_name: String)

@@ -15,6 +15,7 @@ metadata/_custom_type_script = "uid://ck4u8bnbc3nrs"
 script = ExtResource("2_fc10j")
 name = "Stone"
 description = "Do the Dew!"
+auto_use = true
 pickup_char = "dm_only"
 pickup_sound = ExtResource("3_aau02")
 texture = ExtResource("3_fc10j")

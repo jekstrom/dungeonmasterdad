@@ -17,6 +17,7 @@ signal DirectionChanged(new_direction: Vector2)
 @onready var animation_player: AnimationPlayer = $AnimationPlayer
 @onready var sprite: Sprite2D = $Sprite2D
 @onready var audio_stream_player_2d: AudioStreamPlayer2D = $AudioStreamPlayer2D
+@onready var label: Label = $Label
 
 #func _enter_tree() -> void:
 	#var id: int = name.to_int()
@@ -31,6 +32,7 @@ func _ready() -> void:
 		
 	DmManager.dm = self
 	state_machine.Initialize(self)
+	label.text = DmManager.dm_player_name
 
 func _process(_delta: float) -> void:
 	if !is_multiplayer_authority(): return

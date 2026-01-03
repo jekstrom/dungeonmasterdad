@@ -10,6 +10,7 @@ var dm: DM
 signal fantasy_level_changed
 signal spawn_gremlin_cast
 var player_spawned: bool = false
+var dm_player_name: String = "DM"
 
 func _ready() -> void:
 	add_player_instance()

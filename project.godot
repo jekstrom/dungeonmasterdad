@@ -27,6 +27,8 @@ DmHud="*res://gui/dm/dm_hud.tscn"
 PlayerHud="*res://gui/player/player_hud.tscn"
 ItemDatabase="*res://_globals/item_database.gd"
 AudioManager="*res://_globals/audio_manager.gd"
+BuildingDatabase="*res://_globals/building_database.gd"
+BuildingManager="*res://_globals/building_manager.gd"
 
 [input]
 
@@ -58,4 +60,9 @@ attack={
 interact={
 "deadzone": 0.2,
 "events": []
+}
+primary_click={
+"deadzone": 0.2,
+"events": [Object(InputEventMouseButton,"resource_local_to_scene":false,"resource_name":"","device":-1,"window_id":0,"alt_pressed":false,"shift_pressed":false,"ctrl_pressed":false,"meta_pressed":false,"button_mask":0,"position":Vector2(0, 0),"global_position":Vector2(0, 0),"factor":1.0,"button_index":1,"canceled":false,"pressed":false,"double_click":false,"script":null)
+]
 }
