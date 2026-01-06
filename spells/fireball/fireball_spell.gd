@@ -36,12 +36,14 @@ func explode() -> void:
 	set_deferred("monitorable", false)
 	collision_shape_2d.set_deferred("disabled", true)
 	animation_player.play("explode")
-	var explosion_data = {
-		"type": "fire",
-		"damage": base_damage,
-		"radius": radius,
-	}
-	SignalBus.on_explosion.emit(position, explosion_data)
+	
+	if multiplayer.is_server():
+		var explosion_data = {
+			"type": "fire",
+			"damage": base_damage,
+			"radius": radius,
+		}
+		SignalBus.on_explosion.emit(position, explosion_data)
 	
 	await animation_player.animation_finished
 	queue_free()

@@ -19,7 +19,6 @@ config/features=PackedStringArray("4.5", "Forward Plus")
 SignalBus="*res://_globals/signal_bus.gd"
 Lobby="*res://lobby.gd"
 DmManager="*res://_globals/dm_manager.gd"
-LevelManager="*res://_globals/level_manager.gd"
 PlayerManager="*res://_globals/player_manager.gd"
 Hud="*res://gui/hud.tscn"
 DmHud="*res://gui/dm/dm_hud.tscn"

@@ -112,7 +112,6 @@ func play_audio(_stream: AudioStream) -> void:
 	
 func _unhandled_input(event: InputEvent) -> void:
 	if multiplayer.is_server() and event.is_action_pressed("primary_click") and current_targeting:
-		print("spell cast for ", targeting_scene.resource_path)
 		var spell_data = {
 			"shooter_id" = multiplayer.get_unique_id(),
 			"position" = global_position,
