@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="ItemData" load_steps=7 format=3 uid="uid://cqjdx83ncdyeg"]
+
+[ext_resource type="Script" uid="uid://doufrhqnamgde" path="res://pickups/scripts/item_effect.gd" id="1_le3f8"]
+[ext_resource type="Script" uid="uid://btrv73kasfmrb" path="res://pickups/effects/unlock_fireball.gd" id="2_ccc0r"]
+[ext_resource type="Script" uid="uid://cvwjr6lvvdlry" path="res://pickups/scripts/item_data.gd" id="2_g7pqa"]
+[ext_resource type="AudioStream" uid="uid://cc7ca0piwffml" path="res://pickups/powerUp.wav" id="3_s6cwy"]
+[ext_resource type="Texture2D" uid="uid://d1k0evdaenwr4" path="res://pickups/codered/codered.png" id="5_n5cqj"]
+
+[sub_resource type="Resource" id="Resource_3xf1x"]
+script = ExtResource("2_ccc0r")
+metadata/_custom_type_script = "uid://btrv73kasfmrb"
+
+[resource]
+script = ExtResource("2_g7pqa")
+name = "Code Red"
+description = "Burns like fire"
+auto_use = true
+pickup_char = "dm_only"
+pickup_sound = ExtResource("3_s6cwy")
+texture = ExtResource("5_n5cqj")
+effects = Array[ExtResource("1_le3f8")]([SubResource("Resource_3xf1x")])
+metadata/_custom_type_script = "uid://cvwjr6lvvdlry"

@@ -24,9 +24,10 @@ func _physics_process(delta: float) -> void:
 func on_body_entered(_body) -> void:
 	if _body is DM and item_data != null and (item_data.pickup_char.is_empty() or item_data.pickup_char == "dm_only"):
 		handle_pickup(1, item_data)
+		area_2d.body_entered.disconnect(on_body_entered)
 	if _body is Player and item_data != null and (item_data.pickup_char.is_empty() or item_data.pickup_char == "player_only"):
 		try_pick_up(item_data)
-	area_2d.body_entered.disconnect(on_body_entered)
+		area_2d.body_entered.disconnect(on_body_entered)
 
 func try_pick_up(picked_up_item_data: ItemData):
 	# Send a request to the server with the item's unique name or ID

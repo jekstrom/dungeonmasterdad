@@ -6,11 +6,27 @@ var direction: Vector2 = Vector2.ZERO
 var invulnerable: bool = false
 var hitpoints: int = 6
 var max_hp: int = 6
+
 @onready var camera_2d: PlayerCamera = $Camera2D
+@onready var label: Label = $Label
 
 var current_building_data: BuildingData
 var ghost_building: Node2D
 
+@export var sync_name: String:
+	set(val):
+		sync_name = val
+		var name_label = get_node_or_null("Label")
+		if name_label:
+			name_label.text = val
+			
+@export var sync_color: Color:
+	set(val):
+		sync_color = val
+		var name_label = get_node_or_null("Label")
+		if name_label:
+			name_label.self_modulate = val
+			
 @onready var state_machine: PlayerStateMachine = $PlayerStateMachine
 signal DirectionChanged(new_direction: Vector2)
 
@@ -27,10 +43,25 @@ func _ready() -> void:
 	else:
 		camera_2d.enabled = false
 		
-	PlayerManager.player = self
 	state_machine.Initialize(self)
 	SignalBus.build_smoke_building_pressed.connect(setup_building)
 
+	await get_tree().process_frame
+	if not multiplayer.is_server() and is_multiplayer_authority():
+		request_name_fix.rpc_id(1)
+	label.text = sync_name
+	label.self_modulate = sync_color
+	
+@rpc("any_peer", "reliable")
+func request_name_fix():
+	if not multiplayer.is_server(): return
+	update_client_name.rpc(sync_name, sync_color)
+	
+@rpc("any_peer", "reliable")
+func update_client_name(n, c):
+	sync_name = n
+	sync_color = c
+	
 func _process(_delta: float) -> void:
 	if !is_multiplayer_authority(): return
 	if current_building_data:
@@ -42,8 +73,15 @@ func _process(_delta: float) -> void:
 
 func setup_building():
 	current_building_data = load("res://buildings/buildables/SmokeFactory.tres")
+	if ghost_building:
+		remove_child(ghost_building)
+		ghost_building = null
 	ghost_building = current_building_data.scene.instantiate()
 	ghost_building.name = "ghost"
+	var collision = ghost_building.get_node_or_null("CollisionShape2D")
+	if collision:
+		collision.disabled = true
+	
 	add_child(ghost_building)
 	ghost_building.set_ghost()
 	

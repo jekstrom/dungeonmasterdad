@@ -6,7 +6,7 @@ extends Node
 #signal interact_pressed
 
 var dm: DM
-@export var fantasy_level: int = 100
+@export var fantasy_level: int = 0
 signal fantasy_level_changed
 signal spawn_gremlin_cast
 var player_spawned: bool = false
@@ -40,6 +40,12 @@ func update_fantasy_level(level_inc: int) -> void:
 		fantasy_level += level_inc
 		request_fantasy_level_incrase.rpc(fantasy_level)
 		
+func unlock_fireball() -> void:
+	if multiplayer.is_server():
+		DmUnlocks.unlock_fireball()
+		SignalBus.on_dm_unlock.emit("fireball")
+		request_fantasy_level_incrase.rpc(fantasy_level)
+		
 func spawn_gremlin() -> void:
 	if multiplayer.is_server():
 		spawn_gremlin_cast.emit()
@@ -47,4 +53,4 @@ func spawn_gremlin() -> void:
 @rpc("authority", "call_local", "reliable")
 func request_fantasy_level_incrase(new_fantasy_level: int):
 		fantasy_level = new_fantasy_level
-		fantasy_level_changed.emit()
+		fantasy_level_changed.emit(new_fantasy_level)

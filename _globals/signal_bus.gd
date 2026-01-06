@@ -6,4 +6,7 @@ signal inventory_updated(display_list: Array)
 signal inventory_slots_changed
 @warning_ignore("unused_signal")
 signal build_smoke_building_pressed
-signal on_name_changed(new_name: String)
+signal on_dm_unlock(unlock_name: String)
+signal start_spell_cast(spell_id: String)
+signal spell_cast(spell_id: String, spell_data: Dictionary)
+signal on_explosion(position: Vector2, data: Dictionary)

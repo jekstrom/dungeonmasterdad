@@ -13,7 +13,6 @@ config_version=5
 config/name="dungeon_master_dad"
 run/main_scene="uid://de1ek0y5wi45g"
 config/features=PackedStringArray("4.5", "Forward Plus")
-config/icon="res://icon.svg"
 
 [autoload]
 
@@ -29,6 +28,8 @@ ItemDatabase="*res://_globals/item_database.gd"
 AudioManager="*res://_globals/audio_manager.gd"
 BuildingDatabase="*res://_globals/building_database.gd"
 BuildingManager="*res://_globals/building_manager.gd"
+PlayerData="*res://_globals/player_data.gd"
+DmUnlocks="*res://_globals/DMUnlocks.gd"
 
 [input]
 
@@ -66,3 +67,7 @@ primary_click={
 "events": [Object(InputEventMouseButton,"resource_local_to_scene":false,"resource_name":"","device":-1,"window_id":0,"alt_pressed":false,"shift_pressed":false,"ctrl_pressed":false,"meta_pressed":false,"button_mask":0,"position":Vector2(0, 0),"global_position":Vector2(0, 0),"factor":1.0,"button_index":1,"canceled":false,"pressed":false,"double_click":false,"script":null)
 ]
 }
+
+[rendering]
+
+textures/canvas_textures/default_texture_filter=0

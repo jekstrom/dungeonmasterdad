@@ -1,43 +1,25 @@
 extends Node
 
-var current_tilemap_bounds: Rect2i
-var target_transition: String
-var position_offset: Vector2
-
-signal TilemapBoundsChanged(bounds: Rect2i)
-signal level_load_started
-signal level_loaded
 
 func _ready() -> void:
-	await get_tree().process_frame
-	level_loaded.emit()
+	SignalBus.on_explosion.connect(on_explosion)
+	
+func on_explosion(position: Vector2, explosion_data: Dictionary) -> void:
+	explosion_data["position"] = position
+	handle_explosion.rpc_id(1, explosion_data)
 
-func ChangeTilemapBounds(bounds: Rect2i) -> void:
-	current_tilemap_bounds = bounds
-	TilemapBoundsChanged.emit(bounds)
+@rpc("any_peer", "call_remote", "reliable")
+func handle_explosion(explosion_data: Dictionary) -> void:
+	if !multiplayer.is_server(): return
+	print("checking if any players were hit...")
 
-func load_new_level(
-	level_path: String,
-	_target_transition: String,
-	_position_offset: Vector2
-) -> void:
-	get_tree().paused = true
-	self.target_transition = _target_transition
-	self.position_offset = _position_offset
-	
-	#await SceneTransition.fade_out()
-	
-	level_load_started.emit()
-	
-	# Wait for the current level to be removed
-	await get_tree().process_frame
-
-	get_tree().change_scene_to_file(level_path)
-	
-	#await SceneTransition.fade_in()
-	
-	get_tree().paused = false
-	
-	await get_tree().process_frame
-	
-	level_loaded.emit()
+	for player_id in PlayerManager.players_data.keys():
+		print("player_id ", player_id)
+		var player_node = get_node_or_null(str(player_id)) as Node2D
+		if !player_node or !player_node is Player: continue
+		print("found player ", player_node.name)
+		print("player pos: ", player_node.position, " fireball pos",explosion_data.position)
+		if player_node.position.distance_to(explosion_data.position) <= explosion_data.radius:
+			print("player ", player_id, " hit!")
+			PlayerManager.update_reality_level(-explosion_data.damage)
+			

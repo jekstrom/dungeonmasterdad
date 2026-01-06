@@ -7,8 +7,6 @@ var focus_index: int = 0
 @export var data: InventoryData
 
 func _ready() -> void:
-	#PauseMenu.shown.connect(update_inventory)
-	#PauseMenu.hidden.connect(clear_inventory)
 	data.slots.resize(PlayerManager.max_inv_slots)
 
 	update_inventory()
@@ -28,7 +26,6 @@ func update_inventory() -> void:
 			new_slot.focus_entered.connect(item_focus)
 			
 		await get_tree().process_frame
-		#get_child(focus_index).grab_focus()
 
 func on_inventory_changed() -> void:
 	clear_inventory()

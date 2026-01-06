@@ -27,12 +27,15 @@ color = Color(0, 0.8, 0.3254902, 1)
 
 [node name="Label" type="Label" parent="MarginContainer/HBoxContainer/FantasyBar"]
 layout_mode = 1
-anchors_preset = 13
+anchors_preset = 8
 anchor_left = 0.5
+anchor_top = 0.5
 anchor_right = 0.5
-anchor_bottom = 1.0
+anchor_bottom = 0.5
 offset_left = -52.0
+offset_top = -10.0
 offset_right = 52.0
+offset_bottom = 10.0
 grow_horizontal = 2
 grow_vertical = 2
 theme_override_constants/outline_size = 2
@@ -50,16 +53,20 @@ size_flags_vertical = 0
 [node name="RealityBar" type="ColorRect" parent="MarginContainer/HBoxContainer"]
 custom_minimum_size = Vector2(150, 0)
 layout_mode = 2
+size_flags_horizontal = 4
 color = Color(0.40045854, 0.41794884, 0.40254727, 1)
 
 [node name="Label" type="Label" parent="MarginContainer/HBoxContainer/RealityBar"]
 layout_mode = 1
-anchors_preset = 13
+anchors_preset = 8
 anchor_left = 0.5
+anchor_top = 0.5
 anchor_right = 0.5
-anchor_bottom = 1.0
+anchor_bottom = 0.5
 offset_left = -56.0
+offset_top = -11.5
 offset_right = 56.0
+offset_bottom = 11.5
 grow_horizontal = 2
 grow_vertical = 2
 theme_override_constants/outline_size = 2

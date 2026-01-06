@@ -1,25 +1,44 @@
-[gd_scene load_steps=14 format=3 uid="uid://de1ek0y5wi45g"]
+[gd_scene load_steps=21 format=3 uid="uid://de1ek0y5wi45g"]
 
+[ext_resource type="PackedScene" uid="uid://diumvk6jwwd5v" path="res://zones/fantasy_zone.tscn" id="1_jgc46"]
+[ext_resource type="Script" uid="uid://both0q8u44cig" path="res://_globals/level_manager.gd" id="1_x6kx1"]
+[ext_resource type="PackedScene" uid="uid://buko4j3660uce" path="res://zones/reality_zone.tscn" id="2_dk0co"]
 [ext_resource type="PackedScene" uid="uid://c10eakv6dta4r" path="res://pickups/pickup.tscn" id="2_wt17y"]
 [ext_resource type="Resource" uid="uid://gcosnbiektbt" path="res://pickups/stone.tres" id="2_ynsuh"]
-[ext_resource type="Texture2D" uid="uid://d1k0evdaenwr4" path="res://pickups/codered/codered.png" id="3_m8u5f"]
 [ext_resource type="Resource" uid="uid://dytlyalc52742" path="res://pickups/metal.tres" id="3_pio1y"]
+[ext_resource type="Resource" uid="uid://dosi8bfvfl0fr" path="res://pickups/d20.tres" id="4_f7pug"]
 [ext_resource type="PackedScene" uid="uid://cof1o04wsy0rc" path="res://player/player.tscn" id="4_is3ju"]
 [ext_resource type="Script" uid="uid://b2nf43frwech" path="res://scripts/multiplayer_spawner.gd" id="5_o00ia"]
+[ext_resource type="Resource" uid="uid://cqjdx83ncdyeg" path="res://pickups/code_red.tres" id="5_pactg"]
 [ext_resource type="PackedScene" uid="uid://dsls3d0radb5f" path="res://dm/dm.tscn" id="5_ynsuh"]
 [ext_resource type="PackedScene" uid="uid://ckwsvw4g8ewvf" path="res://game.tscn" id="6_4bqqs"]
 [ext_resource type="PackedScene" uid="uid://c5avpnnd3seqn" path="res://goblin/goblin.tscn" id="7_h1jm5"]
+[ext_resource type="Resource" uid="uid://qrv5pa041q1s" path="res://pickups/d6.tres" id="7_pactg"]
 [ext_resource type="PackedScene" uid="uid://dcevmqir2nyr6" path="res://gui/hud.tscn" id="8_v7dth"]
 [ext_resource type="PackedScene" uid="uid://f15sgptli5oi" path="res://gui/dm/dm_hud.tscn" id="9_pi42a"]
 [ext_resource type="PackedScene" uid="uid://bglfuu7ga823v" path="res://gui/player/player_hud.tscn" id="12_te8jg"]
+[ext_resource type="PackedScene" uid="uid://si6i5r1yric1" path="res://spells/fireball/fireball_spell.tscn" id="13_ycdrs"]
 [ext_resource type="Script" uid="uid://b1w5sp8jtdo2y" path="res://_globals/building_manager.gd" id="13_yjl7g"]
+[ext_resource type="Script" uid="uid://7l00cqarwjaa" path="res://scripts/projectile_spawner.gd" id="18_ycdrs"]
 
 [node name="Playground" type="Node2D"]
 y_sort_enabled = true
+script = ExtResource("1_x6kx1")
+
+[node name="FantasyZone" parent="." instance=ExtResource("1_jgc46")]
+position = Vector2(284, 294)
+
+[node name="RealityZone" parent="." instance=ExtResource("2_dk0co")]
+position = Vector2(483, 105)
+radius = 200.0
 
 [node name="Pickup" parent="." instance=ExtResource("2_wt17y")]
 position = Vector2(89, 71)
 item_data = ExtResource("2_ynsuh")
+
+[node name="Pickup22" parent="." instance=ExtResource("2_wt17y")]
+position = Vector2(37, 72)
+item_data = ExtResource("5_pactg")
 
 [node name="Pickup3" parent="." instance=ExtResource("2_wt17y")]
 position = Vector2(141, 73)
@@ -41,12 +60,37 @@ item_data = ExtResource("3_pio1y")
 position = Vector2(54, 215)
 item_data = ExtResource("3_pio1y")
 
-[node name="Pickup2" parent="." instance=ExtResource("2_wt17y")]
-position = Vector2(48, 80)
+[node name="Pickup14" parent="." instance=ExtResource("2_wt17y")]
+position = Vector2(54, 296)
+item_data = ExtResource("4_f7pug")
 
-[node name="Sprite2D2" type="Sprite2D" parent="Pickup2"]
-texture_filter = 1
-texture = ExtResource("3_m8u5f")
+[node name="Pickup15" parent="." instance=ExtResource("2_wt17y")]
+position = Vector2(99, 299)
+item_data = ExtResource("4_f7pug")
+
+[node name="Pickup16" parent="." instance=ExtResource("2_wt17y")]
+position = Vector2(92, 372)
+item_data = ExtResource("7_pactg")
+
+[node name="Pickup17" parent="." instance=ExtResource("2_wt17y")]
+position = Vector2(138, 372)
+item_data = ExtResource("7_pactg")
+
+[node name="Pickup18" parent="." instance=ExtResource("2_wt17y")]
+position = Vector2(138, 417)
+item_data = ExtResource("7_pactg")
+
+[node name="Pickup19" parent="." instance=ExtResource("2_wt17y")]
+position = Vector2(91, 419)
+item_data = ExtResource("7_pactg")
+
+[node name="Pickup20" parent="." instance=ExtResource("2_wt17y")]
+position = Vector2(39, 420)
+item_data = ExtResource("7_pactg")
+
+[node name="Pickup21" parent="." instance=ExtResource("2_wt17y")]
+position = Vector2(39, 373)
+item_data = ExtResource("7_pactg")
 
 [node name="MultiplayerSpawner" type="MultiplayerSpawner" parent="."]
 _spawnable_scenes = PackedStringArray("uid://cof1o04wsy0rc", "uid://dsls3d0radb5f", "uid://c5avpnnd3seqn")
@@ -95,3 +139,11 @@ item_data = ExtResource("3_pio1y")
 [node name="Pickup13" parent="." instance=ExtResource("2_wt17y")]
 position = Vector2(139, 215)
 item_data = ExtResource("3_pio1y")
+
+[node name="Projectiles" type="Node2D" parent="."]
+
+[node name="ProjectileSpawner" type="MultiplayerSpawner" parent="Projectiles"]
+_spawnable_scenes = PackedStringArray("uid://si6i5r1yric1")
+spawn_path = NodePath("..")
+script = ExtResource("18_ycdrs")
+projectile_scene = ExtResource("13_ycdrs")

@@ -6,5 +6,3 @@ class_name ItemEffectHeal extends ItemEffect
 func use() -> void:
 	print("used")
 	DmManager.update_fantasy_level(50)
-	#PlayerManager.player.update_hitpoints(heal_amount)
-	#DmManager.dm.play_audio(sound)

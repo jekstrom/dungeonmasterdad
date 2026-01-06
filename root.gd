@@ -10,15 +10,12 @@ func _ready():
 	Hud.turn_off()
 	start_button.pressed.connect(start_game)
 	join_button.pressed.connect(join)
-	line_edit.text_changed.connect(on_name_changed)
 	
-func on_name_changed(new_text: String) -> void:
-	SignalBus.on_name_changed.emit(new_text)
-
 func start_game():
 	print("start game")
 	if multiplayer.is_server():
-		Lobby.start_host()
+		PlayerData.player_name = line_edit.text
+		Lobby.start_host(PlayerData.player_name)
 		Hud.turn_on()
 		if multiplayer.is_server():
 			DmHud.turn_on()
@@ -26,6 +23,7 @@ func start_game():
 	
 func join():
 	print("join")
+	PlayerData.player_name = line_edit.text
 	Lobby.start_client()
 	Hud.turn_on()
 	if !multiplayer.is_server():

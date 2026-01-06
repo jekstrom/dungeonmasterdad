@@ -9,7 +9,7 @@ var player: Player
 var player_spawned: bool = false
 
 @export var max_inv_slots: int = 8
-@export var reality_level: int = 150
+@export var reality_level: int = 0
 signal reality_level_changed
 
 # Structure: { peer_id: { "inventory": { "item_id": quantity } } }
@@ -20,16 +20,19 @@ func _ready() -> void:
 	await get_tree().create_timer(0.2).timeout
 	player_spawned = true
 	
-func register_player(id: int, player_name: String = "Paper Pusher"):
+func register_player(id: int, player_name: String):
 	if not multiplayer.is_server(): return
+	
+	if !player_name or player_name.is_empty():
+		player_name = "Paper Pusher"
 	
 	# Initialize empty data for new player
 	players_data[id] = {
-		"inventory": {}, # Empty dictionary: "id": amount
-		"name": player_name
+		"inventory": {},
+		"name": player_name,
 	}
-	print("Player ", id, " registered in Global Manager.")
-	
+	print("Player ", id, " registered in Global Manager with name ", player_name)
+
 func unregister_player(id: int):
 	if multiplayer.is_server() and players_data.has(id):
 		# Optional: Save to disk here before erasing
@@ -51,7 +54,7 @@ func add_item_to_inventory(player_id: int, item_data: ItemData, amount: int = 1)
 		# Sync the entire inventory dictionary to the specific client
 		update_client_inventory.rpc_id(player_id, inventory)
 
-@rpc("authority", "reliable")
+@rpc("authority", "call_local", "reliable")
 func update_client_inventory(new_items: Dictionary):
 	var display_list = []
 	for id in new_items.keys():
@@ -116,4 +119,4 @@ func update_reality_level(level_inc: int) -> void:
 @rpc("authority", "call_local", "reliable")
 func request_reality_level_incrase(new_reality_level: int):
 		reality_level = new_reality_level
-		reality_level_changed.emit()
+		reality_level_changed.emit(new_reality_level)

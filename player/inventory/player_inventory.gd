@@ -16,13 +16,18 @@ func add_item(_item: ItemData, _quantity: int = 1) -> bool:
 	print("adding " + _item.name + " with qty " + str(_quantity))
 
 	for i in slots.size():
-		var new = SlotData.new()
-		new.item_data = _item
-		new.quantity = _quantity
-		new.changed.connect(slot_changed)
-		slots[i] = new
-		SignalBus.inventory_slots_changed.emit()
-		return true
+		if !slots[i]:
+			var new = SlotData.new()
+			new.item_data = _item
+			new.quantity = _quantity
+			new.changed.connect(slot_changed)
+			slots[i] = new
+			SignalBus.inventory_slots_changed.emit()
+			return true
+		elif slots[i].item_data.name == _item.name:
+			slots[i].quantity = _quantity
+			SignalBus.inventory_slots_changed.emit()
+			return true
 			
 	print("inventory was full")
 	return false

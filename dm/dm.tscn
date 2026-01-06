@@ -1,8 +1,10 @@
-[gd_scene load_steps=19 format=3 uid="uid://dsls3d0radb5f"]
+[gd_scene load_steps=21 format=3 uid="uid://dsls3d0radb5f"]
 
 [ext_resource type="Script" uid="uid://ba4nueqw22frb" path="res://dm/dm.gd" id="1_x8nee"]
+[ext_resource type="PackedScene" uid="uid://dldavdu1jtevs" path="res://spells/targeting.tscn" id="2_s1sn4"]
 [ext_resource type="Texture2D" uid="uid://doialox14rv6m" path="res://dm/sprites/PlayerSprite02.png" id="2_xojw3"]
 [ext_resource type="Script" uid="uid://bp2rcr25fqk0b" path="res://dm/scripts/dm_state_machine.gd" id="3_f7x0i"]
+[ext_resource type="PackedScene" uid="uid://si6i5r1yric1" path="res://spells/fireball/fireball_spell.tscn" id="3_rnenc"]
 [ext_resource type="Script" uid="uid://cmnal6wlqesuq" path="res://dm/scripts/dm_idle_state.gd" id="4_g7l52"]
 [ext_resource type="Script" uid="uid://dr1mlo553wqnp" path="res://dm/scripts/dm_walk_state.gd" id="5_1yv43"]
 [ext_resource type="Script" uid="uid://davlq6nrmtd1c" path="res://scripts/hitbox.gd" id="6_wdqou"]
@@ -161,6 +163,8 @@ properties/4/replication_mode = 1
 scale = Vector2(1.2, 1.2)
 motion_mode = 1
 script = ExtResource("1_x8nee")
+targeting_scene = ExtResource("2_s1sn4")
+fireball_spell = ExtResource("3_rnenc")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 position = Vector2(0, -2)
@@ -208,6 +212,7 @@ offset_top = -65.0
 offset_right = 20.0
 offset_bottom = -42.0
 grow_horizontal = 2
+theme_override_constants/outline_size = 3
 text = "DM"
 horizontal_alignment = 1
 

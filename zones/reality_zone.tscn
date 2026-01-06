@@ -1,0 +1,13 @@
+[gd_scene load_steps=3 format=3 uid="uid://buko4j3660uce"]
+
+[ext_resource type="Script" uid="uid://f4aftun4u1fp" path="res://zones/scripts/zone.gd" id="1_efm3j"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_648lk"]
+
+[node name="RealityZone" type="Area2D"]
+script = ExtResource("1_efm3j")
+radius = 123.0
+zone_color = Color(0.27917853, 0.3228467, 0.37614077, 0.3019608)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("CircleShape2D_648lk")
