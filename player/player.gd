@@ -65,11 +65,8 @@ func update_client_name(n, c):
 func _process(_delta: float) -> void:
 	if !is_multiplayer_authority(): return
 	if current_building_data:
-		var mouse_pos = get_global_mouse_position()
-		var snapped_pos = (mouse_pos / 32).floor() * 32
-		snapped_pos.x += 16
-		snapped_pos.y += 16
-		update_ghost(snapped_pos)
+		update_ghost(get_global_mouse_position())
+		queue_redraw()
 
 func setup_building():
 	current_building_data = load("res://buildings/buildables/SmokeFactory.tres")
@@ -85,13 +82,16 @@ func setup_building():
 	add_child(ghost_building)
 	ghost_building.set_ghost()
 	
-func update_ghost(pos):
-	var valid_placement = BuildingManager.is_area_clear(pos, Vector2(BuildingData.building_size, BuildingData.building_size))
+func update_ghost(pos: Vector2):
+	var reality_zone_radius = get_parent().find_child("RealityZone").radius
+	var reality_zone_pos = get_parent().find_child("RealityZone").global_position
+	var valid_placement = BuildingManager.is_area_clear(pos, Vector2(BuildingData.building_size, BuildingData.building_size), reality_zone_radius, reality_zone_pos)
 	if !valid_placement:
 		ghost_building.modulate = Color(1, 0, 0, 0.7)
 	else:
 		ghost_building.modulate = Color(0, 1, 0, 0.7)
-	ghost_building.global_position = pos
+	@warning_ignore("integer_division")
+	ghost_building.global_position = Vector2(pos.x, pos.y + BuildingData.building_size / 2)
 
 func _physics_process(_delta: float) -> void:
 	if !is_multiplayer_authority(): return
@@ -135,7 +135,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		if current_building_data:
 			# Request server to place the building
 			print("request placement for ", current_building_data.resource_path)
-			BuildingManager.request_placement.rpc_id(1, current_building_data.resource_path, ghost_building.global_position)
+			BuildingManager.request_placement.rpc_id(1, current_building_data.resource_path, ghost_building.global_position, get_global_mouse_position())
 			remove_child(ghost_building)
 			current_building_data = null
 			ghost_building = null

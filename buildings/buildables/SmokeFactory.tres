@@ -8,5 +8,5 @@ script = ExtResource("2_8ne3b")
 scene = ExtResource("1_ag6iw")
 cost_item = "res://pickups/metal.tres"
 cost_qty = 3
-size = Vector2i(5, 5)
+size = Vector2i(128, 128)
 metadata/_custom_type_script = "uid://dlerv2lp0i1v8"

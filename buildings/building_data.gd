@@ -6,4 +6,4 @@ class_name BuildingData extends Resource
 @export var cost_qty: int
 @export var size: Vector2i = Vector2i(1, 1) # Size in grid cells
 
-const building_size: int = 128
+const building_size: int = 100

@@ -41,7 +41,7 @@ func setup_targeting(spell_id: String):
 		current_targeting = null
 	current_targeting = targeting_scene.instantiate()
 	current_targeting.name = "reticle"
-	current_targeting.self_modulate = Color.GREEN
+	current_targeting.modulate = Color.RED
 	var collision = current_targeting.get_node_or_null("CollisionShape2D")
 	if collision:
 		collision.disabled = true
@@ -49,22 +49,13 @@ func setup_targeting(spell_id: String):
 	add_child(current_targeting)
 	
 func update_target(pos):
-	var valid_placement = BuildingManager.is_area_clear(pos, Vector2(BuildingData.building_size, BuildingData.building_size))
-	if !valid_placement:
-		current_targeting.modulate = Color(1, 0, 0, 0.7)
-	else:
-		current_targeting.modulate = Color(0, 1, 0, 0.7)
 	current_targeting.global_position = pos
 
 func _process(_delta: float) -> void:
 	if !is_multiplayer_authority(): return
 	if current_targeting:
 		Input.set_mouse_mode(Input.MOUSE_MODE_HIDDEN)
-		var mouse_pos = get_global_mouse_position()
-		var snapped_pos = (mouse_pos / 32).floor() * 32
-		snapped_pos.x += 16
-		snapped_pos.y += 16
-		update_target(snapped_pos)
+		update_target(get_global_mouse_position())
 	else:
 		Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
 	
@@ -114,7 +105,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	if multiplayer.is_server() and event.is_action_pressed("primary_click") and current_targeting:
 		var spell_data = {
 			"shooter_id" = multiplayer.get_unique_id(),
-			"position" = global_position,
+			"position" = Vector2(global_position.x, global_position.y - 16),
 			"target" = current_targeting.global_position,
 			"radius_bonus" = 0,
 			"base_damage_bonus" = 0,

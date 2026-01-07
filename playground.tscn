@@ -1,4 +1,4 @@
-[gd_scene load_steps=21 format=3 uid="uid://de1ek0y5wi45g"]
+[gd_scene load_steps=22 format=3 uid="uid://de1ek0y5wi45g"]
 
 [ext_resource type="PackedScene" uid="uid://diumvk6jwwd5v" path="res://zones/fantasy_zone.tscn" id="1_jgc46"]
 [ext_resource type="Script" uid="uid://both0q8u44cig" path="res://_globals/level_manager.gd" id="1_x6kx1"]
@@ -20,16 +20,18 @@
 [ext_resource type="PackedScene" uid="uid://si6i5r1yric1" path="res://spells/fireball/fireball_spell.tscn" id="13_ycdrs"]
 [ext_resource type="Script" uid="uid://b1w5sp8jtdo2y" path="res://_globals/building_manager.gd" id="13_yjl7g"]
 [ext_resource type="Script" uid="uid://7l00cqarwjaa" path="res://scripts/projectile_spawner.gd" id="18_ycdrs"]
+[ext_resource type="Script" uid="uid://c0kl4pny1scqf" path="res://scripts/debug.gd" id="21_jufm4"]
 
 [node name="Playground" type="Node2D"]
 y_sort_enabled = true
 script = ExtResource("1_x6kx1")
 
-[node name="FantasyZone" parent="." instance=ExtResource("1_jgc46")]
+[node name="FantasyZone" parent="." groups=["FantasyZone"] instance=ExtResource("1_jgc46")]
 position = Vector2(284, 294)
 
-[node name="RealityZone" parent="." instance=ExtResource("2_dk0co")]
-position = Vector2(483, 105)
+[node name="RealityZone" parent="." groups=["RealityZone"] instance=ExtResource("2_dk0co")]
+position = Vector2(183, 74)
+base_radius = 500.0
 is_reality = true
 
 [node name="Pickup" parent="." instance=ExtResource("2_wt17y")]
@@ -147,3 +149,10 @@ _spawnable_scenes = PackedStringArray("uid://si6i5r1yric1")
 spawn_path = NodePath("..")
 script = ExtResource("18_ycdrs")
 projectile_scene = ExtResource("13_ycdrs")
+
+[node name="Label" type="Label" parent="."]
+z_index = 3
+offset_right = 40.0
+offset_bottom = 23.0
+theme_override_constants/outline_size = 2
+script = ExtResource("21_jufm4")
