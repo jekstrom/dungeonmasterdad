@@ -30,7 +30,7 @@ position = Vector2(284, 294)
 
 [node name="RealityZone" parent="." instance=ExtResource("2_dk0co")]
 position = Vector2(483, 105)
-radius = 200.0
+is_reality = true
 
 [node name="Pickup" parent="." instance=ExtResource("2_wt17y")]
 position = Vector2(89, 71)

@@ -1,6 +1,6 @@
 [gd_scene load_steps=5 format=3 uid="uid://cg07bcpcvvf2m"]
 
-[ext_resource type="Script" uid="uid://both0q8u44cig" path="res://_globals/level_manager.gd" id="1_32kj6"]
+[ext_resource type="Script" uid="uid://vxo50nksb1l8" path="res://spells/damage_numbers.gd" id="1_32kj6"]
 
 [sub_resource type="Animation" id="Animation_jxhx4"]
 resource_name = "rising"
@@ -65,13 +65,13 @@ _data = {
 [node name="Node2D" type="Node2D"]
 
 [node name="DamageNumber" type="Label" parent="."]
+self_modulate = Color(1, 0.105882354, 0.08235294, 1)
 z_index = 1
 offset_left = 553.0
 offset_right = 599.0
 offset_bottom = 23.0
 size_flags_horizontal = 0
-theme_override_colors/font_color = Color(1, 0.14509805, 0.16862746, 1)
-theme_override_constants/outline_size = 2
+theme_override_constants/outline_size = 3
 text = "55555"
 horizontal_alignment = 1
 script = ExtResource("1_32kj6")

@@ -5,8 +5,8 @@
 [sub_resource type="CircleShape2D" id="CircleShape2D_648lk"]
 
 [node name="RealityZone" type="Area2D"]
+z_index = -1
 script = ExtResource("1_efm3j")
-radius = 123.0
 zone_color = Color(0.27917853, 0.3228467, 0.37614077, 0.3019608)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]

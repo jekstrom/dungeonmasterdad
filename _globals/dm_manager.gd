@@ -7,7 +7,7 @@ extends Node
 
 var dm: DM
 @export var fantasy_level: int = 0
-signal fantasy_level_changed
+signal fantasy_level_changed(new_fantasy_level: int)
 signal spawn_gremlin_cast
 var player_spawned: bool = false
 var dm_player_name: String = "DM"

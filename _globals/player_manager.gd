@@ -10,7 +10,7 @@ var player_spawned: bool = false
 
 @export var max_inv_slots: int = 8
 @export var reality_level: int = 0
-signal reality_level_changed
+signal reality_level_changed(new_reality_level: int)
 
 # Structure: { peer_id: { "inventory": { "item_id": quantity } } }
 var players_data = {}
