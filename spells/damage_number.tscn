@@ -1,0 +1,83 @@
+[gd_scene load_steps=5 format=3 uid="uid://cg07bcpcvvf2m"]
+
+[ext_resource type="Script" uid="uid://both0q8u44cig" path="res://_globals/level_manager.gd" id="1_32kj6"]
+
+[sub_resource type="Animation" id="Animation_jxhx4"]
+resource_name = "rising"
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath(".:position")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 1),
+"transitions": PackedFloat32Array(1, 0.5),
+"update": 0,
+"values": [Vector2(-23, -50), Vector2(-23, -200)]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath(".:modulate")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0, 1),
+"transitions": PackedFloat32Array(1, 0.5),
+"update": 0,
+"values": [Color(1, 1, 1, 1), Color(1, 1, 1, 0)]
+}
+
+[sub_resource type="Animation" id="Animation_32kj6"]
+length = 0.001
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath(".:position")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Vector2(553, 0)]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath(".:modulate")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Color(1, 1, 1, 1)]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_u1cl0"]
+_data = {
+&"RESET": SubResource("Animation_32kj6"),
+&"rising": SubResource("Animation_jxhx4")
+}
+
+[node name="Node2D" type="Node2D"]
+
+[node name="DamageNumber" type="Label" parent="."]
+z_index = 1
+offset_left = 553.0
+offset_right = 599.0
+offset_bottom = 23.0
+size_flags_horizontal = 0
+theme_override_colors/font_color = Color(1, 0.14509805, 0.16862746, 1)
+theme_override_constants/outline_size = 2
+text = "55555"
+horizontal_alignment = 1
+script = ExtResource("1_32kj6")
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="DamageNumber"]
+libraries = {
+&"": SubResource("AnimationLibrary_u1cl0")
+}
+autoplay = "rising"
