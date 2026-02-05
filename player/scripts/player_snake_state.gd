@@ -1,272 +1,399 @@
 class_name PlayerSnakeState extends PlayerState
 
 @export var move_speed: float = 100.0
-@export var trail_interval: float = 16.0  # Distance between trail points
-@export var main_sprite: Sprite2D  # Set from scene file
+@export var trail_interval: float = 16.0
+@export var main_sprite: Sprite2D
 @onready var idle: PlayerState = $"../idle"
 
-# Trail system data structures
-var trail_positions: Array[Vector2] = []  # Player's path history (SERVER ONLY)
-var trail_sprites: Array[Sprite2D] = []   # Visual trail segments (ALL CLIENTS)
-var num_trail_segments: int = 0           # Current number of trail segments
-var last_trail_position: Vector2         # Last recorded position for trail
-var player_parent: Node2D                # Reference to player's parent for adding sprites
+var trail_positions: Array[Vector2] = []
+var num_trail_segments: int = 0
+var last_trail_position: Vector2
+var player_id: int = -1
 
-# Multiplayer synchronization
-var player_id: int = -1                   # ID of the player this trail belongs to
+static var server_trail_data: Dictionary = {}
+static var trail_broadcast_needed: bool = false
+static var trail_broadcast_timer: Timer = null
 
+func get_player_by_id(pid: int) -> Node:
+	var players = get_tree().get_nodes_in_group("players")
+	for player_node in players:
+		if player_node.name.is_valid_int() and int(player_node.name) == pid:
+			return player_node
+	
+	for player_node in players:
+		if player_node.has_method("get_player_id") and player_node.get_player_id() == pid:
+			return player_node
+		elif "player_id" in player_node and player_node.player_id == pid:
+			return player_node
+	
+	if multiplayer.has_multiplayer_peer():
+		for player_node in players:
+			if player_node.is_multiplayer_authority() and player_node.get_multiplayer_authority() == pid:
+				return player_node
+	
+	return null
 
+# Check if a player is a DM by their ID
+func is_player_dm(pid: int) -> bool:
+	var player_node = get_player_by_id(pid)
+	# DM player is always named "dm" and has ID 1
+	return player_node != null and (player_node.name == "dm" or pid == 1)
+
+# Check if current player is a DM  
+func is_current_player_dm() -> bool:
+	# Check if the player node name is "dm" (DM players are named "dm")
+	return player.name == "dm"
+
+# Check for trail collisions after movement  
+# Grace system: Players don't die from their own first 2 trail segments, but others can still collide with them
+func check_trail_collisions() -> bool:
+	# DM is immune to trail collisions
+	if is_current_player_dm():
+		return false
+	
+	# Performance optimization: early exit if no collisions
+	var collision_count = player.get_slide_collision_count()
+	if collision_count == 0:
+		return false
+	
+	for i in collision_count:
+		var collision = player.get_slide_collision(i)
+		var collider = collision.get_collider()
+		
+		# Skip null colliders
+		if not collider:
+			continue
+		
+		# Check if we collided with a trail collision body
+		if TrailManager.is_trail_collision_body(collider):
+			var trail_owner_id = TrailManager.get_trail_owner_from_collision_body(collider)
+			
+			# Performance: skip invalid owner IDs
+			if trail_owner_id == -1:
+				continue
+			
+			# DM trails don't kill players (DM immunity)
+			if is_player_dm(trail_owner_id):
+				print("🛡️ IMMUNE: Collision with DM trail ignored")
+				continue
+			
+			# Self-collision grace check ONLY - other players can always collide with your trails
+			if trail_owner_id == player_id:
+				# Get trail segment index from collision body metadata
+				var segment_index = -1
+				if collider.has_meta("trail_segment_index"):
+					segment_index = collider.get_meta("trail_segment_index")
+				
+				# Grace ONLY for the first 2 segments (recent trail behind player)
+				if segment_index >= 0 and segment_index < 2:
+					print("🔄 SELF-GRACE: Own trail segment (index:", segment_index, ") - safe from self")
+					continue
+				
+				print("💀 SELF-COLLISION: Collided with own trail segment ", segment_index)
+			
+			# Valid fatal collision detected
+			print("💀 FATAL: Trail collision detected! (Owner: ", trail_owner_id, ", Victim: ", player_id, ")")
+			return true
+	
+	return false
+
+# Handle player death from trail collision
+func handle_trail_death(death_position: Vector2) -> void:
+	print("💀 DEATH: Player ", player_id, " died from trail collision at ", death_position)
+	
+	# Immediate visual feedback - freeze player movement
+	player.velocity = Vector2.ZERO
+	
+	# Add dramatic pause before processing death
+	await get_tree().create_timer(0.5).timeout
+	
+	# Process death on server
+	if multiplayer.has_multiplayer_peer():
+		notify_server_player_death.rpc_id(1, player_id, death_position)
+	else:
+		process_player_death(player_id, death_position)
+
+# RPC to notify server of player death
+@rpc("any_peer", "call_local", "reliable")
+func notify_server_player_death(pid: int, death_pos: Vector2) -> void:
+	if not multiplayer.is_server():
+		return
+	process_player_death(pid, death_pos)
+
+# Server-side death processing
+func process_player_death(pid: int, death_pos: Vector2) -> void:
+	print("SERVER: Processing death for player ", pid, " at ", death_pos)
+	
+	# Emit death signal for other systems
+	SignalBus.player_died.emit(pid, death_pos)
+	
+	# Phase 5: Clean up trails immediately - BEFORE dropping inventory
+	TrailManager.cleanup_player_trail_on_death(pid)
+	
+	# Phase 3: Drop inventory items at death position
+	PlayerManager.drop_all_inventory(pid, death_pos)
+	
+	# Phase 4: Respawn player at start location (with delay)
+	PlayerManager.respawn_player(pid)
+
+# RPC to notify all clients of player death for visual effects
+@rpc("authority", "call_local", "reliable")
+func notify_death_to_all_clients(pid: int, death_pos: Vector2) -> void:
+	print("CLIENT: Player ", pid, " died at ", death_pos)
+	# Could add death particle effects, sound, screen shake, etc.
+	
+	# Ensure local trail cleanup happens on all clients
+	if TrailManager.has_trail_for_player(pid):
+		print("CLIENT: Cleaning up visual trails for dead player ", pid)
+		TrailManager.cleanup_player_trail(pid)
 
 func Enter() -> void:
 	player.update_animation("walk")
-	
-	# Get player ID for multiplayer synchronization - use player's name which contains the ID
 	player_id = int(player.name)
+	num_trail_segments = 1
 	
-	# Get player's parent for adding trail sprites to world
-	player_parent = get_parent().get_parent()
+	# Enable trail collision detection by adding layer 32 to collision mask
+	var original_mask = player.collision_mask
+	player.collision_mask = original_mask | 32  # Add trail collision layer
 	
-	# Initialize trail system - SERVER ONLY manages trail data
-	var is_server = multiplayer.is_server() or not multiplayer.has_multiplayer_peer()
-	if is_server:
-		num_trail_segments = 1  # Start with 1 trail segment
-		trail_positions.clear()
-		last_trail_position = player.global_position
-		
-		# Record initial trail positions
-		# First position: where the player currently is
-		record_trail_position(player.global_position)
-		
-		# Second position: slightly behind the player to create the first trail segment
-		var behind_direction = Vector2.DOWN if player.prev_direction == Vector2.ZERO else player.prev_direction
-		var initial_trail_pos = player.global_position - behind_direction * trail_interval
-		record_trail_position(initial_trail_pos)
-		
-		# Connect to pickup signal for trail growth
-		if not SignalBus.on_item_pickup.is_connected(add_trail_segment_handler):
-			SignalBus.on_item_pickup.connect(add_trail_segment_handler)
-		
-		# Initialize trail on all clients and show initial segment
-		if multiplayer.has_multiplayer_peer():
-			initialize_trail_on_clients.rpc(player_id, num_trail_segments)
-		else:
-			# Single player mode - call directly
-			initialize_trail_on_clients(player_id, num_trail_segments)
-		
-		# Immediately show the initial trail segment
-		update_trail_display()
-		
-		print("🐍 Snake mode entered for player ", player_id)
+	if multiplayer.has_multiplayer_peer():
+		notify_server_snake_mode_entered.rpc_id(1, player_id)
 	else:
-		# Clients clean up any existing sprites and wait for server initialization
-		cleanup_trail_sprites()
+		start_server_trail_tracking(player_id)
 	
 func Exit() -> void:
-	# SERVER: Clean up trail data and notify clients
-	var is_server = multiplayer.is_server() or not multiplayer.has_multiplayer_peer()
-	if is_server:
-		trail_positions.clear()
-		
-		# Disconnect from signals
-		if SignalBus.on_item_pickup.is_connected(add_trail_segment_handler):
-			SignalBus.on_item_pickup.disconnect(add_trail_segment_handler)
-		
-		# Tell all clients to clean up this player's trail
-		if multiplayer.has_multiplayer_peer():
-			cleanup_trail_on_clients.rpc(player_id)
-		else:
-			cleanup_trail_on_clients(player_id)
+	# Restore original collision mask by removing trail collision layer
+	player.collision_mask = player.collision_mask & ~32  # Remove trail collision layer
 	
-	# ALL CLIENTS: Clean up visual sprites
-	cleanup_trail_sprites()
-
-func add_trail_segment_handler() -> void:
-	# Only server processes trail growth
-	var is_server = multiplayer.is_server() or not multiplayer.has_multiplayer_peer()
-	if is_server:
-		grow_trail_segment()
-
-func grow_trail_segment() -> void:
-	var is_server = multiplayer.is_server() or not multiplayer.has_multiplayer_peer()
-	if not is_server:
-		return
-		
-	num_trail_segments += 1
-	print("🐍 Trail growing for player ", player_id, " - now ", num_trail_segments, " segments")
-	
-	# Update trail display on server and notify clients
-	update_trail_display()
 	if multiplayer.has_multiplayer_peer():
-		sync_trail_growth.rpc(player_id, num_trail_segments)
+		notify_server_snake_mode_exited.rpc_id(1, player_id)
 	else:
-		sync_trail_growth(player_id, num_trail_segments)
+		stop_server_trail_tracking(player_id)
 
-# RPC: Initialize trail on all clients when snake mode starts
-@rpc("authority", "call_local", "reliable")
-func initialize_trail_on_clients(pid: int, segments: int) -> void:
-	if pid == player_id:
-		num_trail_segments = segments
-		cleanup_trail_sprites()
+@rpc("any_peer", "call_local", "reliable")
+func notify_server_snake_mode_entered(pid: int) -> void:
+	if not multiplayer.is_server():
+		return
+	start_server_trail_tracking(pid)
 
-# RPC: Sync trail growth to all clients
-@rpc("authority", "call_local", "reliable") 
-func sync_trail_growth(pid: int, segments: int) -> void:
-	if pid == player_id:
-		num_trail_segments = segments
+@rpc("any_peer", "call_local", "reliable")
+func notify_server_snake_mode_exited(pid: int) -> void:
+	if not multiplayer.is_server():
+		return
+	stop_server_trail_tracking(pid)
 
-# RPC: Update trail sprite positions on all clients (sent only on changes)
-@rpc("authority", "call_local", "unreliable_ordered")
-func sync_trail_positions(pid: int, positions: Array[Vector2]) -> void:
-	if pid == player_id:
-		# Update visual trail sprites based on server positions
-		update_client_trail_display(positions)
+@rpc("any_peer", "call_local", "reliable")
+func notify_server_player_moved(pid: int, position: Vector2) -> void:
+	if not multiplayer.is_server():
+		return
+	update_server_trail_tracking(pid, position)
 
-# RPC: Clean up trail on all clients when snake mode exits
-@rpc("authority", "call_local", "reliable")
-func cleanup_trail_on_clients(pid: int) -> void:
-	if pid == player_id:
-		cleanup_trail_sprites()
-
-func create_trail_sprite() -> Sprite2D:
-	# Create a new trail sprite with player sprite properties
-	var trail_sprite = Sprite2D.new()
+func start_server_trail_tracking(pid: int) -> void:
+	print("start_server_trail_tracking")
+	var player_node = get_player_by_id(pid)
+	if not player_node:
+		print("DID NOT FIND PLAYER NODE: ", pid)
+		return
 	
-	if main_sprite:
-		trail_sprite.texture = main_sprite.texture
-		trail_sprite.hframes = main_sprite.hframes
-		trail_sprite.vframes = main_sprite.vframes
-		trail_sprite.frame = main_sprite.frame
-		trail_sprite.scale = main_sprite.scale
-		trail_sprite.texture_filter = main_sprite.texture_filter
-	else:
-		print("Warning: main_sprite not set for snake state")
+	setup_broadcast_timer_if_needed()
 	
-	# Apply dark/transparent appearance for trail effect
-	trail_sprite.modulate = Color(0.3, 0.3, 0.3, 0.7)
+	server_trail_data[pid] = {
+		"positions": [],
+		"segments": 1,
+		"last_position": player_node.global_position,
+		"player_node": player_node
+	}
 	
-	return trail_sprite
+	var positions = server_trail_data[pid]["positions"]
+	positions.push_back(player_node.global_position)
+	
+	var behind_direction = Vector2.DOWN if player_node.prev_direction == Vector2.ZERO else player_node.prev_direction  
+	# Place initial trail at 1.5x trail_interval for safety (balanced grace)
+	var initial_trail_pos = player_node.global_position - behind_direction * (trail_interval * 1.5)
+	positions.push_back(initial_trail_pos)
+	
+	if not SignalBus.on_item_pickup.is_connected(_on_item_pickup_server_handler):
+		print("Connected on_item_pickup")
+		SignalBus.on_item_pickup.connect(_on_item_pickup_server_handler)
+	
+	mark_trail_broadcast_needed()
+	broadcast_all_trail_data()
 
-func cleanup_trail_sprites() -> void:
-	# Remove all existing trail sprites
-	for sprite in trail_sprites:
-		if sprite and is_instance_valid(sprite):
-			sprite.queue_free()
-	trail_sprites.clear()
+func stop_server_trail_tracking(pid: int) -> void:
+	if server_trail_data.has(pid):
+		print("Stopping server trail tracking for player ", pid)
+		server_trail_data.erase(pid)
+		
+		# Clean up visual trails immediately
+		TrailManager.cleanup_player_trail(pid)
+	
+	if server_trail_data.is_empty():
+		if SignalBus.on_item_pickup.is_connected(_on_item_pickup_server_handler):
+			print("Disconnected on_item_pickup - no more snake players")
+			SignalBus.on_item_pickup.disconnect(_on_item_pickup_server_handler)
+		cleanup_broadcast_timer()
+	
+	mark_trail_broadcast_needed()
 
-func record_trail_position(position: Vector2) -> void:
-	# SERVER ONLY: Add new position to trail history
-	var is_server = multiplayer.is_server() or not multiplayer.has_multiplayer_peer()
-	if not is_server:
+func update_server_trail_tracking(pid: int, position: Vector2) -> void:
+	if not server_trail_data.has(pid):
 		return
 		
-	trail_positions.push_back(position)
+	var data = server_trail_data[pid]
+	var last_pos = data["last_position"]
 	
-	# Remove old positions if trail is too long
-	# Keep extra positions for smooth trail management
-	var max_positions = num_trail_segments * 3 + 20
-	while trail_positions.size() > max_positions:
-		trail_positions.pop_front()
-
-func update_trail_display() -> void:
-	# SERVER ONLY: Calculate trail positions and sync to clients
-	var is_server = multiplayer.is_server() or not multiplayer.has_multiplayer_peer()
-	if not is_server:
-		return
+	if last_pos.distance_to(position) >= trail_interval:
+		data["positions"].push_back(last_pos)
+		data["last_position"] = position
 		
-	if trail_positions.size() == 0:
+		var max_positions = data["segments"] * 3 + 20
+		while data["positions"].size() > max_positions:
+			data["positions"].pop_front()
+		
+		mark_trail_broadcast_needed()
+
+func _on_item_pickup_server_handler() -> void:
+	print(" ____on_item_pickup!")
+	for pid in server_trail_data.keys():
+		var data = server_trail_data[pid]
+		data["segments"] += 1
+	
+	mark_trail_broadcast_needed()
+
+func setup_broadcast_timer_if_needed() -> void:
+	if trail_broadcast_timer != null:
 		return
 	
-	# Calculate current trail sprite positions
-	var current_positions: Array[Vector2] = []
-	
-	if trail_positions.size() == 1:
-		# Special case: only one position recorded, show trail segment at that position
-		current_positions.append(trail_positions[0])
-	else:
-		# Normal case: calculate trail segments based on distance
-		for i in range(num_trail_segments):
-			var segment_index = get_trail_segment_index(i)
-			if segment_index >= 0 and segment_index < trail_positions.size():
-				current_positions.append(trail_positions[segment_index])
-			elif trail_positions.size() > 0:
-				# Fallback: use the oldest position we have
-				current_positions.append(trail_positions[0])
-	
-	# Send positions to all clients (only if we have positions to show)
-	if current_positions.size() > 0:
-		if multiplayer.has_multiplayer_peer():
-			sync_trail_positions.rpc(player_id, current_positions)
-		else:
-			# Single player mode - call directly
-			sync_trail_positions(player_id, current_positions)
-
-func update_client_trail_display(positions: Array[Vector2]) -> void:
-	# CLIENT: Update visual sprites based on server positions
-	if !player_parent:
+	var scene_root = get_tree().current_scene
+	if not scene_root:
 		return
 	
-	# Ensure we have the right number of sprites
-	while trail_sprites.size() < positions.size():
-		var new_sprite = create_trail_sprite()
-		new_sprite.name = "trail_" + str(player_id) + "_" + str(trail_sprites.size())
-		player_parent.add_child(new_sprite)
-		trail_sprites.append(new_sprite)
-	
-	# Remove excess sprites
-	while trail_sprites.size() > positions.size():
-		var excess_sprite = trail_sprites.pop_back()
-		if excess_sprite and is_instance_valid(excess_sprite):
-			excess_sprite.queue_free()
-	
-	# Position sprites at server-calculated positions
-	for i in range(positions.size()):
-		if i < trail_sprites.size():
-			trail_sprites[i].global_position = positions[i]
-			trail_sprites[i].visible = true
-	
-	# Hide any remaining sprites
-	for i in range(positions.size(), trail_sprites.size()):
-		if i < trail_sprites.size():
-			trail_sprites[i].visible = false
+	trail_broadcast_timer = Timer.new()
+	trail_broadcast_timer.name = "TrailBroadcastTimer"
+	trail_broadcast_timer.wait_time = 0.1
+	trail_broadcast_timer.autostart = false
+	trail_broadcast_timer.timeout.connect(_on_broadcast_timer_timeout)
+	scene_root.add_child(trail_broadcast_timer)
 
-func get_trail_segment_index(segment_num: int) -> int:
-	# Calculate which trail position corresponds to this segment
-	# Segments are spaced at trail_interval distances
+func cleanup_broadcast_timer() -> void:
+	if trail_broadcast_timer != null and is_instance_valid(trail_broadcast_timer):
+		trail_broadcast_timer.queue_free()
+		trail_broadcast_timer = null
+
+func mark_trail_broadcast_needed() -> void:
+	trail_broadcast_needed = true
+	if trail_broadcast_timer != null and not trail_broadcast_timer.is_stopped():
+		return
+	
+	if trail_broadcast_timer != null:
+		trail_broadcast_timer.start()
+
+func _on_broadcast_timer_timeout() -> void:
+	if trail_broadcast_needed:
+		broadcast_all_trail_data()
+		trail_broadcast_needed = false
+	
+	if trail_broadcast_timer != null:
+		trail_broadcast_timer.stop()
+
+func get_server_trail_segment_index(positions: Array, segment_num: int) -> int:
 	var target_distance = (segment_num + 1) * trail_interval
 	var current_distance = 0.0
 	
-	# Walk backwards through trail positions to find the right distance
-	for i in range(trail_positions.size() - 1, 0, -1):
-		var segment_distance = trail_positions[i].distance_to(trail_positions[i - 1])
+	for i in range(positions.size() - 1, 0, -1):
+		var segment_distance = positions[i].distance_to(positions[i - 1])
 		current_distance += segment_distance
 		
 		if current_distance >= target_distance:
 			return i
 	
-	return -1  # Not enough trail history yet
+	return -1
+
+func get_player_sprite_data(pid: int) -> Dictionary:
+	var player_node = get_player_by_id(pid)
+	if not player_node:
+		return {}
+	
+	var sprite_node = player_node.get_node_or_null("Sprite2D")
+	if not sprite_node:
+		return {}
+	
+	var sprite_data = {}
+	if sprite_node.texture:
+		sprite_data["texture_path"] = sprite_node.texture.resource_path
+	sprite_data["hframes"] = sprite_node.hframes
+	sprite_data["vframes"] = sprite_node.vframes
+	sprite_data["frame"] = sprite_node.frame
+	sprite_data["scale"] = {"x": sprite_node.scale.x, "y": sprite_node.scale.y}
+	sprite_data["texture_filter"] = sprite_node.texture_filter
+	
+	return sprite_data
+
+func broadcast_all_trail_data() -> void:
+	if not multiplayer.is_server():
+		return
+	
+	var all_trail_data = {}
+	
+	for pid in server_trail_data.keys():
+		var data = server_trail_data[pid]
+		var positions = data["positions"]
+		var segments = data["segments"]
+		
+		if positions.size() == 0:
+			continue
+		
+		var current_positions: Array[Vector2] = []
+		
+		if positions.size() == 1:
+			current_positions.append(positions[0])
+		else:
+			for i in range(segments):
+				var segment_index = get_server_trail_segment_index(positions, i)
+				if segment_index >= 0 and segment_index < positions.size():
+					current_positions.append(positions[segment_index])
+				elif positions.size() > 0:
+					current_positions.append(positions[0])
+		
+		if current_positions.size() > 0:
+			all_trail_data[pid] = {
+				"positions": current_positions,
+				"segments": segments,
+				"sprite_data": get_player_sprite_data(pid)
+			}
+	
+	TrailManager.sync_all_player_trails.rpc(all_trail_data)
+
+@rpc("authority", "call_local", "reliable")
+func cleanup_trail_on_clients(_pid: int) -> void:
+	pass
 
 func Process(_delta: float) -> PlayerState:
 	if !is_multiplayer_authority(): 
 		return null
 	
-	# Move player at constant speed
 	player.velocity = player.prev_direction * move_speed
 	
-	# SERVER ONLY: Record trail positions at regular intervals
-	var is_server = multiplayer.is_server() or not multiplayer.has_multiplayer_peer()
-	if is_server:
-		var current_pos = player.global_position
-		if last_trail_position.distance_to(current_pos) >= trail_interval:
-			record_trail_position(last_trail_position)
-			last_trail_position = current_pos
-			# Only sync to clients when trail actually changes
-			update_trail_display()
+	var current_pos = player.global_position
+	if last_trail_position.distance_to(current_pos) >= trail_interval:
+		last_trail_position = current_pos
+		
+		if multiplayer.has_multiplayer_peer():
+			notify_server_player_moved.rpc_id(1, player_id, current_pos)
+		else:
+			update_server_trail_tracking(player_id, current_pos)
 	
-	# Update player animation based on direction changes
 	if player.set_direction():
 		player.update_animation("walk")
 	
 	player.move_and_slide()
+	
+	# Check for trail collisions after movement
+	if check_trail_collisions():
+		# Start death process but don't change state immediately
+		handle_trail_death(current_pos)
+		# Return idle to exit snake state immediately
+		return idle
 	
 	return null
 	
@@ -279,10 +406,7 @@ func HandleInput(_event: InputEvent) -> PlayerState:
 	
 	if _event.is_action_pressed("attack"):
 		return null
-		#return attack
 	if _event.is_action_pressed("interact"):
 		PlayerManager.interact_pressed.emit()
-		
-
 		
 	return null

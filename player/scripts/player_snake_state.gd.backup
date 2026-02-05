@@ -1,0 +1,76 @@
+class_name PlayerSnakeState extends PlayerState
+
+@export var move_speed: float = 100.0
+@export var num_shadows: int = 0
+@export var shadow_offset: int = 17
+@export var shadow_scene: PackedScene
+@export var main_sprite: Sprite2D
+@onready var idle: PlayerState = $"../idle"
+#@onready var attack: State = $"../attack"
+
+var shadow_sprites = []
+
+
+func Enter() -> void:
+	player.update_animation("walk")
+	num_shadows = 1
+	SignalBus.on_item_pickup.connect(add_shadow_handler)
+	
+func Exit() -> void:
+	pass
+	
+func add_shadow_handler() -> void:
+	# run on all peers
+	add_shadow.rpc()
+
+@rpc("any_peer", "call_local", "reliable")
+func add_shadow() -> void:
+	print("adding shadow")
+	num_shadows += 1
+	var shadow_sprite = Sprite2D.new()
+	shadow_sprite.texture = main_sprite.texture
+	shadow_sprite.hframes = main_sprite.hframes
+	shadow_sprite.vframes = main_sprite.vframes
+	shadow_sprite.frame = main_sprite.frame
+	shadow_sprite.flip_h = main_sprite.flip_h
+	shadow_sprite.flip_v = main_sprite.flip_v
+	print("parent parent name: ", get_parent().get_parent(), " mp id: ", multiplayer.get_unique_id())
+	print("parent parent pos: ", get_parent().get_parent().position, " mp id: ", multiplayer.get_unique_id())
+	shadow_sprite.position = Vector2.ZERO
+	shadow_sprite.modulate = Color(0.30, 0.30, 0.30, (1 / (0.1)))
+	shadow_sprite.name = "shadow_" + str(num_shadows)
+	get_parent().get_parent().add_child(shadow_sprite)
+	shadow_sprites.append(shadow_sprite)
+
+func Process(_delta: float) -> PlayerState:
+	if !is_multiplayer_authority(): return
+	if num_shadows < 1: return
+
+	player.velocity = player.prev_direction * move_speed
+	
+	for i in range(0, shadow_sprites.size()):
+		if shadow_sprites[i].position.distance_to(player.position) > (16) * (num_shadows) * (i + 1):
+			shadow_sprites[i].visible = true
+			shadow_sprites[i].position = -player.prev_direction * (16) * (i + 1)
+		else:
+			shadow_sprites[i].visible = false
+			
+	if player.set_direction():
+		player.update_animation("walk")
+		
+	player.move_and_slide()
+	
+	return null
+	
+func Physics(_delta: float) -> PlayerState:
+	return null
+	
+func HandleInput(_event: InputEvent) -> PlayerState:
+	if !is_multiplayer_authority(): return
+	
+	if _event.is_action_pressed("attack"):
+		return null
+		#return attack
+	if _event.is_action_pressed("interact"):
+		PlayerManager.interact_pressed.emit()
+	return null

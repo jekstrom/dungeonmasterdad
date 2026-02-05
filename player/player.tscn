@@ -1,4 +1,4 @@
-[gd_scene load_steps=19 format=3 uid="uid://cof1o04wsy0rc"]
+[gd_scene load_steps=21 format=3 uid="uid://cof1o04wsy0rc"]
 
 [ext_resource type="Script" uid="uid://t4prbjbidme4" path="res://player/player.gd" id="1_kwy1i"]
 [ext_resource type="Script" uid="uid://davlq6nrmtd1c" path="res://scripts/hitbox.gd" id="2_h8j5k"]
@@ -7,6 +7,8 @@
 [ext_resource type="Script" uid="uid://bofvq87df5yb3" path="res://player/scripts/player_idle_state.gd" id="5_yfnbg"]
 [ext_resource type="Script" uid="uid://bcjqi08kyb3qs" path="res://player/scripts/player_walk_state.gd" id="6_8be7r"]
 [ext_resource type="Script" uid="uid://cvhu5qbw267oe" path="res://player/scripts/player_camera.gd" id="7_gvdgb"]
+[ext_resource type="Script" uid="uid://be6pyfi12q5mk" path="res://player/scripts/player_snake_state.gd" id="7_rgyib"]
+[ext_resource type="PackedScene" uid="uid://be52gho0i3dak" path="res://player/shadow_scene.tscn" id="8_hg6s5"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_f7x0i"]
 
@@ -163,6 +165,7 @@ properties/5/replication_mode = 1
 [node name="Player" type="CharacterBody2D"]
 motion_mode = 1
 script = ExtResource("1_kwy1i")
+shadow_scene = ExtResource("8_hg6s5")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 position = Vector2(0, -2)
@@ -193,6 +196,12 @@ script = ExtResource("5_yfnbg")
 [node name="walk" type="Node" parent="PlayerStateMachine"]
 script = ExtResource("6_8be7r")
 
+[node name="snake" type="Node" parent="PlayerStateMachine" node_paths=PackedStringArray("main_sprite")]
+script = ExtResource("7_rgyib")
+num_shadows = 3
+shadow_scene = ExtResource("8_hg6s5")
+main_sprite = NodePath("../../Sprite2D")
+
 [node name="AnimationPlayer" type="AnimationPlayer" parent="."]
 libraries = {
 &"": SubResource("AnimationLibrary_5uq1k")
@@ -220,3 +229,11 @@ theme_override_colors/font_color = Color(1, 1, 1, 1)
 theme_override_constants/outline_size = 3
 text = "Paper Pusher"
 horizontal_alignment = 1
+
+[node name="ShadowSprite" type="Sprite2D" parent="."]
+visible = false
+self_modulate = Color(0.21950102, 0.21950102, 0.21950102, 1)
+position = Vector2(0, -21)
+texture = ExtResource("3_4tdu3")
+hframes = 16
+vframes = 3

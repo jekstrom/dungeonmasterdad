@@ -35,9 +35,6 @@ func is_area_clear(pos: Vector2, size: Vector2, reality_zone_radius: int, realit
 	
 	var result = space_state.intersect_shape(query)
 	
-	#var reality_zone_circle = CircleShape2D.new()
-	#reality_zone_circle.radius = reality_zone_radius
-	#reality_zone_circle.collide(Transform2D(0, reality_zone_pos), shape, Transform2D(0, pos))
 	return result.is_empty() and is_rect_inside_circle(Rect2(pos.x - size.x / 2, pos.y - size.y / 2, size.x, size.y), reality_zone_pos, reality_zone_radius)
 
 func is_rect_inside_circle(rect: Rect2, circle_center: Vector2, radius: float) -> bool:
@@ -53,7 +50,6 @@ func is_rect_inside_circle(rect: Rect2, circle_center: Vector2, radius: float) -
 	for corner in corners:
 		# If any corner is further than the radius, the rect is NOT completely inside
 		if corner.distance_squared_to(circle_center) > radius_squared:
-			print(str(corner))
 			return false
 			
 	return true

@@ -1,6 +1,7 @@
 extends Node2D
 
 var damage_numbers_scene: PackedScene = preload("res://spells/damage_number.tscn")
+var is_shadow_zone: bool = false
 
 # Handle global level-based events such as projectiles
 

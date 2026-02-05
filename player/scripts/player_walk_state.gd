@@ -2,6 +2,7 @@ class_name PlayerWalkState extends PlayerState
 
 @export var move_speed: float = 100.0
 @onready var idle: PlayerState = $"../idle"
+#@onready var snake: PlayerState = $"../snake"
 #@onready var attack: StateAttack = $"../attack"
 
 func Enter() -> void:
@@ -12,10 +13,10 @@ func Exit() -> void:
 
 func Process(_delta: float) -> PlayerState:
 	if !is_multiplayer_authority(): return
-	
+
 	if player.direction == Vector2.ZERO:
 		return idle
-		
+
 	player.velocity = player.direction * move_speed
 	
 	if player.set_direction():

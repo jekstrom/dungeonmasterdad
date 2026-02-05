@@ -40,10 +40,9 @@ func update_fantasy_level(level_inc: int) -> void:
 		fantasy_level += level_inc
 		request_fantasy_level_incrase.rpc(fantasy_level)
 		
-func unlock_fireball() -> void:
+func unlock(unlock_name: String) -> void:
 	if multiplayer.is_server():
-		DmUnlocks.unlock_fireball()
-		SignalBus.on_dm_unlock.emit("fireball")
+		DmUnlocks.unlock(unlock_name)
 		request_fantasy_level_incrase.rpc(fantasy_level)
 		
 func spawn_gremlin() -> void:

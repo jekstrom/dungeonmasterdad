@@ -34,5 +34,6 @@ func turn_off() -> void:
 func on_dm_unlock(unlock_name: String) -> void:
 	if is_multiplayer_authority():
 		print("unlocked ", unlock_name)
-		fireball.visible = true
+		if (unlock_name == "fireball"):
+			fireball.visible = true
 		

@@ -29,6 +29,7 @@ BuildingDatabase="*res://_globals/building_database.gd"
 BuildingManager="*res://_globals/building_manager.gd"
 PlayerData="*res://_globals/player_data.gd"
 DmUnlocks="*res://_globals/DMUnlocks.gd"
+TrailManager="*res://_globals/trail_manager.gd"
 
 [input]
 

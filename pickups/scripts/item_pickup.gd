@@ -30,8 +30,16 @@ func on_body_entered(_body) -> void:
 		area_2d.body_entered.disconnect(on_body_entered)
 
 func try_pick_up(picked_up_item_data: ItemData):
-	# Send a request to the server with the item's unique name or ID
-	pick_up_request.rpc_id(1, picked_up_item_data.get_path())
+	# If this is the server, handle pickup directly
+	if multiplayer.is_server():
+		var player_id = multiplayer.get_unique_id()
+		var player_node = get_node("../" + str(player_id))
+		var d = player_node.global_position.distance_to(self.global_position)
+		if d < 30.0:
+			handle_pickup(player_id, picked_up_item_data)
+	else:
+		# Send a request to the server with the item's unique name or ID
+		pick_up_request.rpc_id(1, picked_up_item_data.get_path())
 
 @rpc("any_peer", "call_remote", "reliable")
 func pick_up_request(item_path: String) -> void:
@@ -51,10 +59,15 @@ func handle_pickup(sender_id: int, picked_up_item_data: ItemData) -> void:
 	else:
 		PlayerManager.add_item_to_inventory(sender_id, picked_up_item_data)
 	AudioManager.play_private_sound(sender_id, item_data.pickup_sound.resource_path, Vector2(0.6, 1.0))
+	
+	# Now that pickups are properly synchronized, use RPC to remove on all clients
 	update_client.rpc()
+	print("SERVER: Pickup handled for player ", sender_id, " - notified all clients to remove")
 
+# RPC to remove pickup on all clients after successful pickup
 @rpc("any_peer", "call_local", "reliable")
 func update_client():
+	print("CLIENT: Removing picked up item at ", global_position)
 	visible = false
 	queue_free()
 

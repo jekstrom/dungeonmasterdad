@@ -1,0 +1,14 @@
+[gd_scene load_steps=4 format=3 uid="uid://be52gho0i3dak"]
+
+[ext_resource type="Texture2D" uid="uid://dkc4x6ya465y1" path="res://player/sprites/PlayerSprite02.png" id="1_b2dff"]
+[ext_resource type="Script" uid="uid://cmk8u80pd0hl0" path="res://player/scripts/shadow.gd" id="1_pu8af"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_pu8af"]
+atlas = ExtResource("1_b2dff")
+region = Rect2(0, 0, 64, 64)
+
+[node name="Shadows" type="Node2D"]
+script = ExtResource("1_pu8af")
+num_shadows = null
+shadow_offset = null
+texture = SubResource("AtlasTexture_pu8af")

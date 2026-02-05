@@ -6,4 +6,4 @@ class_name ItemEffectUnlockFireball extends ItemEffect
 func use() -> void:
 	print("used unlock fireball")
 	DmManager.update_fantasy_level(fantasy_amount)
-	DmManager.unlock_fireball()
+	DmManager.unlock("fireball")

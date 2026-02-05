@@ -46,3 +46,16 @@ func ChangeState(new_state: PlayerState) -> void:
 	prev_state = current_state
 	current_state = new_state
 	current_state.Enter()
+
+@rpc("any_peer", "call_local", "reliable")
+func RequestChangeStateTo(state_name: String) -> void:
+	if !multiplayer.is_server(): return
+	ChangeStateTo.rpc(state_name)
+	
+@rpc("any_peer", "call_local", "reliable")
+func ChangeStateTo(state_name: String) -> void:
+	for i in range(0, states.size()):
+		if states[i].name == state_name:
+			print("changing state to ", state_name, " on mp ",  multiplayer.get_unique_id())
+			ChangeState(states[i])
+			return

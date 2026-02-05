@@ -3,6 +3,7 @@ class_name Player extends CharacterBody2D
 const DIR_4 = [Vector2.RIGHT, Vector2.DOWN, Vector2.LEFT, Vector2.UP]
 var cardinal_direction: Vector2 = Vector2.DOWN
 var direction: Vector2 = Vector2.ZERO
+var prev_direction: Vector2 = Vector2.ZERO
 var invulnerable: bool = false
 var hitpoints: int = 6
 var max_hp: int = 6
@@ -12,6 +13,9 @@ var max_hp: int = 6
 
 var current_building_data: BuildingData
 var ghost_building: Node2D
+
+@export var num_shadows: int = 0
+@export var shadow_scene: PackedScene
 
 @export var sync_name: String:
 	set(val):
@@ -45,6 +49,7 @@ func _ready() -> void:
 		
 	state_machine.Initialize(self)
 	SignalBus.build_smoke_building_pressed.connect(setup_building)
+	SignalBus.on_dm_unlock.connect(dm_unlock_listener)
 
 	await get_tree().process_frame
 	if not multiplayer.is_server() and is_multiplayer_authority():
@@ -52,6 +57,26 @@ func _ready() -> void:
 	label.text = sync_name
 	label.self_modulate = sync_color
 	
+func dm_unlock_listener(unlock_name: String) -> void:
+	if unlock_name == "shadow_zone" and DmUnlocks.dm_unlocks.get("shadow_zone"):
+		print("request change state")
+		state_machine.RequestChangeStateTo.rpc_id(1, "snake")
+		#num_shadows = 40
+		#print("starting shadow zone on player")
+		#var shadows = shadow_scene.instantiate()
+		#shadows.num_shadows = num_shadows
+		#shadows.name = "shadow_"
+		#shadows.main_sprite = self.sprite
+		#add_child(shadows)
+	elif unlock_name == "shadow_zone" and !DmUnlocks.dm_unlocks.get("shadow_zone"):
+		state_machine.ChangeStateTo("idle")
+
+# Force player to idle state (used for respawn)
+func force_idle_state() -> void:
+	if state_machine and state_machine.has_method("ChangeStateTo"):
+		state_machine.ChangeStateTo("idle")
+		print("Player ", name, " forced to idle state")
+
 @rpc("any_peer", "reliable")
 func request_name_fix():
 	if not multiplayer.is_server(): return
@@ -96,10 +121,14 @@ func update_ghost(pos: Vector2):
 func _physics_process(_delta: float) -> void:
 	if !is_multiplayer_authority(): return
 	
+	if direction != Vector2.ZERO:
+		prev_direction = direction
 	direction = Vector2(
 		Input.get_axis("left", "right"),
 		Input.get_axis("up", "down")
 	).normalized()
+	
+	if state_machine.current_state.name == "snake": return
 	velocity = direction * 300
 	move_and_slide()
 
@@ -133,8 +162,6 @@ func set_direction() -> bool:
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("primary_click"):
 		if current_building_data:
-			# Request server to place the building
-			print("request placement for ", current_building_data.resource_path)
 			BuildingManager.request_placement.rpc_id(1, current_building_data.resource_path, ghost_building.global_position, get_global_mouse_position())
 			remove_child(ghost_building)
 			current_building_data = null
