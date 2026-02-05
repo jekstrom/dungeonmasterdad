@@ -239,7 +239,8 @@ func create_dropped_item_pickups(world_node: Node, item_data: ItemData, quantity
 					pickup.velocity = pickup_velocity
 					
 					# Add to world directly (server-only, not synced)
-					world_node.add_child(pickup)
+					# Use 'true' parameter to prevent reserved name conflicts in multiplayer
+					world_node.add_child(pickup, true)
 					print("FALLBACK: Created server-only pickup for ", item_data.name, " (#", i+1, "/", max_drops, ")")
 				else:
 					print("ERROR: Failed to instantiate pickup scene")
