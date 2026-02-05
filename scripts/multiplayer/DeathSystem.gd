@@ -345,7 +345,7 @@ func _find_multiplayer_spawner() -> Node:
 		return null
 	
 	# Look for MultiplayerSpawner by group (added in multiplayer_spawner.gd)
-	var spawners = current_scene.get_nodes_in_group("multiplayer_spawner")
+	var spawners = scene_tree.get_nodes_in_group("multiplayer_spawner")
 	if spawners.size() > 0:
 		return spawners[0]
 	
