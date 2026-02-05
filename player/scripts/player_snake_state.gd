@@ -20,14 +20,15 @@ var player_id: int = -1                   # ID of the player this trail belongs 
 func Enter() -> void:
 	player.update_animation("walk")
 	
-	# Get player ID for multiplayer synchronization
+	# Get player ID for multiplayer synchronization - use player's name which contains the ID
 	player_id = int(player.name)
 	
 	# Get player's parent for adding trail sprites to world
 	player_parent = get_parent().get_parent()
 	
 	# Initialize trail system - SERVER ONLY manages trail data
-	if multiplayer.is_server():
+	var is_server = multiplayer.is_server() or not multiplayer.has_multiplayer_peer()
+	if is_server:
 		num_trail_segments = 1  # Start with 1 trail segment
 		trail_positions.clear()
 		last_trail_position = player.global_position
@@ -62,7 +63,8 @@ func Enter() -> void:
 	
 func Exit() -> void:
 	# SERVER: Clean up trail data and notify clients
-	if multiplayer.is_server():
+	var is_server = multiplayer.is_server() or not multiplayer.has_multiplayer_peer()
+	if is_server:
 		trail_positions.clear()
 		
 		# Disconnect from signals
@@ -70,18 +72,23 @@ func Exit() -> void:
 			SignalBus.on_item_pickup.disconnect(add_trail_segment_handler)
 		
 		# Tell all clients to clean up this player's trail
-		cleanup_trail_on_clients.rpc(player_id)
+		if multiplayer.has_multiplayer_peer():
+			cleanup_trail_on_clients.rpc(player_id)
+		else:
+			cleanup_trail_on_clients(player_id)
 	
 	# ALL CLIENTS: Clean up visual sprites
 	cleanup_trail_sprites()
 
 func add_trail_segment_handler() -> void:
 	# Only server processes trail growth
-	if multiplayer.is_server():
+	var is_server = multiplayer.is_server() or not multiplayer.has_multiplayer_peer()
+	if is_server:
 		grow_trail_segment()
 
 func grow_trail_segment() -> void:
-	if not multiplayer.is_server():
+	var is_server = multiplayer.is_server() or not multiplayer.has_multiplayer_peer()
+	if not is_server:
 		return
 		
 	num_trail_segments += 1
@@ -89,7 +96,10 @@ func grow_trail_segment() -> void:
 	
 	# Update trail display on server and notify clients
 	update_trail_display()
-	sync_trail_growth.rpc(player_id, num_trail_segments)
+	if multiplayer.has_multiplayer_peer():
+		sync_trail_growth.rpc(player_id, num_trail_segments)
+	else:
+		sync_trail_growth(player_id, num_trail_segments)
 
 # RPC: Initialize trail on all clients when snake mode starts
 @rpc("authority", "call_local", "reliable")
@@ -145,7 +155,8 @@ func cleanup_trail_sprites() -> void:
 
 func record_trail_position(position: Vector2) -> void:
 	# SERVER ONLY: Add new position to trail history
-	if not multiplayer.is_server():
+	var is_server = multiplayer.is_server() or not multiplayer.has_multiplayer_peer()
+	if not is_server:
 		return
 		
 	trail_positions.push_back(position)
@@ -158,7 +169,8 @@ func record_trail_position(position: Vector2) -> void:
 
 func update_trail_display() -> void:
 	# SERVER ONLY: Calculate trail positions and sync to clients
-	if not multiplayer.is_server():
+	var is_server = multiplayer.is_server() or not multiplayer.has_multiplayer_peer()
+	if not is_server:
 		return
 		
 	if trail_positions.size() == 0:
@@ -241,7 +253,8 @@ func Process(_delta: float) -> PlayerState:
 	player.velocity = player.prev_direction * move_speed
 	
 	# SERVER ONLY: Record trail positions at regular intervals
-	if multiplayer.is_server():
+	var is_server = multiplayer.is_server() or not multiplayer.has_multiplayer_peer()
+	if is_server:
 		var current_pos = player.global_position
 		if last_trail_position.distance_to(current_pos) >= trail_interval:
 			record_trail_position(last_trail_position)
