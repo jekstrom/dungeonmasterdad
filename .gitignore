@@ -1,3 +1,28 @@
 # Godot 4+ specific ignores
 .godot/
 /android/
+
+# Godot export templates and builds
+export_presets.cfg
+*.tmp
+*.apk
+*.exe
+*.dmg
+*.app
+*.deb
+*.zip
+
+# Godot logs
+logs/
+*.log
+
+# Universal ignore patterns
+.DS_Store
+Thumbs.db
+*.swp
+.vscode/
+.idea/
+
+# Environment and secrets
+.env*
+*.secret.*

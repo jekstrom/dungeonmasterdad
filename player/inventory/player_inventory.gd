@@ -9,6 +9,9 @@ func _init() -> void:
 func on_inventory_changed(items):
 	# {"data": resource, "quantity": quantity}
 	print ("on inventory changed - ", items.size())
+	for i in slots.size():
+		slots[i] = null
+
 	for item_qty in items:
 		add_item(item_qty["data"], item_qty["quantity"])
 
@@ -77,4 +80,74 @@ func deserialize_item(slot: Dictionary) -> SlotData:
 	new_slot.item_data = load(slot.item)
 	new_slot.quantity = int(slot.quantity)
 	return new_slot
+
+# =============================================================================
+# DEATH SYSTEM INTEGRATION - Item Extraction for Dropping
+# =============================================================================
+
+func extract_all_items_for_death() -> Array:
+	"""Extract all inventory items for dropping on death"""
+	var extracted_items: Array = []
+	
+	for i in range(slots.size()):
+		if slots[i] != null and slots[i].item_data != null and slots[i].quantity > 0:
+			# Create dropped item data
+			var dropped_item_data = {
+				"network_id": "death_item_" + str(i) + "_" + str(Time.get_ticks_msec()),
+				"item_type": slots[i].item_data.resource_path.get_file().get_basename(),
+				"quantity": slots[i].quantity,
+				"properties": {
+					"resource_path": slots[i].item_data.resource_path,
+					"original_slot": i
+				}
+			}
+			extracted_items.append(dropped_item_data)
+			
+			# Clear the slot
+			if slots[i].changed.is_connected(slot_changed):
+				slots[i].changed.disconnect(slot_changed)
+			slots[i] = null
+	
+	# Emit inventory changed signal
+	SignalBus.inventory_slots_changed.emit()
+	
+	print("InventoryData: Extracted ", extracted_items.size(), " items for death drop")
+	return extracted_items
+
+func extract_all_items_for_death_with_manager_sync(player_id: int) -> Array:
+	"""Extract all inventory items for dropping on death AND sync with PlayerManager"""
+	var extracted_items = extract_all_items_for_death()
+	
+	# Clear PlayerManager inventory for this player (only if we have access to the PlayerManager)
+	if PlayerManager and PlayerManager.players_data.has(player_id):
+		var player_data = PlayerManager.players_data[player_id]
+		if player_data.has("inventory"):
+			player_data["inventory"].clear()
+			# Update client to reflect empty inventory
+			PlayerManager.update_client_inventory.rpc_id(player_id, player_data["inventory"])
+			print("InventoryData: Cleared PlayerManager inventory for player ", player_id)
+	
+	return extracted_items
+
+func get_items_count() -> int:
+	"""Get total number of items in inventory"""
+	var count = 0
+	for slot in slots:
+		if slot != null and slot.item_data != null and slot.quantity > 0:
+			count += 1
+	return count
+
+func is_inventory_empty() -> bool:
+	"""Check if inventory has no items"""
+	return get_items_count() == 0
+
+func get_inventory_value() -> float:
+	"""Get total value of items in inventory (for future balancing)"""
+	var total_value = 0.0
+	for slot in slots:
+		if slot != null and slot.item_data != null and slot.quantity > 0:
+			# For now, assume all items have value 1.0
+			# This could be enhanced with ItemData.value property later
+			total_value += slot.quantity * 1.0
+	return total_value
 	

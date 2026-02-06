@@ -82,32 +82,3 @@ func spawn_host_player(player_name: String) -> void:
 @rpc("authority", "call_local", "reliable")
 func sync_global_state(f: int):
 	DmManager.fantasy_level = f
-
-# Spawn a pickup item that will be synchronized to all clients
-func spawn_pickup_item(item_data: ItemData, position: Vector2, velocity: Vector2 = Vector2.ZERO) -> Node:
-	if not multiplayer.is_server():
-		print("WARNING: spawn_pickup_item called on non-server")
-		return null
-	
-	if not pickup_scene:
-		print("ERROR: pickup_scene not set in MultiplayerSpawner")
-		return null
-	
-	print("SERVER: Spawning pickup for ", item_data.name, " at ", position)
-	
-	var pickup = pickup_scene.instantiate()
-	if not pickup:
-		print("ERROR: Failed to instantiate pickup scene")
-		return null
-	
-	# Set pickup properties before adding to scene
-	pickup.item_data = item_data
-	pickup.global_position = position
-	pickup.velocity = velocity
-	
-	# Add to world through spawner - this should sync to all clients
-	# Using the same pattern as other spawn methods in this file
-	get_node(spawn_path).call_deferred("add_child", pickup, true)
-	
-	print("SERVER: Spawned synced pickup for ", item_data.name, " at ", position)
-	return pickup

@@ -8,6 +8,8 @@
 [ext_resource type="Script" uid="uid://bcjqi08kyb3qs" path="res://player/scripts/player_walk_state.gd" id="6_8be7r"]
 [ext_resource type="Script" uid="uid://cvhu5qbw267oe" path="res://player/scripts/player_camera.gd" id="7_gvdgb"]
 [ext_resource type="Script" uid="uid://be6pyfi12q5mk" path="res://player/scripts/player_snake_state.gd" id="7_rgyib"]
+[ext_resource type="Script" path="res://player/scripts/player_death_state.gd" id="8_death"]
+[ext_resource type="Script" path="res://player/scripts/player_respawn_wait_state.gd" id="9_respawn"]
 [ext_resource type="PackedScene" uid="uid://be52gho0i3dak" path="res://player/shadow_scene.tscn" id="8_hg6s5"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_f7x0i"]
@@ -201,6 +203,12 @@ script = ExtResource("7_rgyib")
 num_shadows = 3
 shadow_scene = ExtResource("8_hg6s5")
 main_sprite = NodePath("../../Sprite2D")
+
+[node name="death" type="Node" parent="PlayerStateMachine"]
+script = ExtResource("8_death")
+
+[node name="respawn_wait" type="Node" parent="PlayerStateMachine"]
+script = ExtResource("9_respawn")
 
 [node name="AnimationPlayer" type="AnimationPlayer" parent="."]
 libraries = {

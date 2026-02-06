@@ -57,6 +57,9 @@ func _ready() -> void:
 	label.text = sync_name
 	label.self_modulate = sync_color
 	
+	# Connect to death system signals for respawn handling
+	SignalBus.player_respawn_completed.connect(_on_player_respawn_completed)
+	
 func dm_unlock_listener(unlock_name: String) -> void:
 	if unlock_name == "shadow_zone" and DmUnlocks.dm_unlocks.get("shadow_zone"):
 		print("request change state")
@@ -166,3 +169,37 @@ func _unhandled_input(event: InputEvent) -> void:
 			remove_child(ghost_building)
 			current_building_data = null
 			ghost_building = null
+
+# =============================================================================
+# DEATH SYSTEM INTEGRATION
+# =============================================================================
+
+func _on_player_respawn_completed(player_id: int, respawn_position: Vector2) -> void:
+	"""Handle respawn completion - move to respawn position and reset state"""
+	# Only handle for this player
+	if player_id != get_multiplayer_authority():
+		return
+	
+	print("Player ", player_id, " respawning at ", respawn_position)
+	
+	# Move to respawn position
+	global_position = respawn_position
+	
+	# Reset player state
+	velocity = Vector2.ZERO
+	hitpoints = max_hp
+	invulnerable = false
+	
+	# Ensure sprite is visible after respawn
+	if sprite != null:
+		sprite.visible = true
+		print("Player ", player_id, " sprite restored to visible on respawn")
+	
+	# Force to idle state if not already
+	force_idle_state()
+
+func get_player_inventory_data() -> InventoryData:
+	"""Get this player's inventory data (placeholder - integrate with actual inventory system)"""
+	# TODO: Integrate with actual inventory system
+	# For now return null - the DeathSystem will handle mock inventory
+	return null

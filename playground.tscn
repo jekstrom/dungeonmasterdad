@@ -1,28 +1,22 @@
-[gd_scene load_steps=24 format=3 uid="uid://de1ek0y5wi45g"]
+[gd_scene load_steps=18 format=3 uid="uid://de1ek0y5wi45g"]
 
 [ext_resource type="PackedScene" uid="uid://diumvk6jwwd5v" path="res://zones/fantasy_zone.tscn" id="1_jgc46"]
 [ext_resource type="Script" uid="uid://both0q8u44cig" path="res://_globals/level_manager.gd" id="1_x6kx1"]
 [ext_resource type="PackedScene" uid="uid://buko4j3660uce" path="res://zones/reality_zone.tscn" id="2_dk0co"]
 [ext_resource type="PackedScene" uid="uid://c10eakv6dta4r" path="res://pickups/pickup.tscn" id="2_wt17y"]
-[ext_resource type="Resource" uid="uid://gcosnbiektbt" path="res://pickups/stone.tres" id="2_ynsuh"]
-[ext_resource type="Resource" uid="uid://dytlyalc52742" path="res://pickups/metal.tres" id="3_pio1y"]
-[ext_resource type="Resource" uid="uid://dosi8bfvfl0fr" path="res://pickups/d20.tres" id="4_f7pug"]
 [ext_resource type="PackedScene" uid="uid://cof1o04wsy0rc" path="res://player/player.tscn" id="4_is3ju"]
 [ext_resource type="Script" uid="uid://b2nf43frwech" path="res://scripts/multiplayer_spawner.gd" id="5_o00ia"]
-[ext_resource type="Resource" uid="uid://cqjdx83ncdyeg" path="res://pickups/code_red.tres" id="5_pactg"]
 [ext_resource type="PackedScene" uid="uid://dsls3d0radb5f" path="res://dm/dm.tscn" id="5_ynsuh"]
 [ext_resource type="PackedScene" uid="uid://ckwsvw4g8ewvf" path="res://game.tscn" id="6_4bqqs"]
 [ext_resource type="PackedScene" uid="uid://c5avpnnd3seqn" path="res://goblin/goblin.tscn" id="7_h1jm5"]
-[ext_resource type="Resource" uid="uid://qrv5pa041q1s" path="res://pickups/d6.tres" id="7_pactg"]
 [ext_resource type="PackedScene" uid="uid://dcevmqir2nyr6" path="res://gui/hud.tscn" id="8_v7dth"]
 [ext_resource type="PackedScene" uid="uid://f15sgptli5oi" path="res://gui/dm/dm_hud.tscn" id="9_pi42a"]
-[ext_resource type="Resource" uid="uid://cho3wwse44ajw" path="res://pickups/cloak.tres" id="10_u2qr3"]
 [ext_resource type="PackedScene" uid="uid://bglfuu7ga823v" path="res://gui/player/player_hud.tscn" id="12_te8jg"]
 [ext_resource type="PackedScene" uid="uid://si6i5r1yric1" path="res://spells/fireball/fireball_spell.tscn" id="13_ycdrs"]
 [ext_resource type="Script" uid="uid://b1w5sp8jtdo2y" path="res://_globals/building_manager.gd" id="13_yjl7g"]
 [ext_resource type="Script" uid="uid://7l00cqarwjaa" path="res://scripts/projectile_spawner.gd" id="18_ycdrs"]
-[ext_resource type="Resource" uid="uid://bug01444ep27x" path="res://pickups/coal.tres" id="19_ymgag"]
 [ext_resource type="Script" uid="uid://c0kl4pny1scqf" path="res://scripts/debug.gd" id="21_jufm4"]
+[ext_resource type="Script" uid="uid://3wvfcisfslpa" path="res://scripts/pickup_spawner.gd" id="24_vnugj"]
 
 [node name="Playground" type="Node2D"]
 y_sort_enabled = true
@@ -34,74 +28,9 @@ position = Vector2(284, 294)
 [node name="RealityZone" parent="." groups=["RealityZone"] instance=ExtResource("2_dk0co")]
 position = Vector2(183, 74)
 base_radius = 500.0
-is_reality = true
-
-[node name="Pickup" parent="." instance=ExtResource("2_wt17y")]
-position = Vector2(89, 71)
-item_data = ExtResource("2_ynsuh")
-
-[node name="Pickup22" parent="." instance=ExtResource("2_wt17y")]
-position = Vector2(37, 72)
-item_data = ExtResource("5_pactg")
-
-[node name="Pickup3" parent="." instance=ExtResource("2_wt17y")]
-position = Vector2(141, 73)
-item_data = ExtResource("2_ynsuh")
-
-[node name="Pickup4" parent="." instance=ExtResource("2_wt17y")]
-position = Vector2(182, 71)
-item_data = ExtResource("2_ynsuh")
-
-[node name="Pickup5" parent="." instance=ExtResource("2_wt17y")]
-position = Vector2(47, 136)
-item_data = ExtResource("3_pio1y")
-
-[node name="Pickup6" parent="." instance=ExtResource("2_wt17y")]
-position = Vector2(48, 177)
-item_data = ExtResource("3_pio1y")
-
-[node name="Pickup7" parent="." instance=ExtResource("2_wt17y")]
-position = Vector2(54, 215)
-item_data = ExtResource("3_pio1y")
-
-[node name="Pickup14" parent="." instance=ExtResource("2_wt17y")]
-position = Vector2(54, 296)
-item_data = ExtResource("4_f7pug")
-
-[node name="Pickup15" parent="." instance=ExtResource("2_wt17y")]
-position = Vector2(99, 299)
-item_data = ExtResource("4_f7pug")
-
-[node name="Pickup16" parent="." instance=ExtResource("2_wt17y")]
-position = Vector2(92, 372)
-item_data = ExtResource("7_pactg")
-
-[node name="Pickup17" parent="." instance=ExtResource("2_wt17y")]
-position = Vector2(138, 372)
-item_data = ExtResource("7_pactg")
-
-[node name="Pickup18" parent="." instance=ExtResource("2_wt17y")]
-position = Vector2(138, 417)
-item_data = ExtResource("7_pactg")
-
-[node name="Pickup19" parent="." instance=ExtResource("2_wt17y")]
-position = Vector2(91, 419)
-item_data = ExtResource("7_pactg")
-
-[node name="Pickup20" parent="." instance=ExtResource("2_wt17y")]
-position = Vector2(39, 420)
-item_data = ExtResource("7_pactg")
-
-[node name="Pickup21" parent="." instance=ExtResource("2_wt17y")]
-position = Vector2(39, 373)
-item_data = ExtResource("7_pactg")
-
-[node name="Pickup27" parent="." instance=ExtResource("2_wt17y")]
-position = Vector2(253, 69)
-item_data = ExtResource("10_u2qr3")
 
 [node name="MultiplayerSpawner" type="MultiplayerSpawner" parent="."]
-_spawnable_scenes = PackedStringArray("uid://cof1o04wsy0rc", "uid://dsls3d0radb5f", "uid://c5avpnnd3seqn", "uid://c10eakv6dta4r")
+_spawnable_scenes = PackedStringArray("uid://cof1o04wsy0rc", "uid://dsls3d0radb5f", "uid://c5avpnnd3seqn")
 spawn_path = NodePath("..")
 script = ExtResource("5_o00ia")
 network_player = ExtResource("4_is3ju")
@@ -125,46 +54,6 @@ script = ExtResource("13_yjl7g")
 _spawnable_scenes = PackedStringArray("uid://d05hkhchi8k3x")
 spawn_path = NodePath("..")
 
-[node name="Pickup8" parent="." instance=ExtResource("2_wt17y")]
-position = Vector2(89, 136)
-item_data = ExtResource("3_pio1y")
-
-[node name="Pickup9" parent="." instance=ExtResource("2_wt17y")]
-position = Vector2(90, 177)
-item_data = ExtResource("3_pio1y")
-
-[node name="Pickup10" parent="." instance=ExtResource("2_wt17y")]
-position = Vector2(96, 215)
-item_data = ExtResource("3_pio1y")
-
-[node name="Pickup11" parent="." instance=ExtResource("2_wt17y")]
-position = Vector2(132, 136)
-item_data = ExtResource("3_pio1y")
-
-[node name="Pickup12" parent="." instance=ExtResource("2_wt17y")]
-position = Vector2(133, 177)
-item_data = ExtResource("3_pio1y")
-
-[node name="Pickup13" parent="." instance=ExtResource("2_wt17y")]
-position = Vector2(139, 215)
-item_data = ExtResource("3_pio1y")
-
-[node name="Pickup23" parent="." instance=ExtResource("2_wt17y")]
-position = Vector2(282, 136)
-item_data = ExtResource("19_ymgag")
-
-[node name="Pickup24" parent="." instance=ExtResource("2_wt17y")]
-position = Vector2(321, 135)
-item_data = ExtResource("19_ymgag")
-
-[node name="Pickup25" parent="." instance=ExtResource("2_wt17y")]
-position = Vector2(361, 137)
-item_data = ExtResource("19_ymgag")
-
-[node name="Pickup26" parent="." instance=ExtResource("2_wt17y")]
-position = Vector2(363, 235)
-item_data = ExtResource("19_ymgag")
-
 [node name="Projectiles" type="Node2D" parent="."]
 
 [node name="ProjectileSpawner" type="MultiplayerSpawner" parent="Projectiles"]
@@ -179,3 +68,10 @@ offset_right = 40.0
 offset_bottom = 23.0
 theme_override_constants/outline_size = 2
 script = ExtResource("21_jufm4")
+
+[node name="Pickups" type="Node2D" parent="."]
+
+[node name="MultiplayerSpawner" type="MultiplayerSpawner" parent="Pickups" groups=["multiplayer_pickup_spawner"]]
+spawn_path = NodePath("..")
+script = ExtResource("24_vnugj")
+pickup_scene = ExtResource("2_wt17y")

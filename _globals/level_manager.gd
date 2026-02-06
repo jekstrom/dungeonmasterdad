@@ -10,6 +10,14 @@ func _ready() -> void:
 	if !SignalBus.on_explosion.is_connected(on_explosion):
 		SignalBus.on_explosion.connect(on_explosion)
 		
+	if multiplayer.is_server():
+		for i in range(0, 10):
+			var item_data = {
+				"item_type" = "res://pickups/metal.tres",
+				"position" = Vector2(i * 15, i * 9),
+			}
+			SignalBus.on_item_drop.emit(item_data)
+		
 func on_explosion(proj_position: Vector2, explosion_data: Dictionary) -> void:
 	if !multiplayer.is_server(): return
 	explosion_data["position"] = proj_position

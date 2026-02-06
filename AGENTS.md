@@ -221,3 +221,10 @@ When making changes, consider:
 5. **Resource management** - Proper cleanup and pooling
 
 Remember: This is a multiplayer game where synchronization and authority are critical. Always test changes in multiplayer scenarios.
+
+## Active Technologies
+- GDScript / Godot 4.5 (Forward Plus rendering) + ENet multiplayer on port 42069, Godot's built-in networking system, SignalBus singleton (001-fix-snake-death)
+- Scene (.tscn) files and Resource (.tres) files for game data persistence (001-fix-snake-death)
+
+## Recent Changes
+- 001-fix-snake-death: Added GDScript / Godot 4.5 (Forward Plus rendering) + ENet multiplayer on port 42069, Godot's built-in networking system, SignalBus singleton

@@ -116,15 +116,18 @@ func _handle_player_death(player_id: int, death_position: Vector2, cause: String
 	var dropped_items = _extract_player_inventory(player_id)
 	if dropped_items.size() > 0:
 		_create_dropped_items(dropped_items, death_position)
+		
+		# Emit signal for UI systems (sound effects, HUD notifications, etc.)
+		SignalBus.items_dropped_at_location.emit(dropped_items, death_position)
 	
 	# Start respawn delay timer
 	_start_respawn_delay(player_id)
 
 
 
-func _extract_player_inventory(player_id: int) -> Array:
+func _extract_player_inventory(player_id: int) -> Dictionary:
 	"""Extract inventory items from player for dropping as regular pickups"""
-	var items_to_drop: Array = []
+	var items_to_drop: Dictionary = {}
 	
 	# Extract items directly from PlayerManager's inventory system
 	if not PlayerManager.players_data.has(player_id):
@@ -144,16 +147,10 @@ func _extract_player_inventory(player_id: int) -> Array:
 	# Convert PlayerManager inventory to ItemData format for pickup spawning
 	for item_resource_path in inventory_dict.keys():
 		var quantity = inventory_dict[item_resource_path]
-		var item_data = ItemDatabase.get_item(item_resource_path)
-		
-		if item_data and quantity > 0:
-			# Create one pickup per quantity (could be optimized with stacking later)
-			for i in range(quantity):
-				items_to_drop.append(item_data)
-	
-	# Clear the PlayerManager inventory
-	inventory_dict.clear()
-	PlayerManager.update_client_inventory.rpc_id(player_id, inventory_dict)
+		if quantity > 0:
+			items_to_drop[item_resource_path] = quantity
+
+	PlayerManager.update_client_inventory.rpc_id(player_id, {})
 	
 	print("DeathSystem: Extracted ", items_to_drop.size(), " items from PlayerManager for player ", player_id)
 	return items_to_drop
@@ -184,7 +181,7 @@ func _get_player_node(player_id: int) -> Player:
 
 
 
-func _create_dropped_items(items_data: Array, spawn_position: Vector2) -> void:
+func _create_dropped_items(items_data: Dictionary, spawn_position: Vector2) -> void:
 	# Use proper multiplayer spawning instead of manual client-side spawning
 	_spawn_items_via_multiplayer_spawner(items_data, spawn_position)
 	print("DeathSystem: Spawning ", items_data.size(), " pickup items via MultiplayerSpawner")
@@ -345,15 +342,10 @@ func _find_multiplayer_spawner() -> Node:
 		return null
 	
 	# Look for MultiplayerSpawner by group (added in multiplayer_spawner.gd)
-	var spawners = scene_tree.get_nodes_in_group("multiplayer_spawner")
+	var spawners = scene_tree.get_nodes_in_group("multiplayer_pickup_spawner")
 	if spawners.size() > 0:
 		return spawners[0]
-	
-	# Fallback: search by type
-	var spawner = current_scene.find_child("MultiplayerSpawner", true, false)
-	if spawner:
-		return spawner
-	
+		
 	return null
 
 func _find_reality_zone() -> Zone:
@@ -402,43 +394,36 @@ func _respawn_player(player_id: int) -> void:
 	# Broadcast respawn to all clients
 	notify_player_respawned.rpc(player_id, respawn_position, respawn_time)
 
-func _spawn_items_via_multiplayer_spawner(items_data: Array, spawn_position: Vector2) -> void:
-	"""Spawn pickup items using proper MultiplayerSpawner (server-side only)"""
+func _spawn_items_via_multiplayer_spawner(items_data: Dictionary, spawn_position: Vector2) -> void:
+	"""Spawn pickup items using MultiplayerSpawner (server-side only)"""
 	if not multiplayer.is_server():
 		print("DeathSystem: WARNING - _spawn_items_via_multiplayer_spawner called on client")
 		return
 	
 	# Find the multiplayer spawner in the scene
 	var multiplayer_spawner = _find_multiplayer_spawner()
+	
+	# ERROR OUT IF SPAWNER NOT FOUND - this is a critical configuration issue
 	if multiplayer_spawner == null:
-		print("DeathSystem: ERROR - Could not find MultiplayerSpawner to spawn items")
-		# Fallback: broadcast to clients for manual spawning (old behavior)
-		notify_items_dropped.rpc(items_data, spawn_position)
+		push_error("DeathSystem: CRITICAL ERROR - Could not find MultiplayerSpawner to spawn items. Check scene configuration.")
+		assert(false, "MultiplayerSpawner not found in scene - cannot spawn items")
 		return
 	
 	# Spawn each item via the proper multiplayer spawner
-	for item_data in items_data:
-		if item_data == null or not (item_data is ItemData):
-			print("DeathSystem: Invalid item_data, skipping spawn")
+	for key in items_data.keys():
+		if !items_data[key]:
 			continue
-		
-		# Calculate spread position for multiple items
-		var spread_offset = Vector2(randf_range(-30, 30), randf_range(-30, 30))
-		var item_spawn_position = spawn_position + spread_offset
-		
-		# Add small velocity for visual effect
-		var velocity = Vector2(randf_range(-50, 50), randf_range(-50, 50))
-		
-		# Use MultiplayerSpawner's proper method - this handles all the networking
-		var spawned_pickup = multiplayer_spawner.spawn_pickup_item(item_data, item_spawn_position, velocity)
-		
-		if spawned_pickup:
-			print("DeathSystem: Spawned pickup ", item_data.name, " at ", item_spawn_position, " via MultiplayerSpawner")
-		else:
-			print("DeathSystem: Failed to spawn pickup ", item_data.name)
-	
-	# Broadcast notification for UI/sound effects
-	notify_items_dropped.rpc(items_data, spawn_position)
+			
+		for quantity in items_data[key]:
+			# Calculate spread position for multiple items
+			var spread_offset = Vector2(randf_range(-30, 30), randf_range(-30, 30))
+			var item_spawn_position = spawn_position + spread_offset
+			
+			# Add small velocity for visual effect
+			#var velocity = Vector2(randf_range(-50, 50), randf_range(-50, 50))
+			
+			SignalBus.on_item_drop.emit({"item_type": key, "position": item_spawn_position})
+			#var spawned_pickup = multiplayer_spawner.spawn_pickup_item(item_data, item_spawn_position, velocity)
 
 # =============================================================================
 # SIGNAL HANDLERS
