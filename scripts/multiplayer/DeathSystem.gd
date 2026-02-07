@@ -451,7 +451,7 @@ func _spawn_items_via_multiplayer_spawner(items_data: Dictionary, spawn_position
 			}
 			
 			# Use call_deferred to prevent overwhelming the spawning system
-			await get_tree().create_timer(0.15).timeout
+			await get_tree().create_timer(0.25).timeout
 			call_deferred("_emit_item_drop", spawn_data)
 
 func _emit_item_drop(spawn_data: Dictionary) -> void:

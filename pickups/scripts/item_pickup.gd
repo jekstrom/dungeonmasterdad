@@ -22,20 +22,15 @@ func _ready() -> void:
 	grace_time_remaining = PICKUP_GRACE_PERIOD
 	can_be_picked_up = false
 	
-	area_2d.body_entered.connect(on_body_entered)
+	if not area_2d.body_entered.is_connected(on_body_entered):
+		area_2d.body_entered.connect(on_body_entered)
 	if item_data:
 		audio_stream_player_2d.stream = item_data.pickup_sound
 	
 	# Set up visual indication for grace period
 	_indicate_grace_period_active()
 
-func _physics_process(delta: float) -> void:
-	# Handle pickup physics
-	var collision_info = move_and_collide(velocity * delta)
-	if collision_info:
-		velocity = velocity.bounce(collision_info.get_normal())
-	velocity -= velocity * delta * 4
-	
+func _process(delta: float) -> void:
 	# Handle grace period countdown (only when grace period is active)
 	if not can_be_picked_up and grace_time_remaining > 0.0:
 		grace_time_remaining -= delta
@@ -221,17 +216,10 @@ func _find_nearest_player() -> Node:
 	return nearest_player
 
 func _safe_queue_free():
-	"""Safely queue this pickup for deletion after RPC processing is complete"""
 	if is_inside_tree() and not is_queued_for_deletion():
-		queue_free()
+		ItemPickupPool.return_to_pool(self)
 	else:
 		print("ItemPickup: _safe_queue_free called but node already invalid")
-
-# =============================================================================
-# GRACE PERIOD MANAGEMENT
-# =============================================================================
-
-
 
 func _on_grace_period_ended() -> void:
 	"""Called when the grace period expires - enables pickup"""
@@ -297,6 +285,5 @@ func _disable_pickup():
 		area_2d.set_collision_mask(0)
 
 func _server_cleanup():
-	"""Server-side cleanup after ensuring RPC delivery"""
 	if multiplayer.is_server() and is_inside_tree() and not is_queued_for_deletion():
-		queue_free()
+		ItemPickupPool.return_to_pool(self)
