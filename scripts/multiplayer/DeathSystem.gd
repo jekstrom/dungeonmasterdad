@@ -51,6 +51,9 @@ func notify_player_death(player_id: int, death_position: Vector2) -> void:
 	# Clean up trails on all clients (server and clients)
 	_cleanup_player_trails_client_side(player_id)
 	
+	# Hide player sprite and visuals on this client (already running on all clients via call_local)
+	_hide_player_visuals_locally(player_id)
+	
 	# Trigger death state on the appropriate player node
 	var player_node = _get_player_node(player_id)
 	if player_node:
@@ -65,12 +68,6 @@ func notify_player_death(player_id: int, death_position: Vector2) -> void:
 	SignalBus.player_death_processed.emit(player_id, [])
 	print("DeathSystem: Player ", player_id, " death notification processed")
 
-@rpc("authority", "call_local", "reliable") 
-func notify_items_dropped(items_data: Array, spawn_position: Vector2) -> void:
-	print("DeathSystem: ", items_data.size(), " items dropped at ", spawn_position)
-	# Emit signal for other systems (like UI notifications)
-	SignalBus.items_dropped_at_location.emit(items_data, spawn_position)
-
 @rpc("authority", "call_remote", "reliable")
 func notify_player_respawn_delay(delay_duration: float, spawn_position: Vector2) -> void:
 	# Client receives respawn delay notification
@@ -81,6 +78,9 @@ func notify_player_respawn_delay(delay_duration: float, spawn_position: Vector2)
 func notify_player_respawned(player_id: int, respawn_position: Vector2) -> void:
 	# Broadcast player respawn to all clients
 	SignalBus.player_respawn_completed.emit(player_id, respawn_position)
+	
+	# Restore player visuals on this client (already running on all clients via call_local)
+	_show_player_visuals_locally(player_id)
 	
 	# Clean up tracking data
 	if player_id in active_death_timers:
@@ -138,8 +138,6 @@ func _handle_player_death(player_id: int, death_position: Vector2) -> void:
 	var dropped_items = _extract_player_inventory(player_id)
 	if dropped_items.size() > 0:
 		_create_dropped_items(dropped_items, death_position)
-		# Emit signal for UI systems (sound effects, HUD notifications, etc.)
-		SignalBus.items_dropped_at_location.emit(dropped_items, death_position)
 	
 	notify_player_death.rpc(player_id, death_position)
 	# Start respawn delay timer
@@ -348,6 +346,8 @@ func notify_respawn_countdown_update(remaining_time: float) -> void:
 	var player_id = multiplayer.get_remote_sender_id()
 	SignalBus.player_respawn_delay_started.emit(player_id, remaining_time)  # Reuse existing signal
 
+
+
 func _find_multiplayer_spawner() -> Node:
 	"""Find the MultiplayerSpawner in the scene"""
 	var scene_tree = get_tree()
@@ -396,15 +396,10 @@ func _respawn_player(player_id: int) -> void:
 	else:
 		# Fallback if no reservation found
 		respawn_position = _select_respawn_location(player_id)
-	
-	var respawn_time = _get_current_time()
-	
+
 	# Move player to respawn position on server and restore to world
 	var player_node = _get_player_node(player_id)
 	if player_node:
-		print("DeathSystem: Respawning player ", player_id, " at ", respawn_position)
-		
-		# Move to respawn position
 		player_node.global_position = respawn_position
 		
 		# Force player to idle state after respawn
@@ -456,6 +451,7 @@ func _spawn_items_via_multiplayer_spawner(items_data: Dictionary, spawn_position
 			}
 			
 			# Use call_deferred to prevent overwhelming the spawning system
+			await get_tree().create_timer(0.15).timeout
 			call_deferred("_emit_item_drop", spawn_data)
 
 func _emit_item_drop(spawn_data: Dictionary) -> void:
@@ -549,6 +545,55 @@ func _cleanup_player_trails_client_side(player_id: int) -> void:
 		print("DeathSystem: Client-side trail cleanup completed for player ", player_id)
 	else:
 		print("DeathSystem: WARNING - TrailManager.cleanup_player_trail not available on client")
+
+func _hide_player_visuals_locally(player_id: int) -> void:
+	"""Hide player visuals on this client (called from RPC that runs on all clients)"""
+	print("DeathSystem: Hiding visuals for player ", player_id, " on client ", multiplayer.get_unique_id())
+	
+	var player_node = _get_player_node(player_id)
+	if not player_node:
+		print("DeathSystem: Could not find player node to hide visuals: ", player_id)
+		return
+	
+	# Hide sprite
+	if player_node.sprite:
+		player_node.sprite.visible = false
+		print("DeathSystem: Hidden sprite for player ", player_id)
+	
+	# Hide player label/name
+	if player_node.label:
+		player_node.label.visible = false
+		print("DeathSystem: Hidden label for player ", player_id)
+	
+	# Hide shadow sprite if it exists
+	var shadow_sprite = player_node.get_node_or_null("ShadowSprite")
+	if shadow_sprite:
+		shadow_sprite.visible = false
+		print("DeathSystem: Hidden shadow sprite for player ", player_id)
+	
+	print("DeathSystem: All visuals hidden for player ", player_id)
+
+func _show_player_visuals_locally(player_id: int) -> void:
+	"""Show player visuals on this client (called from RPC that runs on all clients)"""
+	print("DeathSystem: Showing visuals for player ", player_id, " on client ", multiplayer.get_unique_id())
+	
+	var player_node = _get_player_node(player_id)
+	if not player_node:
+		print("DeathSystem: Could not find player node to show visuals: ", player_id)
+		return
+	
+	# Show sprite
+	if player_node.sprite:
+		player_node.sprite.visible = true
+		print("DeathSystem: Shown sprite for player ", player_id)
+	
+	# Show player label/name
+	if player_node.label:
+		player_node.label.visible = true
+		print("DeathSystem: Shown label for player ", player_id)
+	
+	# Note: Shadow sprite restoration handled separately by shadow system
+	print("DeathSystem: All visuals shown for player ", player_id)
 
 # =============================================================================
 # SIGNAL HANDLERS

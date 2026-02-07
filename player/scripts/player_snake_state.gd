@@ -74,7 +74,6 @@ func check_trail_collisions() -> bool:
 			
 			# DM trails don't kill players (DM immunity)
 			if is_player_dm(trail_owner_id):
-				print("🛡️ IMMUNE: Collision with DM trail ignored")
 				continue
 			
 			# Self-collision grace check ONLY - other players can always collide with your trails
@@ -86,11 +85,7 @@ func check_trail_collisions() -> bool:
 				
 				# Grace ONLY for the first 2 segments (recent trail behind player)
 				if segment_index >= 0 and segment_index < 2:
-					print("🔄 SELF-GRACE: Own trail segment (index:", segment_index, ") - safe from self")
 					continue
-				
-				print("💀 SELF-COLLISION: Collided with own trail segment ", segment_index)
-			
 			# Valid fatal collision detected
 			print("💀 FATAL: Trail collision detected! (Owner: ", trail_owner_id, ", Victim: ", player_id, ")")
 			return true
@@ -109,49 +104,13 @@ func handle_trail_death(death_position: Vector2) -> void:
 		# Request death through the centralized DeathSystem
 		DeathSystem.request_player_death.rpc_id(1, death_position)
 		print("SnakeState: Requested death processing from DeathSystem")
-	else:
-		# Single player fallback - trigger death state directly
-		var death_state = state_machine.current_state.get_node("../death")
-		if death_state:
-			state_machine.ChangeState(death_state)
-			print("SnakeState: Direct death state transition (single player)")
-		else:
-			print("ERROR: Could not find death state for single player death")
 
 # RPC to notify server of player death
 @rpc("any_peer", "call_local", "reliable")
 func notify_server_player_death(pid: int, death_pos: Vector2) -> void:
 	if not multiplayer.is_server():
 		return
-	process_player_death(pid, death_pos)
-
-# Server-side death processing (LEGACY - now handled by DeathSystem)
-func process_player_death(pid: int, death_pos: Vector2) -> void:
-	print("SERVER: Processing death for player ", pid, " at ", death_pos, " (LEGACY - should not be called)")
-	
-	# Trail cleanup is now handled by DeathSystem._cleanup_player_trails()
-	# Inventory and respawn is handled by DeathSystem._handle_player_death()
-	
-	# This should only be called if DeathSystem is not available (fallback)
-	if not DeathSystem:
-		print("WARNING: DeathSystem not available, using legacy death handling")
-		# Clean up trails as fallback
-		TrailManager.cleanup_player_trail_on_death(pid)
-		# Request death through the proper SignalBus signal
-		SignalBus.player_death_requested.emit(pid, death_pos)
-	else:
-		print("WARNING: Legacy death processing called when DeathSystem available - this should not happen")
-
-# RPC to notify all clients of player death for visual effects
-@rpc("authority", "call_local", "reliable")
-func notify_death_to_all_clients(pid: int, death_pos: Vector2) -> void:
-	print("CLIENT: Player ", pid, " died at ", death_pos)
-	# Could add death particle effects, sound, screen shake, etc.
-	
-	# Ensure local trail cleanup happens on all clients
-	if TrailManager.has_trail_for_player(pid):
-		print("CLIENT: Cleaning up visual trails for dead player ", pid)
-		TrailManager.cleanup_player_trail(pid)
+	SignalBus.player_death_requested.emit(pid, death_pos)
 
 func Enter() -> void:
 	player.update_animation("walk")

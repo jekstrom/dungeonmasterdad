@@ -188,18 +188,8 @@ func _remove_player_from_world() -> void:
 		original_hitbox_layer = hitbox.get_collision_layer()
 		original_hitbox_mask = hitbox.get_collision_mask()
 	
-	# Hide all visual components
-	if player.sprite:
-		player.sprite.visible = false
-	
-	# Hide the player label/name
-	if player.label:
-		player.label.visible = false
-	
-	# Hide shadow sprite if it exists
-	var shadow_sprite = player.get_node_or_null("ShadowSprite")
-	if shadow_sprite:
-		shadow_sprite.visible = false
+	# Visual components (sprite, label, shadow) are now hidden centrally by DeathSystem
+	# This ensures all clients see the same visual state consistently
 	
 	# Disable ALL collision shapes - main player collision
 	var collision_shape = player.get_node_or_null("CollisionShape2D")
@@ -237,20 +227,8 @@ func _restore_player_to_world() -> void:
 	"""Restore player to the game world - show and re-enable all collisions"""
 	print("PlayerDeathState: Restoring player ", player.get_multiplayer_authority(), " to world")
 	
-	# Restore all visual components
-	if player.sprite:
-		player.sprite.visible = true
-	
-	# Restore the player label/name
-	if player.label:
-		player.label.visible = true
-	
-	# Restore shadow sprite if it was visible before
-	var shadow_sprite = player.get_node_or_null("ShadowSprite")
-	if shadow_sprite:
-		# Only restore if shadow system is active (check if sprite was meant to be visible)
-		# For now, keep it hidden unless explicitly needed
-		pass
+	# Visual components (sprite, label, shadow) are now restored centrally by DeathSystem
+	# This ensures all clients see the same visual state consistently
 	
 	# Re-enable main collision shape
 	var collision_shape = player.get_node_or_null("CollisionShape2D")
