@@ -45,6 +45,8 @@ func _custom_spawn(data: Dictionary) -> Node2D:
 	var p: Node2D = pickup_scene.instantiate()
 	p.item_data = item_data
 	p.position = data.position
+	if data.has("velocity"):
+		p.velocity = data.velocity
 	
 	pickup_counter += 1
 	p.name = "pickup_" + str(pickup_counter)
@@ -74,10 +76,7 @@ func on_item_drop(pickup_data: Dictionary) -> void:
 	if !multiplayer.is_server(): 
 		print("PickupSpawner: on_item_drop called on client, ignoring")
 		return
-	
-	print("PickupSpawner: Processing item drop: ", pickup_data)
-	
-	# Validate pickup data before spawning
+		
 	if not pickup_data.has("item_type") or not pickup_data.has("position"):
 		print("PickupSpawner: Invalid pickup data, missing required fields: ", pickup_data)
 		return

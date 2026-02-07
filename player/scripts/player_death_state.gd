@@ -143,8 +143,6 @@ func _convert_manager_inventory_to_data(inventory_dict: Dictionary) -> Inventory
 			slot.quantity = quantity
 			inventory_data.slots[slot_index] = slot
 			slot_index += 1
-	
-	print("PlayerDeathState: Converted PlayerManager inventory - found ", slot_index, " items")
 	return inventory_data
 
 func _get_current_time() -> float:
@@ -188,36 +186,27 @@ func _remove_player_from_world() -> void:
 		original_hitbox_layer = hitbox.get_collision_layer()
 		original_hitbox_mask = hitbox.get_collision_mask()
 	
-	# Visual components (sprite, label, shadow) are now hidden centrally by DeathSystem
-	# This ensures all clients see the same visual state consistently
-	
 	# Disable ALL collision shapes - main player collision
 	var collision_shape = player.get_node_or_null("CollisionShape2D")
 	if collision_shape:
 		collision_shape.disabled = true
-		print("PlayerDeathState: Disabled main collision shape")
 	
 	# Disable hitbox collisions
 	if hitbox:
 		hitbox.set_collision_layer(0)
 		hitbox.set_collision_mask(0)
+		hitbox.monitoring = false
+		hitbox.monitorable = false
 		
 		# Also disable the hitbox's collision shape
 		var hitbox_collision = hitbox.get_node_or_null("CollisionShape2D")
 		if hitbox_collision:
 			hitbox_collision.disabled = true
-		print("PlayerDeathState: Disabled hitbox collisions")
 	
 	# Disable the main player's physics layers
 	player.set_collision_layer(0)
 	player.set_collision_mask(0)
 	
-	# Disable camera if this is the authority player
-	#if player.is_multiplayer_authority() and player.camera_2d:
-		#player.camera_2d.enabled = false
-		#print("PlayerDeathState: Disabled camera for authority player")
-	
-	# Stop any ongoing animations
 	if player.animation_player:
 		player.animation_player.stop()
 	
@@ -226,28 +215,26 @@ func _remove_player_from_world() -> void:
 func _restore_player_to_world() -> void:
 	"""Restore player to the game world - show and re-enable all collisions"""
 	print("PlayerDeathState: Restoring player ", player.get_multiplayer_authority(), " to world")
-	
-	# Visual components (sprite, label, shadow) are now restored centrally by DeathSystem
-	# This ensures all clients see the same visual state consistently
-	
+
 	# Re-enable main collision shape
 	var collision_shape = player.get_node_or_null("CollisionShape2D")
 	if collision_shape:
 		collision_shape.disabled = false
-		print("PlayerDeathState: Re-enabled main collision shape")
 	
 	# Re-enable hitbox collisions with original layers
+	await get_tree().process_frame
 	var hitbox = player.get_node_or_null("Hitbox")
 	if hitbox:
 		# Restore original collision layers
 		hitbox.set_collision_layer(original_hitbox_layer)
 		hitbox.set_collision_mask(original_hitbox_mask)
+		hitbox.monitoring = true
+		hitbox.monitorable = true
 		
 		# Re-enable the hitbox's collision shape
 		var hitbox_collision = hitbox.get_node_or_null("CollisionShape2D")
 		if hitbox_collision:
 			hitbox_collision.disabled = false
-		print("PlayerDeathState: Re-enabled hitbox collisions")
 	
 	# Restore the main player's original physics layers
 	player.set_collision_layer(original_collision_layer)
@@ -257,9 +244,6 @@ func _restore_player_to_world() -> void:
 	if player.is_multiplayer_authority() and player.camera_2d:
 		player.camera_2d.enabled = true
 		player.camera_2d.make_current()
-		print("PlayerDeathState: Re-enabled camera for authority player")
-	
-	print("PlayerDeathState: Player fully restored to world")
 
 # =============================================================================
 # SIGNAL CONNECTIONS (set up in _ready if needed)

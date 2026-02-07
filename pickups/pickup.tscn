@@ -1,4 +1,4 @@
-[gd_scene load_steps=6 format=3 uid="uid://c10eakv6dta4r"]
+[gd_scene load_steps=7 format=3 uid="uid://c10eakv6dta4r"]
 
 [ext_resource type="Script" uid="uid://nkvulasfe4y4" path="res://pickups/scripts/item_pickup.gd" id="1_0ketk"]
 [ext_resource type="Texture2D" uid="uid://d3wb1fbmfd5jv" path="res://pickups/mtdew/mtdew.png" id="1_ra232"]
@@ -8,11 +8,18 @@
 
 [sub_resource type="CapsuleShape2D" id="CapsuleShape2D_0ketk"]
 
+[sub_resource type="SceneReplicationConfig" id="SceneReplicationConfig_i5kuo"]
+properties/0/path = NodePath(".:position")
+properties/0/spawn = true
+properties/0/replication_mode = 1
+
 [node name="Pickup" type="CharacterBody2D"]
 collision_layer = 0
 collision_mask = 16
 motion_mode = 1
 script = ExtResource("1_0ketk")
+friction = 0.0
+stop_threshold = true
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
 texture_filter = 1
@@ -29,3 +36,6 @@ shape = SubResource("CapsuleShape2D_i5kuo")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 shape = SubResource("CapsuleShape2D_0ketk")
+
+[node name="MultiplayerSynchronizer" type="MultiplayerSynchronizer" parent="."]
+replication_config = SubResource("SceneReplicationConfig_i5kuo")

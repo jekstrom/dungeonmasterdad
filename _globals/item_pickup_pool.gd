@@ -86,10 +86,17 @@ func _sync_pickup_activate(pickup_name: String, position: Vector2, velocity: Vec
 	var pickup = _find_pickup_by_name(pickup_name)
 	if pickup and pickup.is_inside_tree():
 		pickup.position = position
-		pickup.velocity = velocity
+		pickup.velocity = velocity  # Set velocity on clients too
 		pickup.visible = true
 		pickup.grace_time_remaining = 1.0
 		pickup.can_be_picked_up = false
+		if pickup.has_node("Area2D"):
+			var area = pickup.get_node("Area2D")
+			area.monitoring = true
+			area.collision_layer = 1
+			area.collision_mask = 1
+			if not area.body_entered.is_connected(pickup.on_body_entered):
+				area.body_entered.connect(pickup.on_body_entered)
 
 @rpc("authority", "call_remote", "reliable")
 func _sync_pickup_deactivate(pickup_name: String) -> void:
@@ -97,6 +104,14 @@ func _sync_pickup_deactivate(pickup_name: String) -> void:
 	if pickup and pickup.is_inside_tree():
 		pickup.visible = false
 		pickup.position = Vector2(-10000, -10000)
+		pickup.velocity = Vector2.ZERO
+		if pickup.has_node("Area2D"):
+			var area = pickup.get_node("Area2D")
+			area.monitoring = false
+			area.collision_layer = 0
+			area.collision_mask = 0
+			if area.body_entered.is_connected(pickup.on_body_entered):
+				area.body_entered.disconnect(pickup.on_body_entered)
 
 func _find_pickup_by_name(pickup_name: String) -> Node:
 	var scene_tree = get_tree()

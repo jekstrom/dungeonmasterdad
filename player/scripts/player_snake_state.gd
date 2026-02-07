@@ -103,7 +103,6 @@ func handle_trail_death(death_position: Vector2) -> void:
 	if multiplayer.has_multiplayer_peer():
 		# Request death through the centralized DeathSystem
 		DeathSystem.request_player_death.rpc_id(1, death_position)
-		print("SnakeState: Requested death processing from DeathSystem")
 
 # RPC to notify server of player death
 @rpc("any_peer", "call_local", "reliable")
@@ -154,7 +153,6 @@ func notify_server_player_moved(pid: int, position: Vector2) -> void:
 	update_server_trail_tracking(pid, position)
 
 func start_server_trail_tracking(pid: int) -> void:
-	print("start_server_trail_tracking")
 	var player_node = get_player_by_id(pid)
 	if not player_node:
 		print("DID NOT FIND PLAYER NODE: ", pid)
@@ -178,7 +176,6 @@ func start_server_trail_tracking(pid: int) -> void:
 	positions.push_back(initial_trail_pos)
 	
 	if not SignalBus.on_item_pickup.is_connected(_on_item_pickup_server_handler):
-		print("Connected on_item_pickup")
 		SignalBus.on_item_pickup.connect(_on_item_pickup_server_handler)
 	
 	mark_trail_broadcast_needed()
@@ -186,7 +183,6 @@ func start_server_trail_tracking(pid: int) -> void:
 
 func stop_server_trail_tracking(pid: int) -> void:
 	if server_trail_data.has(pid):
-		print("Stopping server trail tracking for player ", pid)
 		server_trail_data.erase(pid)
 		
 		# Clean up visual trails immediately
@@ -194,7 +190,6 @@ func stop_server_trail_tracking(pid: int) -> void:
 	
 	if server_trail_data.is_empty():
 		if SignalBus.on_item_pickup.is_connected(_on_item_pickup_server_handler):
-			print("Disconnected on_item_pickup - no more snake players")
 			SignalBus.on_item_pickup.disconnect(_on_item_pickup_server_handler)
 		cleanup_broadcast_timer()
 	
@@ -218,7 +213,6 @@ func update_server_trail_tracking(pid: int, position: Vector2) -> void:
 		mark_trail_broadcast_needed()
 
 func _on_item_pickup_server_handler() -> void:
-	print(" ____on_item_pickup!")
 	for pid in server_trail_data.keys():
 		var data = server_trail_data[pid]
 		data["segments"] += 1

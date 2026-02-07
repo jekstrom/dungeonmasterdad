@@ -45,9 +45,7 @@ func request_player_death(death_position: Vector2) -> void:
 # =============================================================================
 
 @rpc("authority", "call_local", "reliable")
-func notify_player_death(player_id: int, death_position: Vector2) -> void:
-	print("DeathSystem: Notifying player ", player_id, " death at position ", death_position)
-	
+func notify_player_death(player_id: int, _death_position: Vector2) -> void:
 	# Clean up trails on all clients (server and clients)
 	_cleanup_player_trails_client_side(player_id)
 	
@@ -66,13 +64,10 @@ func notify_player_death(player_id: int, death_position: Vector2) -> void:
 	
 	# Emit signal for local systems to handle
 	SignalBus.player_death_processed.emit(player_id, [])
-	print("DeathSystem: Player ", player_id, " death notification processed")
 
 @rpc("authority", "call_remote", "reliable")
-func notify_player_respawn_delay(delay_duration: float, spawn_position: Vector2) -> void:
-	# Client receives respawn delay notification
+func notify_player_respawn_delay(delay_duration: float, _spawn_position: Vector2) -> void:
 	SignalBus.player_respawn_delay_started.emit(multiplayer.get_remote_sender_id(), delay_duration)
-	print("DeathSystem: Respawn delay of ", delay_duration, "s started. Will respawn at ", spawn_position)
 
 @rpc("authority", "call_local", "reliable")
 func notify_player_respawned(player_id: int, respawn_position: Vector2) -> void:
@@ -91,7 +86,6 @@ func notify_player_respawned(player_id: int, respawn_position: Vector2) -> void:
 	_cleanup_countdown_timer(player_id)
 	
 	respawn_reservations.erase(player_id)
-	print("DeathSystem: Player ", player_id, " respawned at ", respawn_position)
 
 # =============================================================================
 # PRIVATE SERVER-SIDE PROCESSING METHODS
@@ -118,8 +112,6 @@ func _validate_death_request(player_id: int) -> bool:
 
 func _handle_player_death(player_id: int, death_position: Vector2) -> void:
 	var death_time: float = Time.get_time_dict_from_system().hour * 3600 + Time.get_time_dict_from_system().minute * 60 + Time.get_time_dict_from_system().second
-	
-	print("DeathSystem: Processing death for player ", player_id, " at position ", death_position)
 	
 	# Update death cooldown
 	player_death_cooldowns[player_id] = death_time
@@ -171,8 +163,6 @@ func _extract_player_inventory(player_id: int) -> Dictionary:
 			items_to_drop[item_resource_path] = quantity
 
 	PlayerManager.update_client_inventory.rpc_id(player_id, {})
-	
-	print("DeathSystem: Extracted ", items_to_drop.size(), " items from PlayerManager for player ", player_id)
 	return items_to_drop
 
 func _get_player_node(player_id: int) -> Player:
@@ -204,7 +194,6 @@ func _get_player_node(player_id: int) -> Player:
 func _create_dropped_items(items_data: Dictionary, spawn_position: Vector2) -> void:
 	# Use proper multiplayer spawning instead of manual client-side spawning
 	_spawn_items_via_multiplayer_spawner(items_data, spawn_position)
-	print("DeathSystem: Spawning ", items_data.size(), " pickup items via MultiplayerSpawner")
 
 func _start_respawn_delay(player_id: int) -> void:
 	var spawn_position = _select_respawn_location(player_id)
@@ -260,8 +249,6 @@ func _select_respawn_location(player_id: int) -> Vector2:
 		var distance_to_center = reality_zone.global_position.distance_to(spawn_position)
 		if distance_to_center > reality_zone.radius:
 			spawn_position = reality_zone.global_position
-	
-	print("DeathSystem: Selected respawn position ", spawn_position, " for player ", player_id)
 	return spawn_position
 
 # =============================================================================
@@ -413,8 +400,6 @@ func _respawn_player(player_id: int) -> void:
 	
 	# Broadcast respawn to all clients
 	notify_player_respawned.rpc(player_id, respawn_position)
-	
-	print("DeathSystem: Player ", player_id, " respawn process completed")
 
 func _spawn_items_via_multiplayer_spawner(items_data: Dictionary, spawn_position: Vector2) -> void:
 	"""Spawn pickup items using MultiplayerSpawner (server-side only)"""
@@ -426,32 +411,22 @@ func _spawn_items_via_multiplayer_spawner(items_data: Dictionary, spawn_position
 		print("DeathSystem: No items to spawn")
 		return
 
-	print("DeathSystem: Spawning ", items_data.size(), " item types at ", spawn_position)
-	
-	# Spawn each item via the proper multiplayer spawner
 	for key in items_data.keys():
 		var quantity = items_data[key]
 		if !quantity or quantity <= 0:
-			continue
-		
-		print("DeathSystem: Spawning ", quantity, " of item ", key)
-		
+			continue		
 		for i in range(quantity):
-			# Calculate spread position for multiple items
-			var spread_offset = Vector2(randf_range(-30, 30), randf_range(-30, 30))
-			var item_spawn_position = spawn_position + spread_offset
-			
 			# Add small velocity for visual effect
-			var velocity = Vector2(randf_range(-20, 20), randf_range(-20, 20))
+			var random_direction = Vector2.from_angle(randf() * TAU)
+			var launch_speed = randf_range(20.0, 100.0)
+			var velocity = random_direction * launch_speed
 			
 			var spawn_data = {
 				"item_type": key, 
-				"position": item_spawn_position,
+				"position": spawn_position,
 				"velocity": velocity
 			}
-			
-			# Use call_deferred to prevent overwhelming the spawning system
-			await get_tree().create_timer(0.25).timeout
+
 			call_deferred("_emit_item_drop", spawn_data)
 
 func _emit_item_drop(spawn_data: Dictionary) -> void:
@@ -485,9 +460,7 @@ func _trigger_player_death_state(player_node: Node) -> void:
 			print("DeathSystem: ERROR - Could not trigger death state transition")
 
 func _cleanup_player_trails(player_id: int) -> void:
-	"""Clean up all trails for a dead player - both server tracking and visual trails"""
-	print("DeathSystem: Cleaning up trails for player ", player_id)
-	
+	"""Clean up all trails for a dead player - both server tracking and visual trails"""	
 	# First, stop server-side trail tracking and clean up trail data
 	# This needs to happen on the server and be communicated to all clients
 	if multiplayer.is_server():
@@ -497,7 +470,6 @@ func _cleanup_player_trails(player_id: int) -> void:
 	# Use the death-specific cleanup which handles proper broadcasting
 	if TrailManager.has_method("cleanup_player_trail_on_death"):
 		TrailManager.cleanup_player_trail_on_death(player_id)
-		print("DeathSystem: Trail cleanup completed for player ", player_id)
 	else:
 		# Fallback to regular cleanup if death-specific method not available
 		if TrailManager.has_method("cleanup_player_trail"):
@@ -532,13 +504,9 @@ func _stop_server_trail_tracking_for_player(player_id: int) -> void:
 				snake_state.stop_server_trail_tracking(player_id)
 				print("DeathSystem: Stopped server trail tracking for player ", player_id)
 				return
-	
-	print("DeathSystem: Could not find snake state to stop trail tracking for player ", player_id)
 
 func _cleanup_player_trails_client_side(player_id: int) -> void:
-	"""Clean up player trails on client side (called via RPC)"""
-	print("DeathSystem: Client-side trail cleanup for player ", player_id)
-	
+	"""Clean up player trails on client side (called via RPC)"""	
 	# Clean up visual trails and collision bodies
 	if TrailManager.has_method("cleanup_player_trail"):
 		TrailManager.cleanup_player_trail(player_id)
@@ -547,9 +515,7 @@ func _cleanup_player_trails_client_side(player_id: int) -> void:
 		print("DeathSystem: WARNING - TrailManager.cleanup_player_trail not available on client")
 
 func _hide_player_visuals_locally(player_id: int) -> void:
-	"""Hide player visuals on this client (called from RPC that runs on all clients)"""
-	print("DeathSystem: Hiding visuals for player ", player_id, " on client ", multiplayer.get_unique_id())
-	
+	"""Hide player visuals on this client (called from RPC that runs on all clients)"""	
 	var player_node = _get_player_node(player_id)
 	if not player_node:
 		print("DeathSystem: Could not find player node to hide visuals: ", player_id)
@@ -570,13 +536,9 @@ func _hide_player_visuals_locally(player_id: int) -> void:
 	if shadow_sprite:
 		shadow_sprite.visible = false
 		print("DeathSystem: Hidden shadow sprite for player ", player_id)
-	
-	print("DeathSystem: All visuals hidden for player ", player_id)
 
 func _show_player_visuals_locally(player_id: int) -> void:
-	"""Show player visuals on this client (called from RPC that runs on all clients)"""
-	print("DeathSystem: Showing visuals for player ", player_id, " on client ", multiplayer.get_unique_id())
-	
+	"""Show player visuals on this client (called from RPC that runs on all clients)"""	
 	var player_node = _get_player_node(player_id)
 	if not player_node:
 		print("DeathSystem: Could not find player node to show visuals: ", player_id)
@@ -591,9 +553,6 @@ func _show_player_visuals_locally(player_id: int) -> void:
 	if player_node.label:
 		player_node.label.visible = true
 		print("DeathSystem: Shown label for player ", player_id)
-	
-	# Note: Shadow sprite restoration handled separately by shadow system
-	print("DeathSystem: All visuals shown for player ", player_id)
 
 # =============================================================================
 # SIGNAL HANDLERS
@@ -636,24 +595,16 @@ func _exit_tree() -> void:
 # =============================================================================
 
 func _clear_player_inventory_on_death(player_id: int) -> void:
-	"""Clear player inventory on death notification (called on all clients)"""
-	print("DeathSystem: Clearing inventory for player ", player_id, " on death notification")
-	
+	"""Clear player inventory on death notification (called on all clients)"""	
 	# Only server should modify PlayerManager data
 	if multiplayer.is_server():
-		# Clear server-side PlayerManager inventory if not already cleared
 		if PlayerManager.players_data.has(player_id):
 			var player_data = PlayerManager.players_data[player_id]
 			if player_data.has("inventory") and not player_data["inventory"].is_empty():
-				print("DeathSystem: Clearing remaining server-side inventory for player ", player_id)
 				player_data["inventory"].clear()
 		
-		# Send empty inventory update to the specific client
 		PlayerManager.update_client_inventory.rpc_id(player_id, {})
 	
-	# On all clients (including server): trigger UI inventory clearing
 	# This ensures the client-side inventory UI is properly updated
 	if player_id == multiplayer.get_unique_id():
-		# This is the local player dying - clear their client-side inventory UI
 		SignalBus.inventory_updated.emit([])
-		print("DeathSystem: Cleared local player inventory UI")

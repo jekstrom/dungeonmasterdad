@@ -36,7 +36,7 @@ signal DirectionChanged(new_direction: Vector2)
 
 func _enter_tree() -> void:
 	var id: int = name.to_int()
-	print("mp id: " + str(id))
+	print("player id: " + str(id))
 	# Only set authority if multiplayer is ready and we have a valid ID
 	if multiplayer.has_multiplayer_peer() and id > 0:
 		set_multiplayer_authority(id)
@@ -64,15 +64,7 @@ func _ready() -> void:
 	
 func dm_unlock_listener(unlock_name: String) -> void:
 	if unlock_name == "shadow_zone" and DmUnlocks.dm_unlocks.get("shadow_zone"):
-		print("request change state")
 		state_machine.RequestChangeStateTo.rpc_id(1, "snake")
-		#num_shadows = 40
-		#print("starting shadow zone on player")
-		#var shadows = shadow_scene.instantiate()
-		#shadows.num_shadows = num_shadows
-		#shadows.name = "shadow_"
-		#shadows.main_sprite = self.sprite
-		#add_child(shadows)
 	elif unlock_name == "shadow_zone" and !DmUnlocks.dm_unlocks.get("shadow_zone"):
 		state_machine.ChangeStateTo("idle")
 
@@ -80,7 +72,6 @@ func dm_unlock_listener(unlock_name: String) -> void:
 func force_idle_state() -> void:
 	if state_machine and state_machine.has_method("ChangeStateTo"):
 		state_machine.ChangeStateTo("idle")
-		print("Player ", name, " forced to idle state")
 
 @rpc("any_peer", "reliable")
 func request_name_fix():

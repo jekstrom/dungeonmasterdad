@@ -7,10 +7,14 @@ class_name ItemPickup extends CharacterBody2D
 
 @export var item_data: ItemData: set = _set_item_data
 
+const friction: float = 75.0
+@export var stop_threshold: float = 5.0
+
 # Grace period to prevent immediate pickup after spawning
 const PICKUP_GRACE_PERIOD: float = 1.0  # 1 second grace period
 var grace_time_remaining: float = 0.0
 var can_be_picked_up: bool = false
+var debug = false
 
 func _ready() -> void:
 	update_texture()
@@ -30,6 +34,23 @@ func _ready() -> void:
 	# Set up visual indication for grace period
 	_indicate_grace_period_active()
 
+func _physics_process(_delta: float) -> void:
+	if not is_multiplayer_authority(): return
+	if velocity.is_zero_approx(): return
+		
+	var collision_info = move_and_collide(velocity * _delta)
+	if collision_info:
+		velocity = velocity.bounce(collision_info.get_normal())
+	var current_friction = friction
+	if velocity.length() > 100:
+		current_friction *= 5.0
+		
+	if velocity.length() > 0:
+		velocity = velocity.move_toward(Vector2.ZERO, current_friction * _delta)
+	
+	if velocity.length() < stop_threshold:
+		velocity = Vector2.ZERO
+	
 func _process(delta: float) -> void:
 	# Handle grace period countdown (only when grace period is active)
 	if not can_be_picked_up and grace_time_remaining > 0.0:
@@ -37,6 +58,8 @@ func _process(delta: float) -> void:
 		if grace_time_remaining <= 0.0:
 			grace_time_remaining = 0.0  # Ensure it doesn't go negative
 			_on_grace_period_ended()
+	if debug and not area_2d.body_entered.is_connected(on_body_entered):
+		self.sprite_2d.modulate = Color.MAGENTA
 
 func on_body_entered(_body) -> void:
 	# Prevent pickup processing if node is being deleted or already processed
@@ -46,10 +69,6 @@ func on_body_entered(_body) -> void:
 	# Check grace period - prevent pickup during grace period
 	if not can_be_picked_up:
 		return
-	
-	# Prevent multiple pickups by immediately disabling further collision detection
-	if area_2d.body_entered.is_connected(on_body_entered):
-		area_2d.body_entered.disconnect(on_body_entered)
 	
 	if _body is DM and item_data != null and (item_data.pickup_char.is_empty() or item_data.pickup_char == "dm_only"):
 		handle_pickup(1, item_data)
