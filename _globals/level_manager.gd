@@ -6,18 +6,16 @@ var is_shadow_zone: bool = false
 # Handle global level-based events such as projectiles
 
 func _ready() -> void:
-	if !multiplayer.is_server(): return
 	if !SignalBus.on_explosion.is_connected(on_explosion):
 		SignalBus.on_explosion.connect(on_explosion)
-		
-	if multiplayer.is_server():
-		for i in range(0, 10):
-			var item_data = {
-				"item_type" = "res://pickups/metal.tres",
-				"position" = Vector2(i * 15, i * 9),
-			}
-			SignalBus.on_item_drop.emit(item_data)
-		
+	
+	# Set up periodic cleanup of invalid nodes to prevent RPC errors
+	var cleanup_timer = Timer.new()
+	cleanup_timer.wait_time = 5.0  # Clean up every 5 seconds
+	cleanup_timer.timeout.connect(_periodic_cleanup)
+	cleanup_timer.autostart = true
+	add_child(cleanup_timer)
+
 func on_explosion(proj_position: Vector2, explosion_data: Dictionary) -> void:
 	if !multiplayer.is_server(): return
 	explosion_data["position"] = proj_position
@@ -41,3 +39,12 @@ func show_damage_number(damage: int, spawn_pos: Vector2, color: Color):
 	dmg_numbers.get_node("DamageNumber").text = str(damage)
 	dmg_numbers.get_node("DamageNumber").self_modulate = color
 	get_tree().current_scene.add_child(dmg_numbers)
+
+func _periodic_cleanup():
+	"""Periodic cleanup to prevent RPC errors on deleted nodes"""
+	if multiplayer.is_server():
+		# Clean up any pickup spawners' invalid references
+		var pickup_spawners = get_tree().get_nodes_in_group("multiplayer_pickup_spawner")
+		for spawner in pickup_spawners:
+			if spawner.has_method("cleanup_invalid_pickups"):
+				spawner.cleanup_invalid_pickups()

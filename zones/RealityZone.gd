@@ -129,9 +129,9 @@ func _update_spawn_cooldowns(current_time: float) -> void:
 			if spawn_data["cooldown_remaining"] <= 0:
 				spawn_data["is_available"] = true
 
-func is_position_within_zone(position: Vector2) -> bool:
+func is_position_within_zone(pos: Vector2) -> bool:
 	"""Check if a world position is within this reality zone's boundaries"""
-	var distance_to_center = global_position.distance_to(position)
+	var distance_to_center = global_position.distance_to(pos)
 	return distance_to_center <= radius
 
 func get_safe_spawn_position_near(target_position: Vector2) -> Vector2:
@@ -173,10 +173,10 @@ func _get_current_time() -> float:
 # SIGNAL HANDLERS
 # =============================================================================
 
-func _on_respawn_location_selected(player_id: int, position: Vector2) -> void:
+func _on_respawn_location_selected(player_id: int, pos: Vector2) -> void:
 	"""Handle respawn location selection events"""
 	# Could add logic here to track which players are assigned to which spawn points
-	print("RealityZone: Player ", player_id, " assigned spawn position ", position)
+	print("RealityZone: Player ", player_id, " assigned spawn position ", pos)
 
 # =============================================================================
 # DEBUG AND VISUALIZATION

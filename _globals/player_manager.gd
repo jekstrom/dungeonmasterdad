@@ -203,13 +203,13 @@ func get_player_node_by_id(pid: int) -> Node:
 	
 	# Fallback to searching all players in group
 	var players = get_tree().get_nodes_in_group("players")
-	for player in players:
-		if player.name.is_valid_int() and int(player.name) == pid:
-			return player
-		elif player.has_method("get_player_id") and player.get_player_id() == pid:
-			return player
-		elif "player_id" in player and player.player_id == pid:
-			return player
+	for p in players:
+		if p.name.is_valid_int() and int(p.name) == pid:
+			return p
+		elif p.has_method("get_player_id") and p.get_player_id() == pid:
+			return p
+		elif "player_id" in p and p.player_id == pid:
+			return p
 	
 	return null
 

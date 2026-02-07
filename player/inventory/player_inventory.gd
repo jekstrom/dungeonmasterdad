@@ -11,6 +11,7 @@ func on_inventory_changed(items):
 	print ("on inventory changed - ", items.size())
 	for i in slots.size():
 		slots[i] = null
+	SignalBus.inventory_slots_changed.emit()
 
 	for item_qty in items:
 		add_item(item_qty["data"], item_qty["quantity"])

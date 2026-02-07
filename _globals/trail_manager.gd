@@ -2,7 +2,7 @@ extends Node
 
 # Trail data structure: { player_id: { "sprites": [Sprite2D], "collision_bodies": [StaticBody2D] } }
 var all_player_trails: Dictionary = {}
-var world_node: Node2D
+var world_node
 var trail_color: Color = Color(0.3, 0.3, 0.3, 0.7)
 
 # Collision layer for trail collision bodies (layer 32 = bit 5)
@@ -19,14 +19,6 @@ func _ready() -> void:
 	cleanup_timer.autostart = true
 	cleanup_timer.timeout.connect(cleanup_orphaned_trails)
 	add_child(cleanup_timer)
-	
-	# Connect to death signals for immediate cleanup
-	SignalBus.player_died.connect(_on_player_died)
-
-# Handle player death signal
-func _on_player_died(player_id: int, death_position: Vector2) -> void:
-	print("TrailManager: Received death signal for player ", player_id)
-	# Cleanup happens in cleanup_player_trail_on_death, but this ensures it
 
 func find_world_node() -> void:
 	var root = get_tree().current_scene

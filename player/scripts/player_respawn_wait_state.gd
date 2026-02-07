@@ -18,8 +18,8 @@ func Enter() -> void:
 	# Stop all player movement and input
 	player.velocity = Vector2.ZERO
 	
-	# Update visual state - could show ghost/spirit form
-	player.update_animation("respawn_wait")  # Assumes respawn wait animation exists
+	# Note: Player is already hidden from death state - keep them hidden during respawn wait
+	# The death state handles all visibility/collision management
 	
 	# Set up countdown timers
 	_setup_countdown_timers()
@@ -160,7 +160,7 @@ func get_remaining_time_formatted() -> String:
 	if respawn_delay_remaining <= 0:
 		return "Ready"
 	
-	var minutes = int(respawn_delay_remaining) / 60
+	var minutes = int(respawn_delay_remaining) / 60.0
 	var seconds = int(respawn_delay_remaining) % 60
 	
 	if minutes > 0:

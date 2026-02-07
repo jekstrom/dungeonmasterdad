@@ -104,18 +104,19 @@ func handle_trail_death(death_position: Vector2) -> void:
 	# Immediate visual feedback - freeze player movement
 	player.velocity = Vector2.ZERO
 	
-	# Transition to death state immediately
-	var death_state = state_machine.current_state.get_node("../death")
-	if death_state:
-		state_machine.ChangeState(death_state)
+	# Use DeathSystem for consistent death handling
+	if multiplayer.has_multiplayer_peer():
+		# Request death through the centralized DeathSystem
+		DeathSystem.request_player_death.rpc_id(1, death_position)
+		print("SnakeState: Requested death processing from DeathSystem")
 	else:
-		print("ERROR: Could not find death state")
-		# Fallback to old system
-		await get_tree().create_timer(0.5).timeout
-		if multiplayer.has_multiplayer_peer():
-			notify_server_player_death.rpc_id(1, player_id, death_position)
+		# Single player fallback - trigger death state directly
+		var death_state = state_machine.current_state.get_node("../death")
+		if death_state:
+			state_machine.ChangeState(death_state)
+			print("SnakeState: Direct death state transition (single player)")
 		else:
-			process_player_death(player_id, death_position)
+			print("ERROR: Could not find death state for single player death")
 
 # RPC to notify server of player death
 @rpc("any_peer", "call_local", "reliable")
@@ -126,23 +127,20 @@ func notify_server_player_death(pid: int, death_pos: Vector2) -> void:
 
 # Server-side death processing (LEGACY - now handled by DeathSystem)
 func process_player_death(pid: int, death_pos: Vector2) -> void:
-	print("SERVER: Processing death for player ", pid, " at ", death_pos, " (LEGACY)")
+	print("SERVER: Processing death for player ", pid, " at ", death_pos, " (LEGACY - should not be called)")
 	
-	# Clean up trails immediately
-	TrailManager.cleanup_player_trail_on_death(pid)
+	# Trail cleanup is now handled by DeathSystem._cleanup_player_trails()
+	# Inventory and respawn is handled by DeathSystem._handle_player_death()
 	
-	# NEW: Use DeathSystem for inventory and respawn handling
-	if DeathSystem:
-		# The DeathSystem will handle inventory dropping and respawn delay
-		DeathSystem._handle_player_death(pid, death_pos, "snake_trail_collision")
-	else:
-		# Fallback to old system if DeathSystem not available
+	# This should only be called if DeathSystem is not available (fallback)
+	if not DeathSystem:
 		print("WARNING: DeathSystem not available, using legacy death handling")
-		# Use new DeathSystem instead of legacy PlayerManager.drop_all_inventory
-		# Request death through the proper SignalBus signal (DeathSystem listens for this)
+		# Clean up trails as fallback
+		TrailManager.cleanup_player_trail_on_death(pid)
+		# Request death through the proper SignalBus signal
 		SignalBus.player_death_requested.emit(pid, death_pos)
-		
-		# Note: PlayerManager.respawn_player is now handled by DeathSystem
+	else:
+		print("WARNING: Legacy death processing called when DeathSystem available - this should not happen")
 
 # RPC to notify all clients of player death for visual effects
 @rpc("authority", "call_local", "reliable")

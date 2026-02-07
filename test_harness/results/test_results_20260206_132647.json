@@ -1,0 +1,33 @@
+{
+  "test_id": "20260206_132647",
+  "start_time": "2026-02-06T13:26:47.872502",
+  "config": {
+    "num_clients": 2,
+    "test_duration": 10,
+    "server_timeout": 300,
+    "client_timeout": 180
+  },
+  "processes": {
+    "server": {
+      "pid": 2776907,
+      "status": "terminated",
+      "start_time": "2026-02-06T13:26:47.873170",
+      "end_time": "2026-02-06T13:27:04.949623"
+    },
+    "client_1": {
+      "pid": 2776926,
+      "status": "terminated",
+      "start_time": "2026-02-06T13:26:52.873949",
+      "end_time": "2026-02-06T13:27:04.949643"
+    },
+    "client_2": {
+      "pid": 2776944,
+      "status": "terminated",
+      "start_time": "2026-02-06T13:26:53.874937",
+      "end_time": "2026-02-06T13:27:04.949646"
+    }
+  },
+  "status": "running",
+  "end_time": "2026-02-06T13:27:04.878023",
+  "actual_duration": 10.00018572807312
+}

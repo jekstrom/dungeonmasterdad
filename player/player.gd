@@ -37,7 +37,9 @@ signal DirectionChanged(new_direction: Vector2)
 func _enter_tree() -> void:
 	var id: int = name.to_int()
 	print("mp id: " + str(id))
-	set_multiplayer_authority(name.to_int())
+	# Only set authority if multiplayer is ready and we have a valid ID
+	if multiplayer.has_multiplayer_peer() and id > 0:
+		set_multiplayer_authority(id)
 
 @onready var animation_player: AnimationPlayer = $AnimationPlayer
 @onready var sprite: Sprite2D = $Sprite2D
@@ -190,16 +192,9 @@ func _on_player_respawn_completed(player_id: int, respawn_position: Vector2) -> 
 	hitpoints = max_hp
 	invulnerable = false
 	
-	# Ensure sprite is visible after respawn
-	if sprite != null:
-		sprite.visible = true
-		print("Player ", player_id, " sprite restored to visible on respawn")
+	# The death state Exit() method will handle restoring visibility and collisions
+	# This ensures consistency between all death/respawn pathways
+	print("Player ", player_id, " respawn completed - death state will handle restoration")
 	
 	# Force to idle state if not already
 	force_idle_state()
-
-func get_player_inventory_data() -> InventoryData:
-	"""Get this player's inventory data (placeholder - integrate with actual inventory system)"""
-	# TODO: Integrate with actual inventory system
-	# For now return null - the DeathSystem will handle mock inventory
-	return null

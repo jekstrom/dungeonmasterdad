@@ -25,7 +25,7 @@ func _ready():
 # =============================================================================
 
 @rpc("any_peer", "call_remote", "reliable")
-func request_player_death(death_position: Vector2, cause: String = "") -> void:
+func request_player_death(death_position: Vector2) -> void:
 	# Only server processes death requests
 	if not multiplayer.is_server():
 		return
@@ -33,24 +33,37 @@ func request_player_death(death_position: Vector2, cause: String = "") -> void:
 	var player_id: int = multiplayer.get_remote_sender_id()
 	
 	# Validate death request
-	if not _validate_death_request(player_id, death_position):
+	if not _validate_death_request(player_id):
 		print("DeathSystem: Invalid death request from player ", player_id)
 		return
 	
 	# Process the death
-	_handle_player_death(player_id, death_position, cause)
-
-
+	_handle_player_death(player_id, death_position)
 
 # =============================================================================
 # SERVER → CLIENT RPCs
 # =============================================================================
 
 @rpc("authority", "call_local", "reliable")
-func notify_player_death(player_id: int, death_position: Vector2, death_time: float) -> void:
+func notify_player_death(player_id: int, death_position: Vector2) -> void:
+	print("DeathSystem: Notifying player ", player_id, " death at position ", death_position)
+	
+	# Clean up trails on all clients (server and clients)
+	_cleanup_player_trails_client_side(player_id)
+	
+	# Trigger death state on the appropriate player node
+	var player_node = _get_player_node(player_id)
+	if player_node:
+		_trigger_player_death_state(player_node)
+	else:
+		print("DeathSystem: Could not find player node for death notification: ", player_id)
+	
+	# Clear player inventory on all clients (server and remote clients)
+	_clear_player_inventory_on_death(player_id)
+	
 	# Emit signal for local systems to handle
 	SignalBus.player_death_processed.emit(player_id, [])
-	print("DeathSystem: Player ", player_id, " died at position ", death_position)
+	print("DeathSystem: Player ", player_id, " death notification processed")
 
 @rpc("authority", "call_local", "reliable") 
 func notify_items_dropped(items_data: Array, spawn_position: Vector2) -> void:
@@ -65,7 +78,7 @@ func notify_player_respawn_delay(delay_duration: float, spawn_position: Vector2)
 	print("DeathSystem: Respawn delay of ", delay_duration, "s started. Will respawn at ", spawn_position)
 
 @rpc("authority", "call_local", "reliable")
-func notify_player_respawned(player_id: int, respawn_position: Vector2, respawn_time: float) -> void:
+func notify_player_respawned(player_id: int, respawn_position: Vector2) -> void:
 	# Broadcast player respawn to all clients
 	SignalBus.player_respawn_completed.emit(player_id, respawn_position)
 	
@@ -84,7 +97,7 @@ func notify_player_respawned(player_id: int, respawn_position: Vector2, respawn_
 # PRIVATE SERVER-SIDE PROCESSING METHODS
 # =============================================================================
 
-func _validate_death_request(player_id: int, death_position: Vector2) -> bool:
+func _validate_death_request(player_id: int) -> bool:
 	# Check death cooldown to prevent spam
 	var current_time = Time.get_time_dict_from_system()
 	var current_timestamp = current_time.hour * 3600 + current_time.minute * 60 + current_time.second
@@ -103,23 +116,32 @@ func _validate_death_request(player_id: int, death_position: Vector2) -> bool:
 
 
 
-func _handle_player_death(player_id: int, death_position: Vector2, cause: String) -> void:
+func _handle_player_death(player_id: int, death_position: Vector2) -> void:
 	var death_time: float = Time.get_time_dict_from_system().hour * 3600 + Time.get_time_dict_from_system().minute * 60 + Time.get_time_dict_from_system().second
+	
+	print("DeathSystem: Processing death for player ", player_id, " at position ", death_position)
 	
 	# Update death cooldown
 	player_death_cooldowns[player_id] = death_time
 	
-	# Broadcast death event to all clients
-	notify_player_death.rpc(player_id, death_position, death_time)
+	# CRITICAL: Clean up player trails immediately
+	_cleanup_player_trails(player_id)
 	
-	# Extract and drop player inventory
+	# CRITICAL: Trigger death state transition on the player
+	var player_node = _get_player_node(player_id)
+	if player_node:
+		_trigger_player_death_state(player_node)
+	else:
+		print("DeathSystem: ERROR - Could not find player node for death state transition: ", player_id)
+	
+	# Extract and drop player inventory (handled by death state now, but keep as backup)
 	var dropped_items = _extract_player_inventory(player_id)
 	if dropped_items.size() > 0:
 		_create_dropped_items(dropped_items, death_position)
-		
 		# Emit signal for UI systems (sound effects, HUD notifications, etc.)
 		SignalBus.items_dropped_at_location.emit(dropped_items, death_position)
 	
+	notify_player_death.rpc(player_id, death_position)
 	# Start respawn delay timer
 	_start_respawn_delay(player_id)
 
@@ -187,12 +209,7 @@ func _create_dropped_items(items_data: Dictionary, spawn_position: Vector2) -> v
 	print("DeathSystem: Spawning ", items_data.size(), " pickup items via MultiplayerSpawner")
 
 func _start_respawn_delay(player_id: int) -> void:
-	# Get player's death position for spawn selection context
-	var player_node = _get_player_node(player_id)
-	var death_position = player_node.global_position if player_node else Vector2.ZERO
-	
-	# Select spawn point from reality zone
-	var spawn_position = _select_respawn_location(player_id, death_position)
+	var spawn_position = _select_respawn_location(player_id)
 	
 	# Reserve the spawn point
 	respawn_reservations[player_id] = {
@@ -216,7 +233,7 @@ func _start_respawn_delay(player_id: int) -> void:
 	# Create countdown update timer for progress notifications
 	_start_respawn_countdown_updates(player_id)
 
-func _select_respawn_location(player_id: int, death_position: Vector2) -> Vector2:
+func _select_respawn_location(player_id: int) -> Vector2:
 	"""Select the best respawn location for a player"""
 	
 	# Try to find a reality zone
@@ -293,7 +310,7 @@ func _cleanup_countdown_timer(player_id: int) -> void:
 			countdown_timer.queue_free()
 		respawn_countdown_timers.erase(player_id)
 
-func get_respawn_delay_for_player(player_id: int) -> float:
+func get_respawn_delay_for_player() -> float:
 	"""Get configured respawn delay (could be dynamic based on player/conditions)"""
 	# For now, use constant delay
 	# Could be enhanced with:
@@ -378,52 +395,160 @@ func _respawn_player(player_id: int) -> void:
 		respawn_position = respawn_reservations[player_id].get("spawn_position", Vector2.ZERO)
 	else:
 		# Fallback if no reservation found
-		respawn_position = _select_respawn_location(player_id, Vector2.ZERO)
+		respawn_position = _select_respawn_location(player_id)
 	
 	var respawn_time = _get_current_time()
 	
-	# Move player to respawn position on server
+	# Move player to respawn position on server and restore to world
 	var player_node = _get_player_node(player_id)
 	if player_node:
+		print("DeathSystem: Respawning player ", player_id, " at ", respawn_position)
+		
+		# Move to respawn position
 		player_node.global_position = respawn_position
 		
 		# Force player to idle state after respawn
 		if player_node.has_method("force_idle_state"):
 			player_node.force_idle_state()
+			print("DeathSystem: Forced player ", player_id, " to idle state")
+		else:
+			print("DeathSystem: WARNING - Player node does not have force_idle_state method")
+	else:
+		print("DeathSystem: ERROR - Could not find player node for respawn: ", player_id)
 	
 	# Broadcast respawn to all clients
-	notify_player_respawned.rpc(player_id, respawn_position, respawn_time)
+	notify_player_respawned.rpc(player_id, respawn_position)
+	
+	print("DeathSystem: Player ", player_id, " respawn process completed")
 
 func _spawn_items_via_multiplayer_spawner(items_data: Dictionary, spawn_position: Vector2) -> void:
 	"""Spawn pickup items using MultiplayerSpawner (server-side only)"""
 	if not multiplayer.is_server():
 		print("DeathSystem: WARNING - _spawn_items_via_multiplayer_spawner called on client")
 		return
-	
-	# Find the multiplayer spawner in the scene
-	var multiplayer_spawner = _find_multiplayer_spawner()
-	
-	# ERROR OUT IF SPAWNER NOT FOUND - this is a critical configuration issue
-	if multiplayer_spawner == null:
-		push_error("DeathSystem: CRITICAL ERROR - Could not find MultiplayerSpawner to spawn items. Check scene configuration.")
-		assert(false, "MultiplayerSpawner not found in scene - cannot spawn items")
+
+	if items_data.is_empty():
+		print("DeathSystem: No items to spawn")
 		return
+
+	print("DeathSystem: Spawning ", items_data.size(), " item types at ", spawn_position)
 	
 	# Spawn each item via the proper multiplayer spawner
 	for key in items_data.keys():
-		if !items_data[key]:
+		var quantity = items_data[key]
+		if !quantity or quantity <= 0:
 			continue
-			
-		for quantity in items_data[key]:
+		
+		print("DeathSystem: Spawning ", quantity, " of item ", key)
+		
+		for i in range(quantity):
 			# Calculate spread position for multiple items
 			var spread_offset = Vector2(randf_range(-30, 30), randf_range(-30, 30))
 			var item_spawn_position = spawn_position + spread_offset
 			
 			# Add small velocity for visual effect
-			#var velocity = Vector2(randf_range(-50, 50), randf_range(-50, 50))
+			var velocity = Vector2(randf_range(-20, 20), randf_range(-20, 20))
 			
-			SignalBus.on_item_drop.emit({"item_type": key, "position": item_spawn_position})
-			#var spawned_pickup = multiplayer_spawner.spawn_pickup_item(item_data, item_spawn_position, velocity)
+			var spawn_data = {
+				"item_type": key, 
+				"position": item_spawn_position,
+				"velocity": velocity
+			}
+			
+			# Use call_deferred to prevent overwhelming the spawning system
+			call_deferred("_emit_item_drop", spawn_data)
+
+func _emit_item_drop(spawn_data: Dictionary) -> void:
+	"""Deferred item drop emission to prevent race conditions"""
+	SignalBus.on_item_drop.emit(spawn_data)
+
+func _trigger_player_death_state(player_node: Node) -> void:
+	"""Trigger the player to enter death state via their state machine"""
+	if not player_node or not is_instance_valid(player_node):
+		print("DeathSystem: Invalid player node for death state trigger")
+		return
+	
+	var state_machine = player_node.get_node_or_null("PlayerStateMachine")
+	if not state_machine:
+		print("DeathSystem: Could not find PlayerStateMachine on player node")
+		return
+	
+	# Trigger death state via RPC to ensure it works across all clients
+	if state_machine.has_method("ChangeStateTo"):
+		state_machine.ChangeStateTo.rpc("death")
+		print("DeathSystem: Triggered death state transition for player ", player_node.get_multiplayer_authority())
+	else:
+		print("DeathSystem: PlayerStateMachine does not have ChangeStateTo method")
+		
+		# Fallback: try to find death state directly
+		var death_state = state_machine.get_node_or_null("death")
+		if death_state and state_machine.has_method("ChangeState"):
+			state_machine.ChangeState(death_state)
+			print("DeathSystem: Fallback death state transition successful")
+		else:
+			print("DeathSystem: ERROR - Could not trigger death state transition")
+
+func _cleanup_player_trails(player_id: int) -> void:
+	"""Clean up all trails for a dead player - both server tracking and visual trails"""
+	print("DeathSystem: Cleaning up trails for player ", player_id)
+	
+	# First, stop server-side trail tracking and clean up trail data
+	# This needs to happen on the server and be communicated to all clients
+	if multiplayer.is_server():
+		_stop_server_trail_tracking_for_player(player_id)
+	
+	# Then, clean up visual trails and collision bodies on all clients
+	# Use the death-specific cleanup which handles proper broadcasting
+	if TrailManager.has_method("cleanup_player_trail_on_death"):
+		TrailManager.cleanup_player_trail_on_death(player_id)
+		print("DeathSystem: Trail cleanup completed for player ", player_id)
+	else:
+		# Fallback to regular cleanup if death-specific method not available
+		if TrailManager.has_method("cleanup_player_trail"):
+			TrailManager.cleanup_player_trail(player_id)
+			print("DeathSystem: Fallback trail cleanup completed for player ", player_id)
+		else:
+			print("DeathSystem: WARNING - TrailManager cleanup methods not available")
+
+func _stop_server_trail_tracking_for_player(player_id: int) -> void:
+	"""Stop server-side trail tracking for a specific player"""
+	# Access the snake state's static trail data and stop tracking
+	# We can't rely on finding the player's current state since they might be transitioning
+	
+	# Try to find any snake state instance to call the cleanup method
+	var scene_tree = get_tree()
+	if not scene_tree:
+		print("DeathSystem: Could not access scene tree for trail cleanup")
+		return
+	
+	var current_scene = scene_tree.current_scene
+	if not current_scene:
+		print("DeathSystem: Could not access current scene for trail cleanup") 
+		return
+	
+	# Find any player node with a snake state to call the static cleanup method
+	var players = current_scene.find_children("*", "Player", true, false)
+	for player_node in players:
+		var state_machine = player_node.get_node_or_null("PlayerStateMachine")
+		if state_machine:
+			var snake_state = state_machine.get_node_or_null("snake")
+			if snake_state and snake_state.has_method("stop_server_trail_tracking"):
+				snake_state.stop_server_trail_tracking(player_id)
+				print("DeathSystem: Stopped server trail tracking for player ", player_id)
+				return
+	
+	print("DeathSystem: Could not find snake state to stop trail tracking for player ", player_id)
+
+func _cleanup_player_trails_client_side(player_id: int) -> void:
+	"""Clean up player trails on client side (called via RPC)"""
+	print("DeathSystem: Client-side trail cleanup for player ", player_id)
+	
+	# Clean up visual trails and collision bodies
+	if TrailManager.has_method("cleanup_player_trail"):
+		TrailManager.cleanup_player_trail(player_id)
+		print("DeathSystem: Client-side trail cleanup completed for player ", player_id)
+	else:
+		print("DeathSystem: WARNING - TrailManager.cleanup_player_trail not available on client")
 
 # =============================================================================
 # SIGNAL HANDLERS
@@ -432,7 +557,7 @@ func _spawn_items_via_multiplayer_spawner(items_data: Dictionary, spawn_position
 func _on_death_requested(player_id: int, position: Vector2) -> void:
 	# Handle death request from signal system
 	if multiplayer.is_server():
-		_handle_player_death(player_id, position, "signal_triggered")
+		_handle_player_death(player_id, position)
 
 
 
@@ -460,3 +585,30 @@ func _exit_tree() -> void:
 	respawn_countdown_timers.clear()
 	player_death_cooldowns.clear()
 	respawn_reservations.clear()
+
+# =============================================================================
+# INVENTORY CLEARING HELPERS
+# =============================================================================
+
+func _clear_player_inventory_on_death(player_id: int) -> void:
+	"""Clear player inventory on death notification (called on all clients)"""
+	print("DeathSystem: Clearing inventory for player ", player_id, " on death notification")
+	
+	# Only server should modify PlayerManager data
+	if multiplayer.is_server():
+		# Clear server-side PlayerManager inventory if not already cleared
+		if PlayerManager.players_data.has(player_id):
+			var player_data = PlayerManager.players_data[player_id]
+			if player_data.has("inventory") and not player_data["inventory"].is_empty():
+				print("DeathSystem: Clearing remaining server-side inventory for player ", player_id)
+				player_data["inventory"].clear()
+		
+		# Send empty inventory update to the specific client
+		PlayerManager.update_client_inventory.rpc_id(player_id, {})
+	
+	# On all clients (including server): trigger UI inventory clearing
+	# This ensures the client-side inventory UI is properly updated
+	if player_id == multiplayer.get_unique_id():
+		# This is the local player dying - clear their client-side inventory UI
+		SignalBus.inventory_updated.emit([])
+		print("DeathSystem: Cleared local player inventory UI")

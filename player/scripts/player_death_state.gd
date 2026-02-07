@@ -7,6 +7,12 @@ var death_position: Vector2 = Vector2.ZERO
 var death_time: float = 0.0
 var items_dropped: bool = false
 
+# Store original collision settings for restoration
+var original_collision_layer: int = 0
+var original_collision_mask: int = 0
+var original_hitbox_layer: int = 0
+var original_hitbox_mask: int = 0
+
 func Enter() -> void:
 	print("PlayerDeathState: Player ", player.get_multiplayer_authority(), " has died")
 	
@@ -15,29 +21,25 @@ func Enter() -> void:
 	death_time = _get_current_time()
 	items_dropped = false
 	
-	# Stop player movement
+	# Stop player movement completely
 	player.velocity = Vector2.ZERO
 	
-	# Hide player sprite instead of playing death animation (since death animations don't exist)
-	if player.sprite != null:
-		player.sprite.visible = false
-		print("PlayerDeathState: Player sprite hidden")
+	# Immediately remove player from the game world
+	_remove_player_from_world()
 	
 	# Handle death based on authority
 	if multiplayer.is_server():
 		# Server handles death processing directly
 		_handle_server_death()
 	else:
-		# Client requests death processing from server
+		# Client requests death processing from server (if not already triggered by DeathSystem)
 		_request_death_processing()
 
 func Exit() -> void:
 	print("PlayerDeathState: Player ", player.get_multiplayer_authority(), " exiting death state")
 	
-	# Restore player sprite visibility
-	if player.sprite != null:
-		player.sprite.visible = true
-		print("PlayerDeathState: Player sprite restored to visible")
+	# Restore player to the game world
+	_restore_player_to_world()
 	
 	# Clean up death state
 	items_dropped = false
@@ -68,21 +70,18 @@ func _handle_server_death() -> void:
 	"""Server-side death processing"""
 	var player_id = player.get_multiplayer_authority()
 	
-	# Extract inventory items for dropping
-	var inventory_items = _extract_inventory_items()
-	
-	# Drop items at death location
-	if not inventory_items.is_empty():
-		_drop_items_at_death_location(inventory_items)
-		items_dropped = true
-	
-	# Trigger death event in DeathSystem
-	DeathSystem._handle_player_death(player_id, death_position, "snake_mode_death")
+	# Check if death was already processed by DeathSystem to avoid duplication
+	if DeathSystem.player_death_cooldowns.has(player_id):
+		print("PlayerDeathState: Death already processed by DeathSystem, skipping duplicate processing")
+		return
+		
+	# Trigger death event in DeathSystem (this will handle the full death process)
+	DeathSystem._handle_player_death(player_id, death_position)
 
 func _request_death_processing() -> void:
 	"""Client requests death processing from server"""
 	# Send death request to server via RPC
-	DeathSystem.request_player_death.rpc(death_position, "snake_mode_death")
+	DeathSystem.request_player_death.rpc(death_position)
 
 func _extract_inventory_items() -> Array:
 	"""Extract items from player inventory for dropping"""
@@ -121,9 +120,7 @@ func _get_player_inventory() -> InventoryData:
 			
 			# Convert PlayerManager inventory format to InventoryData format
 			return _convert_manager_inventory_to_data(inventory_dict)
-	
-	print("PlayerDeathState: No inventory found in PlayerManager for player ", player_id)
-	return _create_mock_inventory()
+	return null
 
 func _convert_manager_inventory_to_data(inventory_dict: Dictionary) -> InventoryData:
 	"""Convert PlayerManager inventory dictionary to InventoryData format"""
@@ -150,31 +147,6 @@ func _convert_manager_inventory_to_data(inventory_dict: Dictionary) -> Inventory
 	print("PlayerDeathState: Converted PlayerManager inventory - found ", slot_index, " items")
 	return inventory_data
 
-func _create_mock_inventory() -> InventoryData:
-	"""Create a mock inventory for testing purposes"""
-	var mock_inventory = InventoryData.new()
-	mock_inventory.slots = []
-	mock_inventory.slots.resize(10)  # 10 slot inventory
-	
-	# Add a test item to slot 0
-	var test_slot = SlotData.new()
-	test_slot.item_data = ItemDatabase.get_item("res://pickups/d20.tres")
-	test_slot.quantity = 1
-	mock_inventory.slots[0] = test_slot
-	
-	return mock_inventory
-
-func _drop_items_at_death_location(items: Array) -> void:
-	"""Create dropped item instances at death location"""
-	if items.is_empty():
-		return
-	
-	print("PlayerDeathState: Dropping ", items.size(), " items at ", death_position)
-	
-	# The actual item creation will be handled by DeathSystem
-	# This method just prepares the items for dropping
-	SignalBus.inventory_dropped.emit(player.get_multiplayer_authority(), death_position)
-
 func _get_current_time() -> float:
 	"""Get current timestamp"""
 	var time_dict = Time.get_time_dict_from_system()
@@ -198,6 +170,118 @@ func on_death_processed_by_server() -> void:
 	
 	# Could trigger visual/audio feedback here
 	# The actual state transition will happen when DeathSystem starts respawn delay
+
+# =============================================================================
+# PLAYER REMOVAL AND RESTORATION
+# =============================================================================
+
+func _remove_player_from_world() -> void:
+	"""Immediately remove player from the game world - hide and disable all collisions"""
+	print("PlayerDeathState: Removing player ", player.get_multiplayer_authority(), " from world")
+	
+	# Store original collision settings for restoration
+	original_collision_layer = player.get_collision_layer()
+	original_collision_mask = player.get_collision_mask()
+	
+	var hitbox = player.get_node_or_null("Hitbox")
+	if hitbox:
+		original_hitbox_layer = hitbox.get_collision_layer()
+		original_hitbox_mask = hitbox.get_collision_mask()
+	
+	# Hide all visual components
+	if player.sprite:
+		player.sprite.visible = false
+	
+	# Hide the player label/name
+	if player.label:
+		player.label.visible = false
+	
+	# Hide shadow sprite if it exists
+	var shadow_sprite = player.get_node_or_null("ShadowSprite")
+	if shadow_sprite:
+		shadow_sprite.visible = false
+	
+	# Disable ALL collision shapes - main player collision
+	var collision_shape = player.get_node_or_null("CollisionShape2D")
+	if collision_shape:
+		collision_shape.disabled = true
+		print("PlayerDeathState: Disabled main collision shape")
+	
+	# Disable hitbox collisions
+	if hitbox:
+		hitbox.set_collision_layer(0)
+		hitbox.set_collision_mask(0)
+		
+		# Also disable the hitbox's collision shape
+		var hitbox_collision = hitbox.get_node_or_null("CollisionShape2D")
+		if hitbox_collision:
+			hitbox_collision.disabled = true
+		print("PlayerDeathState: Disabled hitbox collisions")
+	
+	# Disable the main player's physics layers
+	player.set_collision_layer(0)
+	player.set_collision_mask(0)
+	
+	# Disable camera if this is the authority player
+	#if player.is_multiplayer_authority() and player.camera_2d:
+		#player.camera_2d.enabled = false
+		#print("PlayerDeathState: Disabled camera for authority player")
+	
+	# Stop any ongoing animations
+	if player.animation_player:
+		player.animation_player.stop()
+	
+	print("PlayerDeathState: Player completely removed from world")
+
+func _restore_player_to_world() -> void:
+	"""Restore player to the game world - show and re-enable all collisions"""
+	print("PlayerDeathState: Restoring player ", player.get_multiplayer_authority(), " to world")
+	
+	# Restore all visual components
+	if player.sprite:
+		player.sprite.visible = true
+	
+	# Restore the player label/name
+	if player.label:
+		player.label.visible = true
+	
+	# Restore shadow sprite if it was visible before
+	var shadow_sprite = player.get_node_or_null("ShadowSprite")
+	if shadow_sprite:
+		# Only restore if shadow system is active (check if sprite was meant to be visible)
+		# For now, keep it hidden unless explicitly needed
+		pass
+	
+	# Re-enable main collision shape
+	var collision_shape = player.get_node_or_null("CollisionShape2D")
+	if collision_shape:
+		collision_shape.disabled = false
+		print("PlayerDeathState: Re-enabled main collision shape")
+	
+	# Re-enable hitbox collisions with original layers
+	var hitbox = player.get_node_or_null("Hitbox")
+	if hitbox:
+		# Restore original collision layers
+		hitbox.set_collision_layer(original_hitbox_layer)
+		hitbox.set_collision_mask(original_hitbox_mask)
+		
+		# Re-enable the hitbox's collision shape
+		var hitbox_collision = hitbox.get_node_or_null("CollisionShape2D")
+		if hitbox_collision:
+			hitbox_collision.disabled = false
+		print("PlayerDeathState: Re-enabled hitbox collisions")
+	
+	# Restore the main player's original physics layers
+	player.set_collision_layer(original_collision_layer)
+	player.set_collision_mask(original_collision_mask)
+	
+	# Re-enable camera if this is the authority player
+	if player.is_multiplayer_authority() and player.camera_2d:
+		player.camera_2d.enabled = true
+		player.camera_2d.make_current()
+		print("PlayerDeathState: Re-enabled camera for authority player")
+	
+	print("PlayerDeathState: Player fully restored to world")
 
 # =============================================================================
 # SIGNAL CONNECTIONS (set up in _ready if needed)
