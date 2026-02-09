@@ -34,10 +34,4 @@ func on_body_entered(_body) -> void:
 		return
 		
 	# If first or second shadow, do not collide with trailing player
-	var trailing_player_id = get_meta("player_id")
-	if trailing_player_id == player_id:
-		# self collision
-		TrailManager.handle_trail_death(trailing_player_id, position)
-	else:
-		# other player collision
-		TrailManager.handle_trail_death(int(_body.name), position)
+	TrailManager.handle_trail_death(int(_body.name), position)

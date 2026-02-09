@@ -28,8 +28,8 @@ func _on_item_pickup(_player_id: int) -> void:
 	if !multiplayer.is_server(): return
 	players = get_tree().get_nodes_in_group("players")
 	for player_node in players:
-		var player_id = int(player_node.name) if player_node.name.is_valid_int() else -1
-		if player_id > 0:
+		var player_id = int(player_node.name) 
+		if player_id == _player_id:
 			var trail_data: Dictionary = {
 				"id": generate_uuid_v4(), 
 				"position": player_node.position, 
@@ -42,10 +42,7 @@ func _on_item_pickup(_player_id: int) -> void:
 
 func _physics_process(_delta: float) -> void:
 	pass
-	#for player_node in players:
-		#if check_trail_collisions(player_node):
-			#handle_trail_death(int(player_node.name), player_node.position)
-			
+
 func _process(_delta: float) -> void:
 	if !multiplayer.is_server(): return
 	if !shadow_mode_active: return
@@ -75,7 +72,8 @@ func _process(_delta: float) -> void:
 				if shadows[player_id].size() > 2:
 					shadows[player_id][2].enabled = true
 					var next_shadow = snake_trail_container.find_child("trail_" + player_node.name + "_" + shadows[player_id][2].id, false, false)
-					next_shadow.enabled = true
+					if next_shadow:
+						next_shadow.enabled = true
 			else:
 				print("trail_" + player_node.name + "_" + popped_data.id + " not found")
 	pass
@@ -84,17 +82,7 @@ func _on_dm_unlock(unlock_name: String) -> void:
 	if multiplayer.is_server() and unlock_name == "shadow_zone":
 		print("TrailManager: Shadow zone unlocked - creating trail containers for all players")
 		shadow_mode_active = true
-		enable_trail_containers_for_all_players()
-		
-func enable_trail_containers_for_all_players() -> void:
-	pass
-	#for player_node in players:
-		#var player_id = int(player_node.name) if player_node.name.is_valid_int() else -1
-		#if player_id > 0:
-			#print("TrailManager: Enabling trail container for player ", player_id)
-			#var container = player_node.get_node("SnakeTrailContainer")
-			#container.enabled = true
-			
+
 func get_player_by_id(pid: int) -> Node:
 	for player_node in players:
 		if player_node.name.is_valid_int() and int(player_node.name) == pid:
@@ -164,69 +152,6 @@ func handle_trail_death(pid: int, death_position: Vector2) -> void:
 	print("💀 DEATH: Player ", pid, " died from trail collision at ", death_position)
 	DeathSystem.request_player_death(pid, death_position)
 	cleanup_player_trail(pid)
-
-#func find_world_node() -> void:
-	#var root = get_tree().current_scene
-	#if root:
-		#world_node = root
-	#else:
-		#print("TrailManager: FATAL - Could not find world node")
-		#assert(false, "Could not find world node")
-#
-#func create_trail_container(player_id: int) -> SnakeTrailContainer:
-	#if trail_containers.has(player_id):
-		#return trail_containers[player_id]
-	#if not snake_trail_container_scene:
-		#push_error("TrailManager: snake_trail_container_scene not set")
-		#return null
-	#var container = snake_trail_container_scene.instantiate() as SnakeTrailContainer
-	#if container:
-		#container.setup_for_player(player_id)
-		#world_node.add_child(container)
-		#trail_containers[player_id] = container
-	#return container
-#
-
-#func get_trail_container(player_id: int) -> SnakeTrailContainer:
-	#return trail_containers.get(player_id, null)
-
-# TODO: Add shadow zone end handling when that system is implemented
-#func end_shadow_zone() -> void:
-	#if multiplayer.is_server():
-		#print("TrailManager: Shadow zone ended - removing all trail containers")
-		##cleanup_all_trails()
-#
-#func create_trail_containers_for_all_players() -> void:
-	#var players = get_tree().get_nodes_in_group("players")
-	#for player_node in players:
-		#var player_id = int(player_node.name) if player_node.name.is_valid_int() else -1
-		#if player_id > 0:
-			#print("TrailManager: Creating trail container for player ", player_id)
-			#create_trail_container(player_id)
-#
-#@rpc("any_peer", "call_local", "reliable")
-#func update_player_trail_position(player_id: int, position: Vector2) -> void:
-	#if not multiplayer.is_server():
-		#return
-	#
-	#var container = get_trail_container(player_id)
-	#if container:
-		#container.update_trail_positions(position)
-#
-#
-#
-## Old functions removed - trail containers handle sprite creation internally
-#
-## Container-based cleanup functions
-##func cleanup_all_trails() -> void:
-	##for player_id in trail_containers.keys():
-		##remove_trail_container(player_id)
-##
-### Get the owner player ID from a trail collision body
-
-##
-### Check if a collision body belongs to a trail
-
 
 # Clean up trail immediately on player death (server-side)
 func cleanup_player_trail(player_id: int) -> void:

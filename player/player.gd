@@ -172,7 +172,6 @@ func _unhandled_input(event: InputEvent) -> void:
 # =============================================================================
 # DEATH SYSTEM INTEGRATION
 # =============================================================================
-
 func _on_player_respawn_completed(player_id: int, respawn_position: Vector2) -> void:
 	"""Handle respawn completion - move to respawn position and reset state"""
 	# Only handle for this player
