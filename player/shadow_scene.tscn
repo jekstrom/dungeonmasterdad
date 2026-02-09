@@ -11,6 +11,12 @@ region = Rect2(0, 0, 64, 64)
 properties/0/path = NodePath(".:position")
 properties/0/spawn = true
 properties/0/replication_mode = 1
+properties/1/path = NodePath("Sprite2D:scale")
+properties/1/spawn = true
+properties/1/replication_mode = 1
+properties/2/path = NodePath(".:enabled")
+properties/2/spawn = true
+properties/2/replication_mode = 1
 
 [sub_resource type="CapsuleShape2D" id="CapsuleShape2D_pu8af"]
 
@@ -22,7 +28,6 @@ texture = SubResource("AtlasTexture_pu8af")
 replication_config = SubResource("SceneReplicationConfig_pu8af")
 
 [node name="Area2D" type="Area2D" parent="."]
-monitorable = false
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Area2D"]
 shape = SubResource("CapsuleShape2D_pu8af")

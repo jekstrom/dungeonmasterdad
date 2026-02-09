@@ -22,6 +22,8 @@ func _custom_spawn(data: Dictionary) -> Node2D:
 	p.position = data.position
 	p.name = "trail_" + data.player_name + "_" + data.id
 	p.player_id = data.player_id
+	p.enabled = data.enabled
+	p.set_meta("player_id", data.player_id)
 	p.set_meta("id", data.id)
 	return p
 

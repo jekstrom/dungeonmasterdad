@@ -28,14 +28,21 @@ func _on_item_pickup(_player_id: int) -> void:
 	for player_node in players:
 		var player_id = int(player_node.name) if player_node.name.is_valid_int() else -1
 		if player_id > 0:
-			var trail_data: Dictionary = {"id": generate_uuid_v4(), "position": player_node.position, "player_id": player_id, "player_name": player_node.name}
+			var trail_data: Dictionary = {
+				"id": generate_uuid_v4(), 
+				"position": player_node.position, 
+				"player_id": player_id, 
+				"player_name": player_node.name,
+				"enabled": false,
+			}
 			shadows[_player_id].push_back(trail_data)
 			SignalBus.shadow_increased.emit(trail_data)
 
 func _physics_process(_delta: float) -> void:
-	for player_node in players:
-		if check_trail_collisions(player_node):
-			handle_trail_death(int(player_node.name), player_node.position)
+	pass
+	#for player_node in players:
+		#if check_trail_collisions(player_node):
+			#handle_trail_death(int(player_node.name), player_node.position)
 			
 func _process(_delta: float) -> void:
 	if !multiplayer.is_server(): return
@@ -53,9 +60,19 @@ func _process(_delta: float) -> void:
 			if last_shadow:
 				last_shadow.call_deferred("queue_free")
 				
-				var new_trail_data: Dictionary = {"id": generate_uuid_v4(), "position": player_node.position, "player_id": player_id, "player_name": player_node.name}
+				var new_trail_data: Dictionary = {
+					"id": generate_uuid_v4(), 
+					"position": player_node.position, 
+					"player_id": player_id, 
+					"player_name": player_node.name,
+					"enabled": false,
+				}
 				shadows[player_id].push_front(new_trail_data)
 				SignalBus.shadow_increased.emit(new_trail_data)
+				if shadows[player_id].size() > 1:
+					shadows[player_id][1].enabled = true
+					var next_shadow = snake_trail_container.find_child("trail_" + player_node.name + "_" + shadows[player_id][1].id, false, false)
+					next_shadow.enabled = true
 			else:
 				print("trail_" + player_node.name + "_" + popped_data.id + " not found")
 	pass
@@ -81,15 +98,14 @@ func get_player_by_id(pid: int) -> Node:
 	return null
 
 func is_player_dm(pid: int) -> bool:
-	var player_node = get_player_by_id(pid)
-	return player_node != null and (player_node.name == "dm" or pid == 1)
+	return pid == 1
 	
 func is_trail_collision_body(collision_body: Node) -> bool:
 	return collision_body is StaticBody2D and collision_body.name.begins_with("trail_collision_")
 
 func get_trail_owner_from_collision_body(collision_body: StaticBody2D) -> int:
-	if collision_body and collision_body.has_meta("trail_owner_id"):
-		return collision_body.get_meta("trail_owner_id")
+	if collision_body and collision_body.has_meta("player_id"):
+		return collision_body.get_meta("player_id")
 	return -1
 
 func generate_uuid_v4() -> String:
@@ -112,22 +128,30 @@ func generate_uuid_v4() -> String:
 			
 	return result
 
-func check_trail_collisions(_player: Player) -> bool:
-	#var collider = player.get_last_slide_collision().get_collider()
-	#if not collider: return false
-	#
-	#if is_trail_collision_body(collider):
-		#var trail_owner_id = get_trail_owner_from_collision_body(collider)
-		#if trail_owner_id == -1 or is_player_dm(trail_owner_id): return false
-		#
-		#if trail_owner_id == int(player.name):
-			#var segment_index = -1
-			#if collider.has_meta("trail_segment_index"):
-				#segment_index = collider.get_meta("trail_segment_index")
-			#
-			#if segment_index >= 0 and segment_index < 2: return false
-		#
-		#return true
+func check_trail_collisions(player: Player) -> bool:
+	var collider = null
+	for i in player.get_slide_collision_count():
+		var collision = player.get_slide_collision(i)
+		if !collision:  continue
+		collider = collision.get_collider()
+		if collider: break
+	
+	if !collider: return false
+	
+	if is_trail_collision_body(collider):
+		var trail_owner_id = get_trail_owner_from_collision_body(collider)
+		if trail_owner_id == -1 or is_player_dm(trail_owner_id): return false
+		
+		if trail_owner_id == int(player.name):
+			var segment_id = ""
+			if collider.has_meta("id"):
+				segment_id = collider.get_meta("id")
+			if shadows.size() and shadows[trail_owner_id].size():
+				# Ignore first 2 self-shadows for collisions
+				if shadows[trail_owner_id][0].id == segment_id or shadows[trail_owner_id][1] == segment_id:
+					return false
+			
+		return true
 	
 	return false
 
