@@ -72,7 +72,12 @@ func dm_unlock_listener(unlock_name: String) -> void:
 func force_idle_state() -> void:
 	if state_machine and state_machine.has_method("ChangeStateTo"):
 		state_machine.ChangeStateTo("idle")
-
+		
+# Force player to snake state (used for respawn)
+func force_snake_state() -> void:
+	if state_machine and state_machine.has_method("ChangeStateTo"):
+		state_machine.RequestChangeStateTo.rpc_id(1, "snake")
+		
 @rpc("any_peer", "reliable")
 func request_name_fix():
 	if not multiplayer.is_server(): return
@@ -116,6 +121,7 @@ func update_ghost(pos: Vector2):
 
 func _physics_process(_delta: float) -> void:
 	if !is_multiplayer_authority(): return
+	if state_machine.current_state.name == "death": return
 	
 	if direction != Vector2.ZERO:
 		prev_direction = direction
@@ -188,4 +194,7 @@ func _on_player_respawn_completed(player_id: int, respawn_position: Vector2) -> 
 	print("Player ", player_id, " respawn completed - death state will handle restoration")
 	
 	# Force to idle state if not already
-	force_idle_state()
+	if TrailManager.shadow_mode_active:
+		force_snake_state()
+	else:
+		force_idle_state()

@@ -33,23 +33,11 @@ func Process(_delta: float) -> PlayerState:
 	
 	player.velocity = player.prev_direction * move_speed
 	
-	#if last_trail_position.distance_to(current_pos) >= trail_interval:
-		#last_trail_position = current_pos
-		#
-		## Trail container updates are handled server-side via RPC to TrailManager
-		#if trail_container:
-			#TrailManager.update_player_trail_position.rpc_id(1, player_id, current_pos)
-	
 	if player.set_direction():
 		player.update_animation("walk")
 	
 	player.move_and_slide()
-	
-	# Check for trail collisions after movement
-	#if check_trail_collisions():
-		#handle_trail_death(player.global_position)
-		#return idle
-	
+
 	return null
 	
 func Physics(_delta: float) -> PlayerState:

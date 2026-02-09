@@ -3,6 +3,7 @@ extends Node
 
 var players: Array[Node] = []
 var shadows: Dictionary = {}
+var shadow_mode_active = false
 
 var snake_trail_container: SnakeTrailContainer
 
@@ -12,6 +13,7 @@ func _enter_tree() -> void:
 
 func _ready() -> void:
 	# Connect to shadow zone unlock signal
+	shadow_mode_active = false
 	SignalBus.on_dm_unlock.connect(_on_dm_unlock)
 	SignalBus.player_registered.connect(_on_player_registered)
 	SignalBus.player_unregistered.connect(_on_player_registered)
@@ -46,6 +48,7 @@ func _physics_process(_delta: float) -> void:
 			
 func _process(_delta: float) -> void:
 	if !multiplayer.is_server(): return
+	if !shadow_mode_active: return
 
 	if !snake_trail_container:
 		print("TrailManager: FATAL - no snake trail container found")
@@ -54,7 +57,7 @@ func _process(_delta: float) -> void:
 	
 	for player_node in players:
 		var player_id = int(player_node.name)
-		if shadows.size() > 0 and shadows[player_id].size() > 0 and player_node.position.distance_to(shadows[player_id][0].position) > 16:
+		if shadows.size() > 0 and shadows[player_id].size() > 0 and player_node.position.distance_to(shadows[player_id][0].position) > 20:
 			var popped_data = shadows[player_id].pop_back()
 			var last_shadow = snake_trail_container.find_child("trail_" + player_node.name + "_" + popped_data.id, false, false)
 			if last_shadow:
@@ -69,9 +72,9 @@ func _process(_delta: float) -> void:
 				}
 				shadows[player_id].push_front(new_trail_data)
 				SignalBus.shadow_increased.emit(new_trail_data)
-				if shadows[player_id].size() > 1:
-					shadows[player_id][1].enabled = true
-					var next_shadow = snake_trail_container.find_child("trail_" + player_node.name + "_" + shadows[player_id][1].id, false, false)
+				if shadows[player_id].size() > 2:
+					shadows[player_id][2].enabled = true
+					var next_shadow = snake_trail_container.find_child("trail_" + player_node.name + "_" + shadows[player_id][2].id, false, false)
 					next_shadow.enabled = true
 			else:
 				print("trail_" + player_node.name + "_" + popped_data.id + " not found")
@@ -80,6 +83,7 @@ func _process(_delta: float) -> void:
 func _on_dm_unlock(unlock_name: String) -> void:
 	if multiplayer.is_server() and unlock_name == "shadow_zone":
 		print("TrailManager: Shadow zone unlocked - creating trail containers for all players")
+		shadow_mode_active = true
 		enable_trail_containers_for_all_players()
 		
 func enable_trail_containers_for_all_players() -> void:
@@ -158,7 +162,8 @@ func check_trail_collisions(player: Player) -> bool:
 func handle_trail_death(pid: int, death_position: Vector2) -> void:
 	if !multiplayer.is_server(): return
 	print("💀 DEATH: Player ", pid, " died from trail collision at ", death_position)
-	DeathSystem.request_player_death.rpc_id(1, pid, death_position)
+	DeathSystem.request_player_death(pid, death_position)
+	cleanup_player_trail(pid)
 
 #func find_world_node() -> void:
 	#var root = get_tree().current_scene
@@ -181,11 +186,7 @@ func handle_trail_death(pid: int, death_position: Vector2) -> void:
 		#trail_containers[player_id] = container
 	#return container
 #
-#func remove_trail_container(player_id: int) -> void:
-	#if trail_containers.has(player_id):
-		#trail_containers[player_id].queue_free()
-		#trail_containers.erase(player_id)
-#
+
 #func get_trail_container(player_id: int) -> SnakeTrailContainer:
 	#return trail_containers.get(player_id, null)
 
@@ -227,10 +228,12 @@ func handle_trail_death(pid: int, death_position: Vector2) -> void:
 ### Check if a collision body belongs to a trail
 
 
-### Clean up trail immediately on player death (server-side)
-##func cleanup_player_trail_on_death(player_id: int) -> void:
-	##if not multiplayer.is_server():
-		##return
-	##
-	##print("TrailManager: Cleaning up trails for dead player ", player_id)
-	##remove_trail_container(player_id)
+# Clean up trail immediately on player death (server-side)
+func cleanup_player_trail(player_id: int) -> void:
+	if not multiplayer.is_server(): return
+	
+	for shadow in shadows[player_id]:
+		var shadow_node = snake_trail_container.find_child("trail_" + str(player_id) + "_*" + shadow.id, false, false)
+		if !shadow_node: continue
+		shadow_node.call_deferred("queue_free")
+	shadows[player_id] = []

@@ -119,6 +119,7 @@ func _handle_player_death(player_id: int, death_position: Vector2) -> void:
 	else:
 		print("DeathSystem: ERROR - Could not find player node for death state transition: ", player_id)
 	
+	print("DeathSystem: Dropping items")
 	# Extract and drop player inventory (handled by death state now, but keep as backup)
 	var dropped_items = _extract_player_inventory(player_id)
 	if dropped_items.size() > 0:

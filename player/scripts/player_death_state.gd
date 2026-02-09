@@ -81,7 +81,8 @@ func _handle_server_death() -> void:
 func _request_death_processing() -> void:
 	"""Client requests death processing from server"""
 	# Send death request to server via RPC
-	DeathSystem.request_player_death.rpc(death_position)
+	var player_id = player.get_multiplayer_authority()
+	DeathSystem.request_player_death.rpc(player_id, death_position)
 
 func _extract_inventory_items() -> Array:
 	"""Extract items from player inventory for dropping"""
