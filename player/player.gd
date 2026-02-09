@@ -52,6 +52,7 @@ func _ready() -> void:
 	state_machine.Initialize(self)
 	SignalBus.build_smoke_building_pressed.connect(setup_building)
 	SignalBus.on_dm_unlock.connect(dm_unlock_listener)
+	SignalBus.on_dm_lock.connect(dm_lock_listener)
 
 	await get_tree().process_frame
 	if not multiplayer.is_server() and is_multiplayer_authority():
@@ -67,7 +68,11 @@ func dm_unlock_listener(unlock_name: String) -> void:
 		state_machine.RequestChangeStateTo.rpc_id(1, "snake")
 	elif unlock_name == "shadow_zone" and !DmUnlocks.dm_unlocks.get("shadow_zone"):
 		state_machine.ChangeStateTo("idle")
-
+	
+func dm_lock_listener(unlock_name: String) -> void:
+	if unlock_name == "shadow_zone" and !DmUnlocks.dm_unlocks.get("shadow_zone"):
+		state_machine.RequestChangeStateTo.rpc_id(1, "idle")
+		
 # Force player to idle state (used for respawn)
 func force_idle_state() -> void:
 	if state_machine and state_machine.has_method("ChangeStateTo"):

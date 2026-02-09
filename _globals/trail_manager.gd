@@ -1,20 +1,24 @@
 #TrailManager
 extends Node
 
+@export var shadow_zone_seconds_max: float = 60
+var shadow_zone_seconds: float = 0
+
 var players: Array[Node] = []
 var shadows: Dictionary = {}
 var shadow_mode_active = false
 
 var snake_trail_container: SnakeTrailContainer
 
+
 func _enter_tree() -> void:
 	if !snake_trail_container:
 		snake_trail_container = get_tree().current_scene.find_child("SnakeTrailContainer")
 
 func _ready() -> void:
-	# Connect to shadow zone unlock signal
 	shadow_mode_active = false
 	SignalBus.on_dm_unlock.connect(_on_dm_unlock)
+	SignalBus.on_dm_lock.connect(_on_dm_lock)
 	SignalBus.player_registered.connect(_on_player_registered)
 	SignalBus.player_unregistered.connect(_on_player_registered)
 	SignalBus.on_item_pickup.connect(_on_item_pickup)
@@ -26,6 +30,8 @@ func _on_player_registered(_player_id: int, _player_name: String = "") -> void:
 	
 func _on_item_pickup(_player_id: int) -> void:
 	if !multiplayer.is_server(): return
+	if !shadow_mode_active: return
+	
 	players = get_tree().get_nodes_in_group("players")
 	for player_node in players:
 		var player_id = int(player_node.name) 
@@ -46,6 +52,11 @@ func _physics_process(_delta: float) -> void:
 func _process(_delta: float) -> void:
 	if !multiplayer.is_server(): return
 	if !shadow_mode_active: return
+	
+	if shadow_zone_seconds > shadow_zone_seconds_max:
+		DmUnlocks.lock("shadow_zone")
+		return
+	shadow_zone_seconds += _delta
 
 	if !snake_trail_container:
 		print("TrailManager: FATAL - no snake trail container found")
@@ -76,13 +87,18 @@ func _process(_delta: float) -> void:
 						next_shadow.enabled = true
 			else:
 				print("trail_" + player_node.name + "_" + popped_data.id + " not found")
-	pass
 
 func _on_dm_unlock(unlock_name: String) -> void:
 	if multiplayer.is_server() and unlock_name == "shadow_zone":
 		print("TrailManager: Shadow zone unlocked - creating trail containers for all players")
 		shadow_mode_active = true
-
+		
+func _on_dm_lock(unlock_name: String) -> void:
+	if multiplayer.is_server() and unlock_name == "shadow_zone":
+		print("TrailManager: Shadow zone locked - disabling trail containers for all players")
+		shadow_mode_active = false
+		cleanup_all_players_trails()
+		
 func get_player_by_id(pid: int) -> Node:
 	for player_node in players:
 		if player_node.name.is_valid_int() and int(player_node.name) == pid:
@@ -152,6 +168,11 @@ func handle_trail_death(pid: int, death_position: Vector2) -> void:
 	print("💀 DEATH: Player ", pid, " died from trail collision at ", death_position)
 	DeathSystem.request_player_death(pid, death_position)
 	cleanup_player_trail(pid)
+
+func cleanup_all_players_trails() -> void:
+	for player in players:
+		var player_id: int = int(player.name)
+		cleanup_player_trail(player_id)
 
 # Clean up trail immediately on player death (server-side)
 func cleanup_player_trail(player_id: int) -> void:

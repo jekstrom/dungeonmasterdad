@@ -9,6 +9,8 @@ signal build_smoke_building_pressed
 @warning_ignore("unused_signal")
 signal on_dm_unlock(unlock_name: String)
 @warning_ignore("unused_signal")
+signal on_dm_lock(unlock_name: String)
+@warning_ignore("unused_signal")
 signal start_spell_cast(spell_id: String)
 @warning_ignore("unused_signal")
 signal spell_cast(spell_id: String, spell_data: Dictionary)
