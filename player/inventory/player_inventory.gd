@@ -7,8 +7,6 @@ func _init() -> void:
 	SignalBus.inventory_updated.connect(on_inventory_changed)
 	
 func on_inventory_changed(items):
-	# {"data": resource, "quantity": quantity}
-	print ("on inventory changed - ", items.size())
 	for i in slots.size():
 		slots[i] = null
 	SignalBus.inventory_slots_changed.emit()
@@ -17,8 +15,6 @@ func on_inventory_changed(items):
 		add_item(item_qty["data"], item_qty["quantity"])
 
 func add_item(_item: ItemData, _quantity: int = 1) -> bool:
-	print("adding " + _item.name + " with qty " + str(_quantity))
-
 	for i in slots.size():
 		if !slots[i]:
 			var new = SlotData.new()

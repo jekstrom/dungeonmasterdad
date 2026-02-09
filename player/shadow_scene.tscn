@@ -1,4 +1,4 @@
-[gd_scene load_steps=4 format=3 uid="uid://be52gho0i3dak"]
+[gd_scene load_steps=6 format=3 uid="uid://be52gho0i3dak"]
 
 [ext_resource type="Texture2D" uid="uid://dkc4x6ya465y1" path="res://player/sprites/PlayerSprite02.png" id="1_b2dff"]
 [ext_resource type="Script" uid="uid://cmk8u80pd0hl0" path="res://player/scripts/shadow.gd" id="1_pu8af"]
@@ -7,8 +7,24 @@
 atlas = ExtResource("1_b2dff")
 region = Rect2(0, 0, 64, 64)
 
-[node name="Shadows" type="Node2D"]
+[sub_resource type="SceneReplicationConfig" id="SceneReplicationConfig_pu8af"]
+properties/0/path = NodePath(".:position")
+properties/0/spawn = true
+properties/0/replication_mode = 1
+
+[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_pu8af"]
+
+[node name="Shadow" type="Node2D"]
 script = ExtResource("1_pu8af")
-num_shadows = null
-shadow_offset = null
 texture = SubResource("AtlasTexture_pu8af")
+
+[node name="MultiplayerSynchronizer" type="MultiplayerSynchronizer" parent="."]
+replication_config = SubResource("SceneReplicationConfig_pu8af")
+
+[node name="Area2D" type="Area2D" parent="."]
+monitorable = false
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Area2D"]
+shape = SubResource("CapsuleShape2D_pu8af")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]

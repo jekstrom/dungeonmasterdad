@@ -1,272 +1,212 @@
+#TrailManager
 extends Node
 
-# Trail data structure: { player_id: { "sprites": [Sprite2D], "collision_bodies": [StaticBody2D] } }
-var all_player_trails: Dictionary = {}
-var world_node
-var trail_color: Color = Color(0.3, 0.3, 0.3, 0.7)
+var players: Array[Node] = []
+var shadows: Dictionary = {}
 
-# Collision layer for trail collision bodies (layer 32 = bit 5)
-const TRAIL_COLLISION_LAYER: int = 32
-const TRAIL_COLLISION_RADIUS: float = 6.0  # Smaller, more forgiving collision
+var snake_trail_container: SnakeTrailContainer
+
+func _enter_tree() -> void:
+	if !snake_trail_container:
+		snake_trail_container = get_tree().current_scene.find_child("SnakeTrailContainer")
 
 func _ready() -> void:
-	call_deferred("find_world_node")
+	# Connect to shadow zone unlock signal
+	SignalBus.on_dm_unlock.connect(_on_dm_unlock)
+	SignalBus.player_registered.connect(_on_player_registered)
+	SignalBus.player_unregistered.connect(_on_player_registered)
+	SignalBus.on_item_pickup.connect(_on_item_pickup)
+	players = get_tree().get_nodes_in_group("players")
 	
-	# Set up periodic cleanup timer (every 60 seconds, less aggressive now that logic is fixed)
-	var cleanup_timer = Timer.new()
-	cleanup_timer.name = "OrphanedTrailCleanupTimer"
-	cleanup_timer.wait_time = 60.0
-	cleanup_timer.autostart = true
-	cleanup_timer.timeout.connect(cleanup_orphaned_trails)
-	add_child(cleanup_timer)
+func _on_player_registered(_player_id: int, _player_name: String = "") -> void:
+	players = get_tree().get_nodes_in_group("players")
+	shadows[_player_id] = []
+	
+func _on_item_pickup(_player_id: int) -> void:
+	if !multiplayer.is_server(): return
+	players = get_tree().get_nodes_in_group("players")
+	for player_node in players:
+		var player_id = int(player_node.name) if player_node.name.is_valid_int() else -1
+		if player_id > 0:
+			var trail_data: Dictionary = {"id": generate_uuid_v4(), "position": player_node.position, "player_id": player_id, "player_name": player_node.name}
+			shadows[_player_id].push_back(trail_data)
+			SignalBus.shadow_increased.emit(trail_data)
 
-func find_world_node() -> void:
-	var root = get_tree().current_scene
-	if root:
-		world_node = root
-	else:
-		print("TrailManager: WARNING - Could not find world node")
-
-@rpc("authority", "call_local", "unreliable_ordered")
-func sync_all_player_trails(trail_data: Dictionary) -> void:
-	for player_id in trail_data.keys():
-		var data = trail_data[player_id]
-		update_player_trail_display(player_id, data.get("positions", []), data.get("sprite_data", {}))
-	
-	cleanup_removed_players(trail_data.keys())
-
-func update_player_trail_display(player_id: int, positions: Array[Vector2], sprite_data: Dictionary) -> void:
-	if not world_node:
-		return
-	
-	if not all_player_trails.has(player_id):
-		all_player_trails[player_id] = {
-			"sprites": [],
-			"collision_bodies": []
-		}
-	
-	var player_trail_data = all_player_trails[player_id]
-	var player_trail_sprites = player_trail_data["sprites"]
-	var player_trail_collision_bodies = player_trail_data["collision_bodies"]
-	
-	# Add new trail segments (both sprite and collision)
-	while player_trail_sprites.size() < positions.size():
-		var segment_index = player_trail_sprites.size()
-		
-		# Create visual sprite
-		var new_sprite = create_trail_sprite(player_id, segment_index, sprite_data)
-		world_node.add_child(new_sprite)
-		player_trail_sprites.append(new_sprite)
-		
-		# Create collision body
-		var new_collision_body = create_trail_collision_body(player_id, segment_index)
-		world_node.add_child(new_collision_body)
-		player_trail_collision_bodies.append(new_collision_body)
-	
-	# Remove excess trail segments (both sprite and collision)
-	while player_trail_sprites.size() > positions.size():
-		var excess_sprite = player_trail_sprites.pop_back()
-		if excess_sprite and is_instance_valid(excess_sprite):
-			excess_sprite.queue_free()
-		
-		var excess_collision = player_trail_collision_bodies.pop_back()
-		if excess_collision and is_instance_valid(excess_collision):
-			excess_collision.queue_free()
-	
-	# Update positions for both sprites and collision bodies
-	for i in range(positions.size()):
-		if i < player_trail_sprites.size():
-			if player_trail_sprites[i] and is_instance_valid(player_trail_sprites[i]):
-				player_trail_sprites[i].global_position = positions[i]
-				player_trail_sprites[i].visible = true
+func _physics_process(_delta: float) -> void:
+	for player_node in players:
+		if check_trail_collisions(player_node):
+			handle_trail_death(int(player_node.name), player_node.position)
 			
-			if player_trail_collision_bodies[i] and is_instance_valid(player_trail_collision_bodies[i]):
-				player_trail_collision_bodies[i].global_position = positions[i]
+func _process(_delta: float) -> void:
+	if !multiplayer.is_server(): return
 
-func create_trail_sprite(player_id: int, segment_index: int, sprite_data: Dictionary) -> Sprite2D:
-	var trail_sprite = Sprite2D.new()
-	trail_sprite.name = "trail_" + str(player_id) + "_" + str(segment_index)
-	
-	if sprite_data.has("texture_path"):
-		trail_sprite.texture = load(sprite_data["texture_path"])
-	if sprite_data.has("hframes"):
-		trail_sprite.hframes = sprite_data["hframes"]
-	if sprite_data.has("vframes"):
-		trail_sprite.vframes = sprite_data["vframes"]
-	if sprite_data.has("frame"):
-		trail_sprite.frame = sprite_data["frame"]
-	if sprite_data.has("scale"):
-		trail_sprite.scale = Vector2(sprite_data["scale"]["x"], sprite_data["scale"]["y"])
-	if sprite_data.has("texture_filter"):
-		trail_sprite.texture_filter = sprite_data["texture_filter"]
-	
-	trail_sprite.modulate = trail_color
-	trail_sprite.z_index = -1
-	
-	return trail_sprite
-
-func create_trail_collision_body(player_id: int, segment_index: int) -> StaticBody2D:
-	var collision_body = StaticBody2D.new()
-	collision_body.name = "trail_collision_" + str(player_id) + "_" + str(segment_index)
-	
-	# Create collision shape
-	var collision_shape = CollisionShape2D.new()
-	var circle_shape = CircleShape2D.new()
-	circle_shape.radius = TRAIL_COLLISION_RADIUS
-	collision_shape.shape = circle_shape
-	
-	# Set collision properties
-	collision_body.collision_layer = TRAIL_COLLISION_LAYER
-	collision_body.collision_mask = 0  # Trails don't need to detect anything
-	
-	# Add collision shape as child
-	collision_body.add_child(collision_shape)
-	
-	# Set metadata to identify trail owner
-	collision_body.set_meta("trail_owner_id", player_id)
-	collision_body.set_meta("trail_segment_index", segment_index)
-	
-	return collision_body
-
-func cleanup_removed_players(active_player_ids: Array) -> void:
-	var players_to_remove = []
-	for player_id in all_player_trails.keys():
-		if player_id not in active_player_ids:
-			players_to_remove.append(player_id)
-	
-	for player_id in players_to_remove:
-		cleanup_player_trail(player_id)
-
-func cleanup_player_trail(player_id: int) -> void:
-	if not all_player_trails.has(player_id):
+	if !snake_trail_container:
+		print("TrailManager: FATAL - no snake trail container found")
+		assert(false, "no snake trail container found")
 		return
 	
-	var player_trail_data = all_player_trails[player_id]
-	
-	# Clean up sprites
-	if player_trail_data.has("sprites"):
-		var player_trail_sprites = player_trail_data["sprites"]
-		for sprite in player_trail_sprites:
-			if sprite and is_instance_valid(sprite):
-				sprite.queue_free()
-	
-	# Clean up collision bodies
-	if player_trail_data.has("collision_bodies"):
-		var player_trail_collision_bodies = player_trail_data["collision_bodies"]
-		for collision_body in player_trail_collision_bodies:
-			if collision_body and is_instance_valid(collision_body):
-				collision_body.queue_free()
-	
-	all_player_trails.erase(player_id)
+	for player_node in players:
+		var player_id = int(player_node.name)
+		if shadows.size() > 0 and shadows[player_id].size() > 0 and player_node.position.distance_to(shadows[player_id][0].position) > 16:
+			var popped_data = shadows[player_id].pop_back()
+			var last_shadow = snake_trail_container.find_child("trail_" + player_node.name + "_" + popped_data.id, false, false)
+			if last_shadow:
+				last_shadow.call_deferred("queue_free")
+				
+				var new_trail_data: Dictionary = {"id": generate_uuid_v4(), "position": player_node.position, "player_id": player_id, "player_name": player_node.name}
+				shadows[player_id].push_front(new_trail_data)
+				SignalBus.shadow_increased.emit(new_trail_data)
+			else:
+				print("trail_" + player_node.name + "_" + popped_data.id + " not found")
+	pass
 
-func get_active_trail_players() -> Array:
-	return all_player_trails.keys()
-
-func has_trail_for_player(player_id: int) -> bool:
-	if not all_player_trails.has(player_id):
-		return false
-	
-	var player_trail_data = all_player_trails[player_id]
-	if not player_trail_data.has("sprites"):
-		return false
-	
-	return player_trail_data["sprites"].size() > 0
-
-func cleanup_all_trails() -> void:
-	for player_id in all_player_trails.keys():
-		cleanup_player_trail(player_id)
-
-# Advanced cleanup: Remove any orphaned trail collision bodies in the world
-func cleanup_orphaned_trails() -> void:
-	if not world_node:
-		return
+func _on_dm_unlock(unlock_name: String) -> void:
+	if multiplayer.is_server() and unlock_name == "shadow_zone":
+		print("TrailManager: Shadow zone unlocked - creating trail containers for all players")
+		enable_trail_containers_for_all_players()
 		
-	print("TrailManager: Performing orphaned trail cleanup")
-	var orphaned_count = 0
-	
-	# Get list of active trail players from our internal tracking
-	var active_trail_players = all_player_trails.keys()
-	
-	# Find all trail collision bodies in the world
-	var all_children = world_node.get_children()
-	for child in all_children:
-		if is_trail_collision_body(child):
-			var owner_id = get_trail_owner_from_collision_body(child)
+func enable_trail_containers_for_all_players() -> void:
+	pass
+	#for player_node in players:
+		#var player_id = int(player_node.name) if player_node.name.is_valid_int() else -1
+		#if player_id > 0:
+			#print("TrailManager: Enabling trail container for player ", player_id)
+			#var container = player_node.get_node("SnakeTrailContainer")
+			#container.enabled = true
 			
-			# Check if this trail owner is in our active tracking
-			if owner_id not in active_trail_players:
-				print("Removing truly orphaned trail collision body: ", child.name, " (owner ", owner_id, " not in active list)")
-				child.queue_free()
-				orphaned_count += 1
-	
-	if orphaned_count > 0:
-		print("TrailManager: Cleaned up ", orphaned_count, " truly orphaned trail collision bodies")
-	else:
-		print("TrailManager: No orphaned trails found")
+func get_player_by_id(pid: int) -> Node:
+	for player_node in players:
+		if player_node.name.is_valid_int() and int(player_node.name) == pid:
+			return player_node
+	return null
 
-# Get all collision bodies for a specific player's trail
-func get_trail_collision_bodies(player_id: int) -> Array:
-	if not all_player_trails.has(player_id):
-		return []
+func is_player_dm(pid: int) -> bool:
+	var player_node = get_player_by_id(pid)
+	return player_node != null and (player_node.name == "dm" or pid == 1)
 	
-	var player_trail_data = all_player_trails[player_id]
-	if not player_trail_data.has("collision_bodies"):
-		return []
-	
-	return player_trail_data["collision_bodies"]
+func is_trail_collision_body(collision_body: Node) -> bool:
+	return collision_body is StaticBody2D and collision_body.name.begins_with("trail_collision_")
 
-# Get the owner player ID from a trail collision body
 func get_trail_owner_from_collision_body(collision_body: StaticBody2D) -> int:
 	if collision_body and collision_body.has_meta("trail_owner_id"):
 		return collision_body.get_meta("trail_owner_id")
 	return -1
 
-# Check if a collision body belongs to a trail
-func is_trail_collision_body(collision_body: Node) -> bool:
-	return collision_body is StaticBody2D and collision_body.name.begins_with("trail_collision_")
+func generate_uuid_v4() -> String:
+	var rng = RandomNumberGenerator.new()
+	rng.randomize()
+	
+	var uuid = "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx"
+	var hex = "0123456789abcdef"
+	
+	var result = ""
+	for i in range(uuid.length()):
+		var c = uuid[i]
+		if c == "x":
+			result += hex[rng.randi_range(0, 15)]
+		elif c == "y":
+			# y must be 8, 9, a, or b
+			result += hex[rng.randi_range(8, 11)]
+		else:
+			result += c
+			
+	return result
 
-# Clean up trail immediately on player death (server-side)
-func cleanup_player_trail_on_death(player_id: int) -> void:
-	if not multiplayer.is_server():
-		return
+func check_trail_collisions(_player: Player) -> bool:
+	#var collider = player.get_last_slide_collision().get_collider()
+	#if not collider: return false
+	#
+	#if is_trail_collision_body(collider):
+		#var trail_owner_id = get_trail_owner_from_collision_body(collider)
+		#if trail_owner_id == -1 or is_player_dm(trail_owner_id): return false
+		#
+		#if trail_owner_id == int(player.name):
+			#var segment_index = -1
+			#if collider.has_meta("trail_segment_index"):
+				#segment_index = collider.get_meta("trail_segment_index")
+			#
+			#if segment_index >= 0 and segment_index < 2: return false
+		#
+		#return true
 	
-	print("TrailManager: Cleaning up trails for dead player ", player_id)
-	cleanup_player_trail(player_id)
-	
-	# Force immediate broadcast to all clients to remove trails
-	var empty_trail_data = {}
-	for pid in all_player_trails.keys():
-		if pid != player_id:  # Keep alive players' trails
-			var player_trail_data = all_player_trails[pid]
-			if player_trail_data.has("sprites") and player_trail_data["sprites"].size() > 0:
-				# Get current positions for alive players
-				var positions: Array[Vector2] = []
-				for sprite in player_trail_data["sprites"]:
-					if sprite and is_instance_valid(sprite):
-						positions.append(sprite.global_position)
-				
-				if positions.size() > 0:
-					empty_trail_data[pid] = {
-						"positions": positions,
-						"segments": positions.size(),
-						"sprite_data": get_cached_sprite_data(pid)
-					}
-	
-	# Broadcast updated trail data (without dead player)
-	sync_all_player_trails.rpc(empty_trail_data)
+	return false
 
-# Cache sprite data for a player to avoid repeated lookups
-func get_cached_sprite_data(player_id: int) -> Dictionary:
-	var player_trail_data = all_player_trails.get(player_id, {})
-	if player_trail_data.has("sprites") and player_trail_data["sprites"].size() > 0:
-		var sprite = player_trail_data["sprites"][0]
-		if sprite and is_instance_valid(sprite) and sprite.texture:
-			return {
-				"texture_path": sprite.texture.resource_path,
-				"hframes": sprite.hframes,
-				"vframes": sprite.vframes,
-				"frame": sprite.frame,
-				"scale": {"x": sprite.scale.x, "y": sprite.scale.y},
-				"texture_filter": sprite.texture_filter
-			}
-	return {}
+func handle_trail_death(pid: int, death_position: Vector2) -> void:
+	if !multiplayer.is_server(): return
+	print("💀 DEATH: Player ", pid, " died from trail collision at ", death_position)
+	DeathSystem.request_player_death.rpc_id(1, pid, death_position)
+
+#func find_world_node() -> void:
+	#var root = get_tree().current_scene
+	#if root:
+		#world_node = root
+	#else:
+		#print("TrailManager: FATAL - Could not find world node")
+		#assert(false, "Could not find world node")
+#
+#func create_trail_container(player_id: int) -> SnakeTrailContainer:
+	#if trail_containers.has(player_id):
+		#return trail_containers[player_id]
+	#if not snake_trail_container_scene:
+		#push_error("TrailManager: snake_trail_container_scene not set")
+		#return null
+	#var container = snake_trail_container_scene.instantiate() as SnakeTrailContainer
+	#if container:
+		#container.setup_for_player(player_id)
+		#world_node.add_child(container)
+		#trail_containers[player_id] = container
+	#return container
+#
+#func remove_trail_container(player_id: int) -> void:
+	#if trail_containers.has(player_id):
+		#trail_containers[player_id].queue_free()
+		#trail_containers.erase(player_id)
+#
+#func get_trail_container(player_id: int) -> SnakeTrailContainer:
+	#return trail_containers.get(player_id, null)
+
+# TODO: Add shadow zone end handling when that system is implemented
+#func end_shadow_zone() -> void:
+	#if multiplayer.is_server():
+		#print("TrailManager: Shadow zone ended - removing all trail containers")
+		##cleanup_all_trails()
+#
+#func create_trail_containers_for_all_players() -> void:
+	#var players = get_tree().get_nodes_in_group("players")
+	#for player_node in players:
+		#var player_id = int(player_node.name) if player_node.name.is_valid_int() else -1
+		#if player_id > 0:
+			#print("TrailManager: Creating trail container for player ", player_id)
+			#create_trail_container(player_id)
+#
+#@rpc("any_peer", "call_local", "reliable")
+#func update_player_trail_position(player_id: int, position: Vector2) -> void:
+	#if not multiplayer.is_server():
+		#return
+	#
+	#var container = get_trail_container(player_id)
+	#if container:
+		#container.update_trail_positions(position)
+#
+#
+#
+## Old functions removed - trail containers handle sprite creation internally
+#
+## Container-based cleanup functions
+##func cleanup_all_trails() -> void:
+	##for player_id in trail_containers.keys():
+		##remove_trail_container(player_id)
+##
+### Get the owner player ID from a trail collision body
+
+##
+### Check if a collision body belongs to a trail
+
+
+### Clean up trail immediately on player death (server-side)
+##func cleanup_player_trail_on_death(player_id: int) -> void:
+	##if not multiplayer.is_server():
+		##return
+	##
+	##print("TrailManager: Cleaning up trails for dead player ", player_id)
+	##remove_trail_container(player_id)

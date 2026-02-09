@@ -32,6 +32,7 @@ func register_player(id: int, player_name: String):
 		"name": player_name,
 	}
 	print("Player ", id, " registered in Global Manager with name ", player_name)
+	SignalBus.player_registered.emit(id, player_name)
 
 func unregister_player(id: int):
 	if multiplayer.is_server() and players_data.has(id):
@@ -54,6 +55,7 @@ func unregister_player(id: int):
 		
 		# Optional: Save to disk here before erasing
 		players_data.erase(id)
+		SignalBus.player_unregistered.emit(id)
 		print("Player ", id, " fully unregistered and cleaned up")
 		
 func add_item_to_inventory(player_id: int, item_data: ItemData, amount: int = 1):
@@ -71,7 +73,7 @@ func add_item_to_inventory(player_id: int, item_data: ItemData, amount: int = 1)
 			inventory[item_id] = amount
 		# Sync the entire inventory dictionary to the specific client
 		update_client_inventory.rpc_id(player_id, inventory)
-		SignalBus.on_item_pickup.emit()
+		SignalBus.on_item_pickup.emit(player_id)
 
 @rpc("authority", "call_local", "reliable")
 func update_client_inventory(new_items: Dictionary):

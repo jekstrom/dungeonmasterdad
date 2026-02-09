@@ -17,7 +17,13 @@ signal on_explosion(position: Vector2, data: Dictionary)
 @warning_ignore("unused_signal")
 signal shadow_zone_changed(val: bool)
 @warning_ignore("unused_signal")
-signal on_item_pickup
+signal on_item_pickup(player_id: int)
+@warning_ignore("unused_signal")
+signal shadow_increased(data: Dictionary)
+@warning_ignore("unused_signal")
+signal player_registered(player_id: int, player_name: String)
+@warning_ignore("unused_signal")
+signal player_unregistered(player_id: int)
 
 # Death event signals (existing)
 @warning_ignore("unused_signal")
@@ -34,12 +40,6 @@ signal player_death_requested(player_id: int, position: Vector2)
 signal player_death_processed(player_id: int, items: Array)
 
 # Item system signals  
-@warning_ignore("unused_signal")
-signal items_dropped_at_location(items: Array, position: Vector2)
-@warning_ignore("unused_signal")
-signal item_pickup_requested(item_id: String, player_id: int)
-@warning_ignore("unused_signal")
-signal item_collected_successfully(item_id: String, collector: int)
 @warning_ignore("unused_signal")
 signal on_item_drop(item_data: Dictionary)
 

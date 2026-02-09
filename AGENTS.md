@@ -225,6 +225,7 @@ Remember: This is a multiplayer game where synchronization and authority are cri
 ## Active Technologies
 - GDScript / Godot 4.5 (Forward Plus rendering) + ENet multiplayer on port 42069, Godot's built-in networking system, SignalBus singleton (001-fix-snake-death)
 - Scene (.tscn) files and Resource (.tres) files for game data persistence (001-fix-snake-death)
+- GDScript / Godot 4.5 (Forward Plus rendering) + ENet multiplayer on port 42069, Godot's built-in networking system, MultiplayerSynchronizer nodes (002-snake-multiplayer-sync)
 
 ## Recent Changes
 - 001-fix-snake-death: Added GDScript / Godot 4.5 (Forward Plus rendering) + ENet multiplayer on port 42069, Godot's built-in networking system, SignalBus singleton

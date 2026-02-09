@@ -235,11 +235,3 @@ theme_override_colors/font_color = Color(1, 1, 1, 1)
 theme_override_constants/outline_size = 3
 text = "Paper Pusher"
 horizontal_alignment = 1
-
-[node name="ShadowSprite" type="Sprite2D" parent="."]
-visible = false
-self_modulate = Color(0.21950102, 0.21950102, 0.21950102, 1)
-position = Vector2(0, -21)
-texture = ExtResource("3_4tdu3")
-hframes = 16
-vframes = 3

@@ -1,4 +1,4 @@
-[gd_scene load_steps=19 format=3 uid="uid://de1ek0y5wi45g"]
+[gd_scene load_steps=22 format=3 uid="uid://de1ek0y5wi45g"]
 
 [ext_resource type="PackedScene" uid="uid://diumvk6jwwd5v" path="res://zones/fantasy_zone.tscn" id="1_jgc46"]
 [ext_resource type="Script" uid="uid://both0q8u44cig" path="res://_globals/level_manager.gd" id="1_x6kx1"]
@@ -15,7 +15,10 @@
 [ext_resource type="PackedScene" uid="uid://si6i5r1yric1" path="res://spells/fireball/fireball_spell.tscn" id="13_ycdrs"]
 [ext_resource type="Script" uid="uid://b1w5sp8jtdo2y" path="res://_globals/building_manager.gd" id="13_yjl7g"]
 [ext_resource type="Script" uid="uid://7l00cqarwjaa" path="res://scripts/projectile_spawner.gd" id="18_ycdrs"]
+[ext_resource type="PackedScene" uid="uid://bq8yh3x8ydp4k" path="res://scenes/snake_trail_container.tscn" id="19_jufm4"]
+[ext_resource type="Script" uid="uid://145icimott8b" path="res://player/scripts/trail_spawner.gd" id="20_ymgag"]
 [ext_resource type="Script" uid="uid://c0kl4pny1scqf" path="res://scripts/debug.gd" id="21_jufm4"]
+[ext_resource type="PackedScene" uid="uid://be52gho0i3dak" path="res://player/shadow_scene.tscn" id="21_u2qr3"]
 [ext_resource type="Script" uid="uid://3wvfcisfslpa" path="res://scripts/pickup_spawner.gd" id="24_vnugj"]
 [ext_resource type="Script" uid="uid://dcbuj26qlyp1r" path="res://scripts/building_spawner.gd" id="25_building"]
 
@@ -77,3 +80,11 @@ _spawnable_scenes = PackedStringArray("uid://c10eakv6dta4r")
 spawn_path = NodePath("..")
 script = ExtResource("24_vnugj")
 pickup_scene = ExtResource("2_wt17y")
+
+[node name="SnakeTrailContainer" parent="." instance=ExtResource("19_jufm4")]
+
+[node name="TrailSpawner" type="MultiplayerSpawner" parent="SnakeTrailContainer"]
+_spawnable_scenes = PackedStringArray("uid://be52gho0i3dak")
+spawn_path = NodePath("..")
+script = ExtResource("20_ymgag")
+trail_scene = ExtResource("21_u2qr3")

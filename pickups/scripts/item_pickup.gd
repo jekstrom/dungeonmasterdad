@@ -43,7 +43,7 @@ func _physics_process(_delta: float) -> void:
 		velocity = velocity.bounce(collision_info.get_normal())
 	var current_friction = friction
 	if velocity.length() > 100:
-		current_friction *= 5.0
+		current_friction *= 19.0
 		
 	if velocity.length() > 0:
 		velocity = velocity.move_toward(Vector2.ZERO, current_friction * _delta)

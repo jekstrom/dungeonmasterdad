@@ -28,7 +28,6 @@ func _setup_authority():
 	# Only set authority on server
 	if multiplayer.is_server():
 		set_multiplayer_authority(1)
-		print("PickupSpawner authority set to server")
 
 func _custom_spawn(data: Dictionary) -> Node2D:
 	# Validate required data before spawning
@@ -41,7 +40,6 @@ func _custom_spawn(data: Dictionary) -> Node2D:
 		print("PickupSpawner: Could not load item data for ", data.item_type)
 		return null
 	
-	print("PickupSpawner: Spawning pickup with data: ", data)
 	var p: Node2D = pickup_scene.instantiate()
 	p.item_data = item_data
 	p.position = data.position

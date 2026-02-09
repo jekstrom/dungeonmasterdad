@@ -92,7 +92,7 @@ func spawn_host_player(player_name: String) -> void:
 	DmManager.dm_player_name = player_name
 	
 	get_node(spawn_path).call_deferred("add_child", dm)
-	dm.add_to_group("players")
+	dm.add_to_group("dm")
 	PlayerManager.register_player(1, player_name)
 	
 	for i in range(0, 10):  # Reduced number for testing

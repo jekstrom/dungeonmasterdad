@@ -25,20 +25,13 @@ func _ready():
 # =============================================================================
 
 @rpc("any_peer", "call_remote", "reliable")
-func request_player_death(death_position: Vector2) -> void:
-	# Only server processes death requests
-	if not multiplayer.is_server():
+func request_player_death(pid: int, death_position: Vector2) -> void:
+	if !multiplayer.is_server(): return
+	
+	if not _validate_death_request(pid):
+		print("DeathSystem: Invalid death request for player ", pid)
 		return
-	
-	var player_id: int = multiplayer.get_remote_sender_id()
-	
-	# Validate death request
-	if not _validate_death_request(player_id):
-		print("DeathSystem: Invalid death request from player ", player_id)
-		return
-	
-	# Process the death
-	_handle_player_death(player_id, death_position)
+	_handle_player_death(pid, death_position)
 
 # =============================================================================
 # SERVER → CLIENT RPCs
@@ -414,11 +407,11 @@ func _spawn_items_via_multiplayer_spawner(items_data: Dictionary, spawn_position
 	for key in items_data.keys():
 		var quantity = items_data[key]
 		if !quantity or quantity <= 0:
-			continue		
+			continue
 		for i in range(quantity):
 			# Add small velocity for visual effect
 			var random_direction = Vector2.from_angle(randf() * TAU)
-			var launch_speed = randf_range(20.0, 100.0)
+			var launch_speed = randf_range(20.0, 500.0)
 			var velocity = random_direction * launch_speed
 			
 			var spawn_data = {

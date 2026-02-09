@@ -1,6 +1,6 @@
 [gd_scene load_steps=3 format=3 uid="uid://buko4j3660uce"]
 
-[ext_resource type="Script" path="res://zones/RealityZone.gd" id="1_efm3j"]
+[ext_resource type="Script" uid="uid://c8ovai6aycvjo" path="res://zones/RealityZone.gd" id="1_efm3j"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_648lk"]
 
