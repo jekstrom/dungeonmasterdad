@@ -42,3 +42,22 @@ texture_normal = ExtResource("1_ou2ku")
 texture_pressed = ExtResource("2_5etht")
 stretch_mode = 0
 metadata/_edit_use_anchors_ = true
+
+[node name="ColorRect2" type="ColorRect" parent="MarginContainer/HBoxContainer"]
+custom_minimum_size = Vector2(75, 75)
+layout_mode = 2
+size_flags_horizontal = 4
+color = Color(0.5985646, 0.055431597, 0.37874386, 1)
+
+[node name="TextureButton" type="TextureButton" parent="MarginContainer/HBoxContainer/ColorRect2"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+tooltip_text = "Build Paper Factory"
+texture_normal = ExtResource("1_ou2ku")
+texture_pressed = ExtResource("2_5etht")
+stretch_mode = 0
+metadata/_edit_use_anchors_ = true

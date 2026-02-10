@@ -10,7 +10,6 @@ var shadow_mode_active = false
 
 var snake_trail_container: SnakeTrailContainer
 
-
 func _enter_tree() -> void:
 	if !snake_trail_container:
 		snake_trail_container = get_tree().current_scene.find_child("SnakeTrailContainer")

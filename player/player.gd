@@ -51,6 +51,7 @@ func _ready() -> void:
 		
 	state_machine.Initialize(self)
 	SignalBus.build_smoke_building_pressed.connect(setup_building)
+	SignalBus.build_paper_building_pressed.connect(setup_building)
 	SignalBus.on_dm_unlock.connect(dm_unlock_listener)
 	SignalBus.on_dm_lock.connect(dm_lock_listener)
 
