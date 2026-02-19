@@ -15,8 +15,8 @@ func turn_off() -> void:
 	self.visible = false
 	
 func on_build_smoke_factory_button_pressed():
-	SignalBus.build_smoke_building_pressed.emit()
+	SignalBus.build_smoke_building_pressed.emit("SmokeFactory")
 	
 func on_build_paper_factory_button_pressed():
-	SignalBus.build_paper_building_pressed.emit()
+	SignalBus.build_paper_building_pressed.emit("PaperFactory")
 	

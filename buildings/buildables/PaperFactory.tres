@@ -1,6 +1,6 @@
 [gd_resource type="Resource" script_class="BuildingData" load_steps=3 format=3 uid="uid://rsthytbdmgy1"]
 
-[ext_resource type="PackedScene" uid="uid://d05hkhchi8k3x" path="res://buildings/buildables/smoke_factory.tscn" id="1_l6f1w"]
+[ext_resource type="PackedScene" uid="uid://dgm12ubgivyq7" path="res://buildings/buildables/paper_factory.tscn" id="1_l6f1w"]
 [ext_resource type="Script" uid="uid://dlerv2lp0i1v8" path="res://buildings/building_data.gd" id="2_bumjh"]
 
 [resource]

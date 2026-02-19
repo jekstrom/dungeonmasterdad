@@ -100,8 +100,8 @@ func _process(_delta: float) -> void:
 		update_ghost(get_global_mouse_position())
 		queue_redraw()
 
-func setup_building():
-	current_building_data = load("res://buildings/buildables/SmokeFactory.tres")
+func setup_building(building: String):
+	current_building_data = load("res://buildings/buildables/" + building + ".tres")
 	if ghost_building:
 		remove_child(ghost_building)
 		ghost_building = null

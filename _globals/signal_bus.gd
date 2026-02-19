@@ -7,7 +7,7 @@ signal inventory_slots_changed
 @warning_ignore("unused_signal")
 signal build_smoke_building_pressed
 @warning_ignore("unused_signal")
-signal build_paper_building_pressed
+signal build_paper_building_pressed(building: String)
 
 @warning_ignore("unused_signal")
 signal on_dm_unlock(unlock_name: String)
