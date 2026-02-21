@@ -21,6 +21,7 @@ func request_placement(building_id: String, pos: Vector2, check_pos: Vector2):
 			building.enable()
 		else:
 			print("no building root found")
+			assert(false, "no building root")
 
 func is_area_clear(pos: Vector2, size: Vector2, reality_zone_radius: int, reality_zone_pos: Vector2) -> bool:
 	var query = PhysicsShapeQueryParameters2D.new()

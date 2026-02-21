@@ -10,6 +10,8 @@ class_name EnemyStateStun extends EnemyState
 var _damage_pos: Vector2
 var _direction: Vector2
 var _animation_finished: bool = false
+@onready var cpu_particles: CPUParticles2D = $"../../CPUParticles2D"
+@onready var animation_player: AnimationPlayer = $"../../AnimationPlayer"
 
 func init() -> void:
 	pass
@@ -22,7 +24,8 @@ func enter() -> void:
 	_direction = enemy.global_position.direction_to(_damage_pos)
 	enemy.SetDirection(_direction)
 	enemy.velocity = _direction * -knockback_speed
-	enemy.UpdateAnimation(anim_name)
+	animation_player.play("RESET")
+	cpu_particles.emitting = false
 	enemy.animation_player.animation_finished.connect(_on_animation_finished)
 	
 func exit() -> void:

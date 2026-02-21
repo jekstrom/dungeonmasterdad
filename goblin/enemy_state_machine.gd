@@ -5,15 +5,19 @@ var prev_state: EnemyState
 var current_state: EnemyState
 
 func _ready() -> void:
+	if not multiplayer.is_server(): return
 	process_mode = Node.PROCESS_MODE_DISABLED
 
 func _process(delta: float) -> void:
+	if not multiplayer.is_server(): return
 	change_state(current_state.process(delta))
 	
 func _physics_process(delta: float) -> void:
+	if not multiplayer.is_server(): return
 	change_state(current_state.physics(delta))
 	
 func initialize(_enemy: Enemy) -> void:
+	if not multiplayer.is_server(): return
 	states = []
 	
 	for c in get_children():
@@ -30,6 +34,7 @@ func initialize(_enemy: Enemy) -> void:
 		process_mode = Node.PROCESS_MODE_INHERIT
 
 func change_state(new_state: EnemyState) -> void:
+	if not multiplayer.is_server(): return
 	if new_state == null || new_state == current_state:
 		return
 		

@@ -1,3 +1,4 @@
+# PlayerManager
 extends Node
 
 #const __DM__ = preload("uid://e1aypo2ysyyc")
@@ -10,7 +11,11 @@ var player_spawned: bool = false
 
 @export var max_inv_slots: int = 8
 @export var reality_level: int = 0
+@export var max_smoke_amt: int = 5
+@export var max_paper_amt: int = 99
+@export var smoke_amt: int = 0
 signal reality_level_changed(new_reality_level: int)
+signal smoke_amt_changed(new_smoke_amt: int)
 
 # Structure: { peer_id: { "inventory": { "item_id": quantity } } }
 var players_data = {}
@@ -135,12 +140,32 @@ func unparent_player(p: Node2D) -> void:
 func update_reality_level(level_inc: int) -> void:
 	if multiplayer.is_server():
 		reality_level += level_inc
-		request_reality_level_incrase.rpc(reality_level)
+		request_reality_level_increase.rpc(reality_level)
+		
+func add_smoke(smoke_inc: int) -> void:
+	if !multiplayer.is_server(): return
+	if smoke_amt >= max_smoke_amt: return
+	
+	smoke_amt += smoke_inc
+	request_smoke_value_change.rpc(smoke_amt)
+
+func use_smoke(smoke_dec: int) -> bool:
+	if !multiplayer.is_server(): return false
+	if smoke_dec > smoke_amt: return false
+	
+	smoke_amt -= smoke_dec
+	request_smoke_value_change.rpc(smoke_amt)
+	return true
 
 @rpc("authority", "call_local", "reliable")
-func request_reality_level_incrase(new_reality_level: int):
+func request_reality_level_increase(new_reality_level: int):
 		reality_level = new_reality_level
 		reality_level_changed.emit(new_reality_level)
+		
+@rpc("authority", "call_local", "reliable")
+func request_smoke_value_change(new_smoke_amt: int):
+		smoke_amt = new_smoke_amt
+		smoke_amt_changed.emit(new_smoke_amt)
 
 # Respawn a player at the starting location with a delay
 func respawn_player(player_id: int) -> void:

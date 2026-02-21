@@ -4,6 +4,7 @@ extends MultiplayerSpawner
 @export var dm_player: PackedScene
 @export var gremlin: PackedScene
 @export var fireball_spell: PackedScene
+@export var knight: PackedScene
 
 func _enter_tree() -> void:
 	# Set server authority after multiplayer is ready
@@ -24,6 +25,7 @@ func _ready() -> void:
 	if multiplayer.is_server():
 		Lobby.host_started.connect(spawn_host_player)
 		DmManager.spawn_gremlin_cast.connect(spawn_gremlin)
+		DmManager.spawn_knight_cast.connect(spawn_knight)
 
 func on_connected_ok():
 	var id = multiplayer.get_unique_id()
@@ -70,6 +72,15 @@ func spawn_gremlin() -> void:
 	var new_gremlin: Node = gremlin.instantiate()
 
 	get_node(spawn_path).call_deferred("add_child", new_gremlin, true)
+
+func spawn_knight() -> void:
+	if !multiplayer.is_server(): return
+	
+	print("spawning knight")
+	
+	var new_knight: Node = knight.instantiate()
+
+	get_node(spawn_path).call_deferred("add_child", new_knight, true)
 	
 func cast_spell(spell_id: String) -> void:
 	if !multiplayer.is_server(): return

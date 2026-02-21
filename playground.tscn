@@ -1,4 +1,4 @@
-[gd_scene load_steps=22 format=3 uid="uid://de1ek0y5wi45g"]
+[gd_scene load_steps=23 format=3 uid="uid://de1ek0y5wi45g"]
 
 [ext_resource type="PackedScene" uid="uid://diumvk6jwwd5v" path="res://zones/fantasy_zone.tscn" id="1_jgc46"]
 [ext_resource type="Script" uid="uid://both0q8u44cig" path="res://_globals/level_manager.gd" id="1_x6kx1"]
@@ -19,6 +19,7 @@
 [ext_resource type="Script" uid="uid://145icimott8b" path="res://player/scripts/trail_spawner.gd" id="20_ymgag"]
 [ext_resource type="Script" uid="uid://c0kl4pny1scqf" path="res://scripts/debug.gd" id="21_jufm4"]
 [ext_resource type="PackedScene" uid="uid://be52gho0i3dak" path="res://player/shadow_scene.tscn" id="21_u2qr3"]
+[ext_resource type="PackedScene" uid="uid://bebn5r64gbvmg" path="res://goblin/knight/knight.tscn" id="22_ymgag"]
 [ext_resource type="Script" uid="uid://3wvfcisfslpa" path="res://scripts/pickup_spawner.gd" id="24_vnugj"]
 [ext_resource type="Script" uid="uid://dcbuj26qlyp1r" path="res://scripts/building_spawner.gd" id="25_building"]
 
@@ -34,12 +35,13 @@ position = Vector2(183, 74)
 base_radius = 500.0
 
 [node name="MultiplayerSpawner" type="MultiplayerSpawner" parent="."]
-_spawnable_scenes = PackedStringArray("uid://cof1o04wsy0rc", "uid://dsls3d0radb5f", "uid://c5avpnnd3seqn")
+_spawnable_scenes = PackedStringArray("uid://cof1o04wsy0rc", "uid://dsls3d0radb5f", "uid://c5avpnnd3seqn", "uid://bebn5r64gbvmg")
 spawn_path = NodePath("..")
 script = ExtResource("5_o00ia")
 network_player = ExtResource("4_is3ju")
 dm_player = ExtResource("5_ynsuh")
 gremlin = ExtResource("7_h1jm5")
+knight = ExtResource("22_ymgag")
 
 [node name="GameUI" parent="." instance=ExtResource("6_4bqqs")]
 

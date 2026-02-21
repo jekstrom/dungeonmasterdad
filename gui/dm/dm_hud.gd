@@ -2,12 +2,14 @@ extends CanvasLayer
 
 @onready var spawn_gremlin_button: TextureButton = $MarginContainer/HBoxContainer/SpawnGremlin/TextureButton
 @onready var cast_fireball_button: TextureButton = $MarginContainer/HBoxContainer/Fireball/TextureButton
+@onready var spawn_knight_button: TextureButton = $MarginContainer/HBoxContainer/SpawnKnight/TextureButton
 @onready var inventory_ui: Control = $MarginContainer/InventoryUi
 @onready var fireball: ColorRect = $MarginContainer/HBoxContainer/Fireball
 
 func _ready() -> void:
 	turn_off()
 	spawn_gremlin_button.connect("button_down", _on_gremlin_button_pressed)
+	spawn_knight_button.connect("button_down", _on_knight_button_pressed)
 	cast_fireball_button.connect("button_down", _on_fireball_button_pressed)
 
 func _on_gremlin_button_pressed() -> void:
@@ -15,6 +17,12 @@ func _on_gremlin_button_pressed() -> void:
 		print("spawn gremlin")
 		DmManager.update_fantasy_level(-150)
 		DmManager.spawn_gremlin()
+		
+func _on_knight_button_pressed() -> void:
+	if multiplayer.is_server():
+		print("spawn knight")
+		DmManager.update_fantasy_level(-150)
+		DmManager.spawn_knight()
 		
 func _on_fireball_button_pressed() -> void:
 	if multiplayer.is_server() and DmUnlocks.dm_unlocks["fireball"]:

@@ -7,7 +7,10 @@ class_name EnemyStateIdle extends EnemyState
 @export var state_duration_max: float = 1.5
 @export var next_state: EnemyState
 
-var _timer: float = 0.0
+var _timer: float = 0.5
+
+@onready var cpu_particles: CPUParticles2D = $"../../CPUParticles2D"
+@onready var animation_player: AnimationPlayer = $"../../AnimationPlayer"
 
 func init() -> void:
 	pass
@@ -15,7 +18,8 @@ func init() -> void:
 func enter() -> void:
 	enemy.velocity = Vector2.ZERO
 	_timer = randf_range(state_duration_min, state_duration_max)
-	enemy.UpdateAnimation(anim_name)
+	animation_player.play("RESET")
+	cpu_particles.emitting = false
 	
 func exit() -> void:
 	pass

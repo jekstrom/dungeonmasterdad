@@ -9,6 +9,7 @@ var dm: DM
 @export var fantasy_level: int = 0
 signal fantasy_level_changed(new_fantasy_level: int)
 signal spawn_gremlin_cast
+signal spawn_knight_cast
 var player_spawned: bool = false
 var dm_player_name: String = "DM"
 
@@ -48,7 +49,11 @@ func unlock(unlock_name: String) -> void:
 func spawn_gremlin() -> void:
 	if multiplayer.is_server():
 		spawn_gremlin_cast.emit()
-
+		
+func spawn_knight() -> void:
+	if multiplayer.is_server():
+		spawn_knight_cast.emit()
+		
 @rpc("authority", "call_local", "reliable")
 func request_fantasy_level_incrase(new_fantasy_level: int):
 		fantasy_level = new_fantasy_level

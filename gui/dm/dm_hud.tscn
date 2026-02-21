@@ -1,10 +1,11 @@
-[gd_scene load_steps=7 format=3 uid="uid://f15sgptli5oi"]
+[gd_scene load_steps=8 format=3 uid="uid://f15sgptli5oi"]
 
 [ext_resource type="Script" uid="uid://bsgw0ccsyq6ll" path="res://gui/dm/dm_hud.gd" id="1_a1hl1"]
 [ext_resource type="Texture2D" uid="uid://b0hlsaoa55imm" path="res://sprites/gremlin_spawn_button.png" id="2_uyd11"]
 [ext_resource type="Texture2D" uid="uid://cg3bt8bcn0275" path="res://sprites/gremlin_spawn_button_pressed.png" id="3_t4wv6"]
 [ext_resource type="PackedScene" uid="uid://dnejfv6x8ws6j" path="res://player/inventory/inventory_ui.tscn" id="4_4nt5k"]
 [ext_resource type="Texture2D" uid="uid://dp3ds7fet3pl" path="res://spells/fireball/fireball.png" id="5_cbx5e"]
+[ext_resource type="Texture2D" uid="uid://bsqq0iefdxyxf" path="res://goblin/knight/knight.png" id="5_usulh"]
 [ext_resource type="Texture2D" uid="uid://dl1fupl85iw7c" path="res://spells/fireball/fireball_pressed.png" id="6_usulh"]
 
 [node name="DmHud" type="CanvasLayer"]
@@ -51,6 +52,24 @@ grow_vertical = 2
 tooltip_text = "Summon Gremlin"
 texture_normal = ExtResource("2_uyd11")
 texture_pressed = ExtResource("3_t4wv6")
+stretch_mode = 0
+
+[node name="SpawnKnight" type="ColorRect" parent="MarginContainer/HBoxContainer"]
+custom_minimum_size = Vector2(75, 75)
+layout_mode = 2
+size_flags_horizontal = 8
+color = Color(0.40832946, 0.40832946, 0.40832946, 1)
+
+[node name="TextureButton" type="TextureButton" parent="MarginContainer/HBoxContainer/SpawnKnight"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+tooltip_text = "Summon Gremlin"
+texture_normal = ExtResource("5_usulh")
+texture_pressed = ExtResource("5_usulh")
 stretch_mode = 0
 
 [node name="Fireball" type="ColorRect" parent="MarginContainer/HBoxContainer"]

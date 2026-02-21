@@ -61,3 +61,28 @@ texture_normal = ExtResource("1_ou2ku")
 texture_pressed = ExtResource("2_5etht")
 stretch_mode = 0
 metadata/_edit_use_anchors_ = true
+
+[node name="ResourceContainer" type="MarginContainer" parent="."]
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -73.0
+offset_bottom = 50.0
+grow_horizontal = 0
+size_flags_horizontal = 4
+theme_override_constants/margin_top = 30
+theme_override_constants/margin_right = 20
+
+[node name="VBoxContainer" type="VBoxContainer" parent="ResourceContainer"]
+layout_mode = 2
+size_flags_horizontal = 8
+size_flags_vertical = 4
+
+[node name="SmokeCount" type="Label" parent="ResourceContainer/VBoxContainer"]
+layout_mode = 2
+text = "Smoke: 5"
+
+[node name="PaperCount" type="Label" parent="ResourceContainer/VBoxContainer"]
+visible = false
+layout_mode = 2
+text = "Paper: 99"

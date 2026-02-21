@@ -1,3 +1,4 @@
+# Hud
 extends CanvasLayer
 
 @onready var fantasy_rect: ColorRect = $MarginContainer/HBoxContainer/FantasyBar
