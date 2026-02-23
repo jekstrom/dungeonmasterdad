@@ -1,4 +1,4 @@
-[gd_scene load_steps=23 format=3 uid="uid://de1ek0y5wi45g"]
+[gd_scene load_steps=24 format=3 uid="uid://de1ek0y5wi45g"]
 
 [ext_resource type="PackedScene" uid="uid://diumvk6jwwd5v" path="res://zones/fantasy_zone.tscn" id="1_jgc46"]
 [ext_resource type="Script" uid="uid://both0q8u44cig" path="res://_globals/level_manager.gd" id="1_x6kx1"]
@@ -20,6 +20,7 @@
 [ext_resource type="Script" uid="uid://c0kl4pny1scqf" path="res://scripts/debug.gd" id="21_jufm4"]
 [ext_resource type="PackedScene" uid="uid://be52gho0i3dak" path="res://player/shadow_scene.tscn" id="21_u2qr3"]
 [ext_resource type="PackedScene" uid="uid://bebn5r64gbvmg" path="res://goblin/knight/knight.tscn" id="22_ymgag"]
+[ext_resource type="PackedScene" uid="uid://h7p7to6n20ld" path="res://doodads/tree.tscn" id="23_u2qr3"]
 [ext_resource type="Script" uid="uid://3wvfcisfslpa" path="res://scripts/pickup_spawner.gd" id="24_vnugj"]
 [ext_resource type="Script" uid="uid://dcbuj26qlyp1r" path="res://scripts/building_spawner.gd" id="25_building"]
 
@@ -90,3 +91,47 @@ _spawnable_scenes = PackedStringArray("uid://be52gho0i3dak")
 spawn_path = NodePath("..")
 script = ExtResource("20_ymgag")
 trail_scene = ExtResource("21_u2qr3")
+
+[node name="Tree" parent="." instance=ExtResource("23_u2qr3")]
+position = Vector2(351, -225)
+tree_type = 4
+
+[node name="Tree2" parent="." instance=ExtResource("23_u2qr3")]
+position = Vector2(295, -190)
+tree_type = 0
+
+[node name="Tree3" parent="." instance=ExtResource("23_u2qr3")]
+position = Vector2(529, -235)
+tree_type = 4
+
+[node name="Tree4" parent="." instance=ExtResource("23_u2qr3")]
+position = Vector2(731, -243)
+tree_type = 1
+
+[node name="Tree5" parent="." instance=ExtResource("23_u2qr3")]
+position = Vector2(626, -185)
+tree_type = 6
+
+[node name="Tree6" parent="." instance=ExtResource("23_u2qr3")]
+position = Vector2(549, -142)
+tree_type = 3
+
+[node name="Tree7" parent="." instance=ExtResource("23_u2qr3")]
+position = Vector2(985, -148)
+tree_type = 9
+
+[node name="Tree8" parent="." instance=ExtResource("23_u2qr3")]
+position = Vector2(848, -149)
+tree_type = 8
+
+[node name="Tree9" parent="." instance=ExtResource("23_u2qr3")]
+position = Vector2(722, -123)
+tree_type = 7
+
+[node name="Tree10" parent="." instance=ExtResource("23_u2qr3")]
+position = Vector2(377, -84)
+tree_type = 5
+
+[node name="Tree11" parent="." instance=ExtResource("23_u2qr3")]
+position = Vector2(182, -84)
+tree_type = 2

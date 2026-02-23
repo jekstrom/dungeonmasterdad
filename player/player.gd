@@ -17,6 +17,10 @@ var ghost_building: Node2D
 @export var num_shadows: int = 0
 @export var shadow_scene: PackedScene
 
+@onready var hitbox: Hitbox = $Hitbox
+@onready var animation_player: AnimationPlayer = $AnimationPlayer
+@onready var sprite: Sprite2D = $Sprite2D
+
 @export var sync_name: String:
 	set(val):
 		sync_name = val
@@ -41,8 +45,6 @@ func _enter_tree() -> void:
 	if multiplayer.has_multiplayer_peer() and id > 0:
 		set_multiplayer_authority(id)
 
-@onready var animation_player: AnimationPlayer = $AnimationPlayer
-@onready var sprite: Sprite2D = $Sprite2D
 func _ready() -> void:
 	if is_multiplayer_authority():
 		camera_2d.make_current()
@@ -63,6 +65,7 @@ func _ready() -> void:
 	
 	# Connect to death system signals for respawn handling
 	SignalBus.player_respawn_completed.connect(_on_player_respawn_completed)
+	hitbox.Damaged.connect(take_damage)
 	
 func dm_unlock_listener(unlock_name: String) -> void:
 	if unlock_name == "shadow_zone" and DmUnlocks.dm_unlocks.get("shadow_zone"):
@@ -203,3 +206,8 @@ func _on_player_respawn_completed(player_id: int, respawn_position: Vector2) -> 
 		force_snake_state()
 	else:
 		force_idle_state()
+
+func take_damage(_hurt_box: Hurtbox) -> void:
+	if not multiplayer.is_server(): return
+	if invulnerable: return
+	DeathSystem.request_player_death(int(name), position)
