@@ -1,4 +1,4 @@
-[gd_scene load_steps=24 format=3 uid="uid://de1ek0y5wi45g"]
+[gd_scene load_steps=27 format=3 uid="uid://de1ek0y5wi45g"]
 
 [ext_resource type="PackedScene" uid="uid://diumvk6jwwd5v" path="res://zones/fantasy_zone.tscn" id="1_jgc46"]
 [ext_resource type="Script" uid="uid://both0q8u44cig" path="res://_globals/level_manager.gd" id="1_x6kx1"]
@@ -8,19 +8,22 @@
 [ext_resource type="Script" uid="uid://b2nf43frwech" path="res://scripts/multiplayer_spawner.gd" id="5_o00ia"]
 [ext_resource type="PackedScene" uid="uid://dsls3d0radb5f" path="res://dm/dm.tscn" id="5_ynsuh"]
 [ext_resource type="PackedScene" uid="uid://ckwsvw4g8ewvf" path="res://game.tscn" id="6_4bqqs"]
-[ext_resource type="PackedScene" uid="uid://c5avpnnd3seqn" path="res://goblin/goblin.tscn" id="7_h1jm5"]
+[ext_resource type="PackedScene" uid="uid://c5avpnnd3seqn" path="res://monsters/goblin.tscn" id="7_h1jm5"]
 [ext_resource type="PackedScene" uid="uid://dcevmqir2nyr6" path="res://gui/hud.tscn" id="8_v7dth"]
 [ext_resource type="PackedScene" uid="uid://f15sgptli5oi" path="res://gui/dm/dm_hud.tscn" id="9_pi42a"]
 [ext_resource type="PackedScene" uid="uid://bglfuu7ga823v" path="res://gui/player/player_hud.tscn" id="12_te8jg"]
+[ext_resource type="PackedScene" uid="uid://dkgdpjfkuciox" path="res://monsters/skeleton/skeleton.tscn" id="13_3i8ot"]
 [ext_resource type="PackedScene" uid="uid://si6i5r1yric1" path="res://spells/fireball/fireball_spell.tscn" id="13_ycdrs"]
 [ext_resource type="Script" uid="uid://b1w5sp8jtdo2y" path="res://_globals/building_manager.gd" id="13_yjl7g"]
 [ext_resource type="Script" uid="uid://7l00cqarwjaa" path="res://scripts/projectile_spawner.gd" id="18_ycdrs"]
 [ext_resource type="PackedScene" uid="uid://bq8yh3x8ydp4k" path="res://scenes/snake_trail_container.tscn" id="19_jufm4"]
+[ext_resource type="PackedScene" uid="uid://ctdmthnldmbyy" path="res://level/floor.tscn" id="20_2yo0f"]
 [ext_resource type="Script" uid="uid://145icimott8b" path="res://player/scripts/trail_spawner.gd" id="20_ymgag"]
 [ext_resource type="Script" uid="uid://c0kl4pny1scqf" path="res://scripts/debug.gd" id="21_jufm4"]
 [ext_resource type="PackedScene" uid="uid://be52gho0i3dak" path="res://player/shadow_scene.tscn" id="21_u2qr3"]
-[ext_resource type="PackedScene" uid="uid://bebn5r64gbvmg" path="res://goblin/knight/knight.tscn" id="22_ymgag"]
+[ext_resource type="PackedScene" uid="uid://bebn5r64gbvmg" path="res://monsters/knight/knight.tscn" id="22_ymgag"]
 [ext_resource type="PackedScene" uid="uid://h7p7to6n20ld" path="res://doodads/tree.tscn" id="23_u2qr3"]
+[ext_resource type="PackedScene" uid="uid://df2uqi8ynwtas" path="res://level/wall.tscn" id="23_vnugj"]
 [ext_resource type="Script" uid="uid://3wvfcisfslpa" path="res://scripts/pickup_spawner.gd" id="24_vnugj"]
 [ext_resource type="Script" uid="uid://dcbuj26qlyp1r" path="res://scripts/building_spawner.gd" id="25_building"]
 
@@ -51,6 +54,9 @@ knight = ExtResource("22_ymgag")
 [node name="DmHud" parent="." instance=ExtResource("9_pi42a")]
 
 [node name="PlayerHud" parent="." instance=ExtResource("12_te8jg")]
+
+[node name="Skeleton" parent="." instance=ExtResource("13_3i8ot")]
+position = Vector2(118, -9)
 
 [node name="Buildings" type="Node2D" parent="." groups=["building_root"]]
 y_sort_enabled = true
@@ -83,6 +89,69 @@ _spawnable_scenes = PackedStringArray("uid://c10eakv6dta4r")
 spawn_path = NodePath("..")
 script = ExtResource("24_vnugj")
 pickup_scene = ExtResource("2_wt17y")
+
+[node name="Floor" parent="." instance=ExtResource("20_2yo0f")]
+z_index = -1
+position = Vector2(-237, -31)
+
+[node name="Floor2" parent="." instance=ExtResource("20_2yo0f")]
+z_index = -1
+position = Vector2(-110, -31)
+
+[node name="Floor6" parent="." instance=ExtResource("20_2yo0f")]
+z_index = -1
+position = Vector2(-77, -16)
+
+[node name="Floor3" parent="." instance=ExtResource("20_2yo0f")]
+z_index = -1
+position = Vector2(-110, 94)
+
+[node name="Floor5" parent="." instance=ExtResource("20_2yo0f")]
+z_index = -1
+position = Vector2(-59, 94)
+
+[node name="Floor4" parent="." instance=ExtResource("20_2yo0f")]
+z_index = -1
+position = Vector2(-237, 94)
+
+[node name="Wall" parent="." instance=ExtResource("23_vnugj")]
+position = Vector2(-237, -15)
+wall_type = 0
+
+[node name="Wall2" parent="." instance=ExtResource("23_vnugj")]
+position = Vector2(-237, -145)
+wall_type = 0
+
+[node name="Wall9" parent="." instance=ExtResource("23_vnugj")]
+position = Vector2(-110, 94)
+
+[node name="Wall10" parent="." instance=ExtResource("23_vnugj")]
+position = Vector2(-110, -144)
+wall_type = 0
+
+[node name="Wall3" parent="." instance=ExtResource("23_vnugj")]
+position = Vector2(-364, -16)
+wall_type = 2
+
+[node name="Wall4" parent="." instance=ExtResource("23_vnugj")]
+position = Vector2(-364, -145)
+wall_type = 2
+
+[node name="Wall5" parent="." instance=ExtResource("23_vnugj")]
+position = Vector2(-46, 94)
+wall_type = 2
+
+[node name="Wall6" parent="." instance=ExtResource("23_vnugj")]
+position = Vector2(-46, -33)
+wall_type = 2
+
+[node name="Wall7" parent="." instance=ExtResource("23_vnugj")]
+position = Vector2(-364, 113)
+wall_type = 2
+
+[node name="Wall8" parent="." instance=ExtResource("23_vnugj")]
+position = Vector2(-237, 190)
+wall_type = 2
 
 [node name="SnakeTrailContainer" parent="." instance=ExtResource("19_jufm4")]
 

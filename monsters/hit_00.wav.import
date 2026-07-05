@@ -3,12 +3,12 @@
 importer="wav"
 type="AudioStreamWAV"
 uid="uid://dyanohy44dnan"
-path="res://.godot/imported/hit_00.wav-862094ec5fdfb88bc52099c21aa6569c.sample"
+path="res://.godot/imported/hit_00.wav-4bf2df576834c0ce6d0c8e43528e868c.sample"
 
 [deps]
 
-source_file="res://goblin/hit_00.wav"
-dest_files=["res://.godot/imported/hit_00.wav-862094ec5fdfb88bc52099c21aa6569c.sample"]
+source_file="res://monsters/hit_00.wav"
+dest_files=["res://.godot/imported/hit_00.wav-4bf2df576834c0ce6d0c8e43528e868c.sample"]
 
 [params]
 

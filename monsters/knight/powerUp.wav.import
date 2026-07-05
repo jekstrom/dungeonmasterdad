@@ -3,12 +3,12 @@
 importer="wav"
 type="AudioStreamWAV"
 uid="uid://rds6e43nkpjp"
-path="res://.godot/imported/powerUp.wav-f22ee869c9821652d963bdab0bbba5b9.sample"
+path="res://.godot/imported/powerUp.wav-e67295c93162cf6e52ff6615df819ef9.sample"
 
 [deps]
 
-source_file="res://goblin/knight/powerUp.wav"
-dest_files=["res://.godot/imported/powerUp.wav-f22ee869c9821652d963bdab0bbba5b9.sample"]
+source_file="res://monsters/knight/powerUp.wav"
+dest_files=["res://.godot/imported/powerUp.wav-e67295c93162cf6e52ff6615df819ef9.sample"]
 
 [params]
 

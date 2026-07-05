@@ -9,7 +9,7 @@ class_name EnemyStateIdle extends EnemyState
 
 var _timer: float = 0.5
 
-@onready var cpu_particles: CPUParticles2D = $"../../CPUParticles2D"
+@export var cpu_particles: CPUParticles2D
 @onready var animation_player: AnimationPlayer = $"../../AnimationPlayer"
 
 func init() -> void:
@@ -19,7 +19,8 @@ func enter() -> void:
 	enemy.velocity = Vector2.ZERO
 	_timer = randf_range(state_duration_min, state_duration_max)
 	animation_player.play("RESET")
-	cpu_particles.emitting = false
+	if cpu_particles:
+		cpu_particles.emitting = false
 	
 func exit() -> void:
 	pass

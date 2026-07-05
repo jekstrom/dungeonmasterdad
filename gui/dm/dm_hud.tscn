@@ -5,7 +5,7 @@
 [ext_resource type="Texture2D" uid="uid://cg3bt8bcn0275" path="res://sprites/gremlin_spawn_button_pressed.png" id="3_t4wv6"]
 [ext_resource type="PackedScene" uid="uid://dnejfv6x8ws6j" path="res://player/inventory/inventory_ui.tscn" id="4_4nt5k"]
 [ext_resource type="Texture2D" uid="uid://dp3ds7fet3pl" path="res://spells/fireball/fireball.png" id="5_cbx5e"]
-[ext_resource type="Texture2D" uid="uid://bsqq0iefdxyxf" path="res://goblin/knight/knight.png" id="5_usulh"]
+[ext_resource type="Texture2D" uid="uid://bsqq0iefdxyxf" path="res://monsters/knight/knight.png" id="5_usulh"]
 [ext_resource type="Texture2D" uid="uid://dl1fupl85iw7c" path="res://spells/fireball/fireball_pressed.png" id="6_usulh"]
 
 [node name="DmHud" type="CanvasLayer"]

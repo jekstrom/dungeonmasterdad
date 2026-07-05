@@ -3,12 +3,12 @@
 importer="wav"
 type="AudioStreamWAV"
 uid="uid://10d0bbngacih"
-path="res://.godot/imported/lightning_knight_attack.wav-ad837a084d312890db65c255d1240681.sample"
+path="res://.godot/imported/lightning_knight_attack.wav-5668dc29f20d9052a360030797b35f81.sample"
 
 [deps]
 
-source_file="res://goblin/knight/lightning_knight_attack.wav"
-dest_files=["res://.godot/imported/lightning_knight_attack.wav-ad837a084d312890db65c255d1240681.sample"]
+source_file="res://monsters/knight/lightning_knight_attack.wav"
+dest_files=["res://.godot/imported/lightning_knight_attack.wav-5668dc29f20d9052a360030797b35f81.sample"]
 
 [params]
 

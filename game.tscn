@@ -1,6 +1,7 @@
-[gd_scene load_steps=2 format=3 uid="uid://ckwsvw4g8ewvf"]
+[gd_scene load_steps=3 format=3 uid="uid://ckwsvw4g8ewvf"]
 
 [ext_resource type="Script" uid="uid://ckbu5wtotmnfl" path="res://root.gd" id="1_e2o6t"]
+[ext_resource type="Texture2D" uid="uid://br38i7ue24ydd" path="res://sprites/splash2.png" id="2_e2o6t"]
 
 [node name="Game" type="CanvasLayer"]
 script = ExtResource("1_e2o6t")
@@ -21,7 +22,18 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(0.14901961, 0.23921569, 0.21960784, 0.84705883)
+color = Color(0.2627451, 0.2627451, 0.2627451, 0.6117647)
+
+[node name="TextureRect" type="TextureRect" parent="Control/ColorRect"]
+z_index = -1
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("2_e2o6t")
+expand_mode = 2
 
 [node name="VBoxContainer" type="VBoxContainer" parent="Control"]
 layout_mode = 1

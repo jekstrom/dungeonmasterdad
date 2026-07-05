@@ -39,7 +39,7 @@ func enter() -> void:
 		if prev_dir:
 			direction = prev_dir.orthogonal() if randi_range(0, 1) == 0 else prev_dir.orthogonal() * -1
 		else:
-			direction = enemy.DIR_4[randi_range(0,3)]
+			direction = enemy.DIR_4.pick_random()
 			
 		prev_dir = direction
 		charge_array.push_back(direction)

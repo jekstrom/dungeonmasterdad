@@ -1,14 +1,14 @@
 [gd_scene load_steps=35 format=3 uid="uid://c5avpnnd3seqn"]
 
-[ext_resource type="Script" uid="uid://lo0k5p132a1x" path="res://goblin/enemy.gd" id="1_x5s1r"]
-[ext_resource type="Texture2D" uid="uid://232gyxxnbpxm" path="res://goblin/goblin.png" id="4_a1dmc"]
+[ext_resource type="Script" uid="uid://lo0k5p132a1x" path="res://monsters/enemy.gd" id="1_x5s1r"]
+[ext_resource type="Texture2D" uid="uid://232gyxxnbpxm" path="res://monsters/goblin.png" id="4_a1dmc"]
 [ext_resource type="Texture2D" uid="uid://dnhaymu1d41d4" path="res://sprites/Shadow.png" id="5_qqcms"]
-[ext_resource type="Script" uid="uid://bmnavawl3vkgc" path="res://goblin/enemy_state_machine.gd" id="5_ypyf5"]
-[ext_resource type="Script" uid="uid://c7vcvctq0t7x8" path="res://goblin/states/enemy_state_idle.gd" id="6_ck5xr"]
-[ext_resource type="AudioStream" uid="uid://dyanohy44dnan" path="res://goblin/hit_00.wav" id="6_yl8ja"]
-[ext_resource type="Script" uid="uid://dsgyho2x63okl" path="res://goblin/states/enemy_state_wander.gd" id="7_ck5xr"]
-[ext_resource type="Script" uid="uid://dfm3rswj3txub" path="res://goblin/states/enemy_state_stun.gd" id="7_gv1kj"]
-[ext_resource type="Texture2D" uid="uid://dt4icgcs5dbex" path="res://goblin/DestroySmoke.png" id="16_2bbdt"]
+[ext_resource type="Script" uid="uid://bmnavawl3vkgc" path="res://monsters/enemy_state_machine.gd" id="5_ypyf5"]
+[ext_resource type="Script" uid="uid://c7vcvctq0t7x8" path="res://monsters/states/enemy_state_idle.gd" id="6_ck5xr"]
+[ext_resource type="AudioStream" uid="uid://dyanohy44dnan" path="res://monsters/hit_00.wav" id="6_yl8ja"]
+[ext_resource type="Script" uid="uid://dsgyho2x63okl" path="res://monsters/states/enemy_state_wander.gd" id="7_ck5xr"]
+[ext_resource type="Script" uid="uid://dfm3rswj3txub" path="res://monsters/states/enemy_state_stun.gd" id="7_gv1kj"]
+[ext_resource type="Texture2D" uid="uid://dt4icgcs5dbex" path="res://monsters/DestroySmoke.png" id="16_2bbdt"]
 
 [sub_resource type="CapsuleShape2D" id="CapsuleShape2D_57eei"]
 radius = 6.0

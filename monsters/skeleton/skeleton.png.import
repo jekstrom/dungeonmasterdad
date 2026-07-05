@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dt4icgcs5dbex"
-path="res://.godot/imported/DestroySmoke.png-a38cb9ffc5e5ec9a889a448f27c305f3.ctex"
+uid="uid://3gtet3b0pxpx"
+path="res://.godot/imported/skeleton.png-a596dca80d14e071a6e331887c6734a7.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://goblin/DestroySmoke.png"
-dest_files=["res://.godot/imported/DestroySmoke.png-a38cb9ffc5e5ec9a889a448f27c305f3.ctex"]
+source_file="res://monsters/skeleton/skeleton.png"
+dest_files=["res://.godot/imported/skeleton.png-a596dca80d14e071a6e331887c6734a7.ctex"]
 
 [params]
 

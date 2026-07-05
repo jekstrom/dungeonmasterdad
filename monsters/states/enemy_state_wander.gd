@@ -8,6 +8,8 @@ class_name EnemyStateWander extends EnemyState
 @export var state_cycles_min: int = 1
 @export var state_cycles_max: int = 3
 @export var next_state: EnemyState
+@export var attack_state: EnemyState
+@export var enemy_node: Node2D
 
 var _timer: float = 0.0
 var _direction: Vector2
@@ -17,8 +19,7 @@ func init() -> void:
 	
 func enter() -> void:
 	_timer = randi_range(state_cycles_min, state_cycles_max) * state_anim_duration
-	var rand = randi_range(0, 3)
-	_direction = enemy.DIR_4[rand]
+	_direction = enemy.DIR_4.pick_random()
 	enemy.velocity = _direction * wander_speed
 	enemy.SetDirection(_direction)
 	enemy.UpdateAnimation(anim_name)
@@ -28,6 +29,9 @@ func exit() -> void:
 	
 func process(_delta: float) -> EnemyState:
 	_timer -= _delta
+	if DmManager.dm and enemy_node and DmManager.dm.position.distance_to(enemy_node.position) < 150:
+		print("close to DM")
+		return attack_state
 	if _timer <= 0:
 		return next_state
 	return null

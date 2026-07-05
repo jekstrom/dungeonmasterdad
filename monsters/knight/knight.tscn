@@ -1,14 +1,14 @@
 [gd_scene load_steps=22 format=3 uid="uid://bebn5r64gbvmg"]
 
-[ext_resource type="Script" uid="uid://lo0k5p132a1x" path="res://goblin/enemy.gd" id="1_k4rco"]
-[ext_resource type="Texture2D" uid="uid://brurw8ktjxfd3" path="res://goblin/knight/lightning_knight.png" id="2_k6n1b"]
+[ext_resource type="Script" uid="uid://lo0k5p132a1x" path="res://monsters/enemy.gd" id="1_k4rco"]
+[ext_resource type="Texture2D" uid="uid://brurw8ktjxfd3" path="res://monsters/knight/lightning_knight.png" id="2_k6n1b"]
 [ext_resource type="Texture2D" uid="uid://dnhaymu1d41d4" path="res://sprites/Shadow.png" id="3_u1xqu"]
-[ext_resource type="Script" uid="uid://bmnavawl3vkgc" path="res://goblin/enemy_state_machine.gd" id="5_tcm3f"]
-[ext_resource type="Script" uid="uid://c7vcvctq0t7x8" path="res://goblin/states/enemy_state_idle.gd" id="6_2hiwg"]
-[ext_resource type="Script" uid="uid://xj5d0g2pegn5" path="res://goblin/knight/blitz_charge_state.gd" id="7_ow3uk"]
-[ext_resource type="Script" uid="uid://dfm3rswj3txub" path="res://goblin/states/enemy_state_stun.gd" id="8_2sq8p"]
-[ext_resource type="Script" uid="uid://co5n4dtbd68nn" path="res://goblin/knight/blitz_charge_up_state.gd" id="8_l1v6a"]
-[ext_resource type="Texture2D" uid="uid://dt4icgcs5dbex" path="res://goblin/DestroySmoke.png" id="9_1odav"]
+[ext_resource type="Script" uid="uid://bmnavawl3vkgc" path="res://monsters/enemy_state_machine.gd" id="5_tcm3f"]
+[ext_resource type="Script" uid="uid://c7vcvctq0t7x8" path="res://monsters/states/enemy_state_idle.gd" id="6_2hiwg"]
+[ext_resource type="Script" uid="uid://xj5d0g2pegn5" path="res://monsters/knight/blitz_charge_state.gd" id="7_ow3uk"]
+[ext_resource type="Script" uid="uid://dfm3rswj3txub" path="res://monsters/states/enemy_state_stun.gd" id="8_2sq8p"]
+[ext_resource type="Script" uid="uid://co5n4dtbd68nn" path="res://monsters/knight/blitz_charge_up_state.gd" id="8_l1v6a"]
+[ext_resource type="Texture2D" uid="uid://dt4icgcs5dbex" path="res://monsters/DestroySmoke.png" id="9_1odav"]
 [ext_resource type="PackedScene" uid="uid://cmhep8oix5sk6" path="res://hurtbox.tscn" id="10_ow3uk"]
 
 [sub_resource type="CapsuleShape2D" id="CapsuleShape2D_57eei"]
@@ -189,9 +189,10 @@ shape = SubResource("CapsuleShape2D_57eei")
 [node name="EnemyStateMachine" type="Node" parent="."]
 script = ExtResource("5_tcm3f")
 
-[node name="idle" type="Node" parent="EnemyStateMachine" node_paths=PackedStringArray("next_state")]
+[node name="idle" type="Node" parent="EnemyStateMachine" node_paths=PackedStringArray("next_state", "cpu_particles")]
 script = ExtResource("6_2hiwg")
 next_state = NodePath("../blitzChargeUp")
+cpu_particles = NodePath("../../CPUParticles2D")
 
 [node name="blitzCharge" type="Node" parent="EnemyStateMachine" node_paths=PackedStringArray("next_state")]
 script = ExtResource("7_ow3uk")
@@ -202,9 +203,10 @@ script = ExtResource("8_l1v6a")
 wander_speed = 20.0
 next_state = NodePath("../blitzCharge")
 
-[node name="stun" type="Node" parent="EnemyStateMachine" node_paths=PackedStringArray("next_state")]
+[node name="stun" type="Node" parent="EnemyStateMachine" node_paths=PackedStringArray("next_state", "cpu_particles")]
 script = ExtResource("8_2sq8p")
 next_state = NodePath("../idle")
+cpu_particles = NodePath("../../CPUParticles2D")
 
 [node name="AudioStreamPlayer2D" type="AudioStreamPlayer2D" parent="."]
 max_polyphony = 4

@@ -1,0 +1,39 @@
+[gd_scene load_steps=6 format=3 uid="uid://df2uqi8ynwtas"]
+
+[ext_resource type="Texture2D" uid="uid://cm642x1dq6ssx" path="res://sprites/wall1.png" id="1_kyd43"]
+[ext_resource type="Script" uid="uid://ytgqag3p0d50" path="res://level/wall.gd" id="1_sklim"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_sklim"]
+atlas = ExtResource("1_kyd43")
+region = Rect2(0, 0, 128, 128)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_uccme"]
+atlas = ExtResource("1_kyd43")
+region = Rect2(512, 0, 128, 128)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_sklim"]
+size = Vector2(127, 33)
+
+[node name="Wall" type="Node2D"]
+script = ExtResource("1_sklim")
+wall_type = 1
+
+[node name="StaticBody" type="StaticBody2D" parent="."]
+collision_layer = 16
+collision_mask = 0
+
+[node name="Sprite2D" type="Sprite2D" parent="StaticBody"]
+y_sort_enabled = true
+position = Vector2(0, -63)
+texture = SubResource("AtlasTexture_sklim")
+
+[node name="Shadow" type="Sprite2D" parent="StaticBody"]
+modulate = Color(1, 1, 1, 0.22745098)
+z_index = 2
+position = Vector2(0, -80)
+scale = Vector2(1, 0.2265625)
+texture = SubResource("AtlasTexture_uccme")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="StaticBody"]
+position = Vector2(0, -17)
+shape = SubResource("RectangleShape2D_sklim")

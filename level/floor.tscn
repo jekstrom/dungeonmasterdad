@@ -1,0 +1,20 @@
+[gd_scene load_steps=4 format=3 uid="uid://ctdmthnldmbyy"]
+
+[ext_resource type="Script" uid="uid://cyssv7fveoc0o" path="res://level/floor.gd" id="1_wkfil"]
+[ext_resource type="Texture2D" uid="uid://k1iiqa48are4" path="res://sprites/dungeon1.png" id="2_rc4sh"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_wkfil"]
+resource_local_to_scene = true
+atlas = ExtResource("2_rc4sh")
+region = Rect2(0, 0, 128, 128)
+metadata/wall_owner_id = 58823385699917
+
+[node name="Floor" type="Node2D"]
+script = ExtResource("1_wkfil")
+floor_type = 0
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+y_sort_enabled = true
+position = Vector2(0, -63)
+texture = SubResource("AtlasTexture_wkfil")
+region_rect = Rect2(0, 0, 128, 128)

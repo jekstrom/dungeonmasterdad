@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://brurw8ktjxfd3"
-path="res://.godot/imported/lightning_knight.png-b4a71b793425f6c9b0882b5a3694a270.ctex"
+uid="uid://bsqq0iefdxyxf"
+path="res://.godot/imported/knight.png-5ba04ed706f61beb6bad8ab3b231fe21.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://goblin/knight/lightning_knight.png"
-dest_files=["res://.godot/imported/lightning_knight.png-b4a71b793425f6c9b0882b5a3694a270.ctex"]
+source_file="res://monsters/knight/knight.png"
+dest_files=["res://.godot/imported/knight.png-5ba04ed706f61beb6bad8ab3b231fe21.ctex"]
 
 [params]
 
