@@ -43,6 +43,11 @@ func build_container(layout_data: DungeonLayoutData) -> Dictionary:
 
 		var point: Dictionary = placement.get("position", {})
 		tile_node.position = Vector2(float(point.get("x", 0)) * 128.0, float(point.get("y", 0)) * 128.0)
+		if tile_role == "wall" and "wall_type" in tile_node:
+			var wall_type: int = int(placement.get("variantId", 0))
+			if wall_type < 0:
+				wall_type = 0
+			tile_node.wall_type = wall_type
 		tiles_root.add_child(tile_node)
 
 	return {

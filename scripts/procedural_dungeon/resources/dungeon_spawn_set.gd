@@ -1,10 +1,13 @@
 class_name DungeonSpawnSet extends Resource
 
+const MonsterCatalog = preload("res://scripts/procedural_dungeon/monster_catalog.gd")
+
 @export var layout_id: String = ""
 @export var spawn_ruleset_id: String = "standard"
 @export var spawns: Array[Dictionary] = []
 
 func validate(entrance_cell: Vector2i, exit_cell: Vector2i, walkable_cells: Array[Vector2i]) -> Dictionary:
+	var catalog: MonsterCatalog = MonsterCatalog.new()
 	for spawn in spawns:
 		var raw_position: Variant = spawn.get("position", {})
 		var spawn_position: Vector2i = _parse_point(raw_position)
@@ -18,6 +21,8 @@ func validate(entrance_cell: Vector2i, exit_cell: Vector2i, walkable_cells: Arra
 		var scene_path: String = str(spawn.get("monsterScenePath", spawn.get("monster_scene_path", "")))
 		if scene_path.strip_edges().is_empty():
 			return _fail("INVALID_REQUEST", "Monster spawn is missing scene path")
+		if not catalog.is_approved_scene_path(scene_path):
+			return _fail("INVALID_REQUEST", "Monster spawn path is not in the catalog")
 
 	return {
 		"ok": true,
