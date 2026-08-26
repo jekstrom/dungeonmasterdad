@@ -1,54 +1,283 @@
 class_name MazeInfillGenerator extends RefCounted
 
-func generate_infill(bounds: Rect2i, existing_walkable_cells: Array[Vector2i], seed: int) -> Dictionary:
-	var existing_set: Dictionary = {}
-	for cell in existing_walkable_cells:
-		existing_set[cell] = true
+func generate_infill(
+	bounds: Rect2i,
+	room_regions: Array[Dictionary],
+	hallway_cells: Array[Vector2i],
+	entrance_cell: Vector2i,
+	exit_cell: Vector2i,
+	seed: int
+) -> Dictionary:
+	var empty_hall: Array[Vector2i] = []
+	var empty_dead: Array[Dictionary] = []
 
-	if existing_walkable_cells.is_empty():
-		return {
-			"ok": true,
-			"hallway_cells": []
-		}
+	var mid_count: int = 0
+	var room_set: Dictionary = {}
+	var room_centers: Array[Vector2i] = []
+	for region in room_regions:
+		if str(region.get("role", "")) == "mid":
+			mid_count += 1
+		var center_raw: Variant = region.get("center", {})
+		if center_raw is Dictionary:
+			room_centers.append(Vector2i(int(center_raw.get("x", 0)), int(center_raw.get("y", 0))))
+		for point in region.get("cells", []):
+			room_set[_cell_from(point)] = true
 
+	var deadend_count: int = clampi(mid_count, 1, 3)
+	var hallway_set: Dictionary = {}
+	for cell in hallway_cells:
+		if room_set.has(cell):
+			continue
+		hallway_set[cell] = true
+
+	var walkable: Dictionary = {}
+	for cell in room_set.keys():
+		walkable[cell] = true
+	for cell in hallway_set.keys():
+		walkable[cell] = true
+
+	var main_path: Dictionary = _bfs_path_set(entrance_cell, exit_cell, walkable)
 	var rng: RandomNumberGenerator = RandomNumberGenerator.new()
 	rng.seed = seed
 
-	var branch_starts: int = mini(6, maxi(2, existing_walkable_cells.size() / 10))
-	var infill_set: Dictionary = {}
+	var branch_cells: Dictionary = {}
+	var deadend_regions: Array[Dictionary] = []
+	var used_roots: Dictionary = {}
 
-	for _i in range(branch_starts):
-		var start_index: int = rng.randi_range(0, existing_walkable_cells.size() - 1)
-		var current: Vector2i = existing_walkable_cells[start_index]
-		var branch_length: int = rng.randi_range(6, 16)
-
-		for _step in range(branch_length):
-			var direction: Vector2i = _random_cardinal_direction(rng)
-			var candidate: Vector2i = current + direction
-			if not bounds.has_point(candidate):
+	for slot in range(deadend_count):
+		var placed: bool = false
+		for _try in range(8):
+			var door_neighbor_set: Dictionary = _door_neighbor_hallway_cells(room_set, hallway_set)
+			var root: Vector2i = _pick_root(
+				hallway_set,
+				door_neighbor_set,
+				main_path,
+				used_roots,
+				rng
+			)
+			if root == Vector2i(2147483647, 2147483647):
+				break
+			used_roots[root] = true
+			var grown: Dictionary = _grow_deadend(
+				root,
+				bounds,
+				room_set,
+				hallway_set,
+				room_centers,
+				rng
+			)
+			if not grown.get("ok", false):
 				continue
 
-			if existing_set.has(candidate):
-				current = candidate
-				continue
+			var pocket_cells: Array[Vector2i] = grown["pocket_cells"]
+			var walk_cells: Array[Vector2i] = grown["walk_cells"]
+			var pocket_center: Vector2i = grown["center"]
+			for cell in pocket_cells:
+				room_set[cell] = true
+				hallway_set.erase(cell)
+				branch_cells.erase(cell)
+			for cell in walk_cells:
+				if room_set.has(cell):
+					continue
+				hallway_set[cell] = true
+				branch_cells[cell] = true
+			room_centers.append(pocket_center)
+			deadend_regions.append(_build_deadend_region(deadend_regions.size() + 1, pocket_center, pocket_cells))
+			placed = true
+			break
+		if not placed:
+			continue
 
-			infill_set[candidate] = true
-			current = candidate
+	if deadend_regions.is_empty():
+		return {
+			"ok": false,
+			"hallway_cells": empty_hall,
+			"deadend_regions": empty_dead,
+			"error_code": "LAYOUT_INFEASIBLE",
+			"message": "Failed to place any dead-end pockets"
+		}
 
-	var hallway_cells: Array[Vector2i] = []
-	for cell in infill_set.keys():
-		hallway_cells.append(cell)
+	var out_hall: Array[Vector2i] = []
+	for cell in branch_cells.keys():
+		out_hall.append(cell)
 
 	return {
 		"ok": true,
-		"hallway_cells": hallway_cells
+		"hallway_cells": out_hall,
+		"deadend_regions": deadend_regions
 	}
 
-func _random_cardinal_direction(rng: RandomNumberGenerator) -> Vector2i:
-	var directions: Array[Vector2i] = [
-		Vector2i(1, 0),
-		Vector2i(-1, 0),
-		Vector2i(0, 1),
-		Vector2i(0, -1)
+func _grow_deadend(
+	root: Vector2i,
+	bounds: Rect2i,
+	room_set: Dictionary,
+	hallway_set: Dictionary,
+	room_centers: Array[Vector2i],
+	rng: RandomNumberGenerator
+) -> Dictionary:
+	var blocked: Dictionary = {}
+	for cell in room_set.keys():
+		blocked[cell] = true
+
+	var walk_length: int = rng.randi_range(4, 8)
+	var current: Vector2i = root
+	var walk_cells: Array[Vector2i] = []
+	var walk_set: Dictionary = {}
+
+	for _step in range(walk_length):
+		var options: Array[Vector2i] = []
+		var better: Array[Vector2i] = []
+		var current_d: int = _nearest_center_distance(current, room_centers)
+		for neighbor in _neighbors(current):
+			if not bounds.has_point(neighbor):
+				continue
+			if blocked.has(neighbor):
+				continue
+			if hallway_set.has(neighbor) or walk_set.has(neighbor):
+				continue
+			if neighbor == root:
+				continue
+			options.append(neighbor)
+			if _nearest_center_distance(neighbor, room_centers) > current_d:
+				better.append(neighbor)
+		var pool: Array[Vector2i] = better if not better.is_empty() else options
+		if pool.is_empty():
+			break
+		current = pool[rng.randi_range(0, pool.size() - 1)]
+		walk_set[current] = true
+		walk_cells.append(current)
+
+	if walk_cells.size() < 4:
+		return {"ok": false}
+
+	var terminal: Vector2i = walk_cells[walk_cells.size() - 1]
+	var pocket_cells: Array[Vector2i] = []
+	for y in range(terminal.y - 1, terminal.y + 2):
+		for x in range(terminal.x - 1, terminal.x + 2):
+			var candidate: Vector2i = Vector2i(x, y)
+			if not bounds.has_point(candidate):
+				continue
+			if room_set.has(candidate):
+				return {"ok": false}
+			pocket_cells.append(candidate)
+
+	if pocket_cells.size() < 5:
+		return {"ok": false}
+
+	var remaining_walk: Array[Vector2i] = []
+	var pocket_set: Dictionary = {}
+	for cell in pocket_cells:
+		pocket_set[cell] = true
+	for cell in walk_cells:
+		if pocket_set.has(cell):
+			continue
+		remaining_walk.append(cell)
+
+	return {
+		"ok": true,
+		"center": terminal,
+		"pocket_cells": pocket_cells,
+		"walk_cells": remaining_walk
+	}
+
+func _pick_root(
+	hallway_set: Dictionary,
+	door_neighbor_set: Dictionary,
+	main_path: Dictionary,
+	used_roots: Dictionary,
+	rng: RandomNumberGenerator
+) -> Vector2i:
+	var preferred: Array[Vector2i] = []
+	var fallback: Array[Vector2i] = []
+	var any_hall: Array[Vector2i] = []
+	for cell in hallway_set.keys():
+		if used_roots.has(cell):
+			continue
+		any_hall.append(cell)
+		var is_door_neighbor: bool = door_neighbor_set.has(cell)
+		var on_main: bool = main_path.has(cell)
+		if not is_door_neighbor and not on_main:
+			preferred.append(cell)
+		elif not is_door_neighbor:
+			fallback.append(cell)
+
+	var pool: Array[Vector2i] = preferred
+	if pool.is_empty():
+		pool = fallback
+	if pool.is_empty():
+		pool = any_hall
+	if pool.is_empty():
+		return Vector2i(2147483647, 2147483647)
+	return pool[rng.randi_range(0, pool.size() - 1)]
+
+func _door_neighbor_hallway_cells(room_set: Dictionary, hallway_set: Dictionary) -> Dictionary:
+	var result: Dictionary = {}
+	for room_cell in room_set.keys():
+		for neighbor in _neighbors(room_cell):
+			if hallway_set.has(neighbor):
+				result[neighbor] = true
+	return result
+
+func _bfs_path_set(start_cell: Vector2i, exit_cell: Vector2i, walkable: Dictionary) -> Dictionary:
+	if not walkable.has(start_cell) or not walkable.has(exit_cell):
+		return {}
+	var queue: Array[Vector2i] = [start_cell]
+	var visited: Dictionary = {start_cell: true}
+	var parent: Dictionary = {}
+	var found: bool = false
+	while not queue.is_empty():
+		var current: Vector2i = queue.pop_front()
+		if current == exit_cell:
+			found = true
+			break
+		for neighbor in _neighbors(current):
+			if not walkable.has(neighbor) or visited.has(neighbor):
+				continue
+			visited[neighbor] = true
+			parent[neighbor] = current
+			queue.append(neighbor)
+	if not found:
+		return {}
+	var path: Dictionary = {}
+	var cursor: Vector2i = exit_cell
+	path[cursor] = true
+	while cursor != start_cell:
+		if not parent.has(cursor):
+			break
+		cursor = parent[cursor]
+		path[cursor] = true
+	return path
+
+func _nearest_center_distance(cell: Vector2i, centers: Array[Vector2i]) -> int:
+	var best: int = 1_000_000
+	for center in centers:
+		var d: int = maxi(absi(cell.x - center.x), absi(cell.y - center.y))
+		if d < best:
+			best = d
+	return best
+
+func _build_deadend_region(index: int, center: Vector2i, cells: Array[Vector2i]) -> Dictionary:
+	var points: Array[Dictionary] = []
+	for cell in cells:
+		points.append({"x": cell.x, "y": cell.y})
+	return {
+		"roomId": "room_deadend_%d" % index,
+		"role": "deadend",
+		"center": {"x": center.x, "y": center.y},
+		"cells": points
+	}
+
+func _cell_from(raw_value: Variant) -> Vector2i:
+	if raw_value is Vector2i:
+		return raw_value
+	if raw_value is Dictionary:
+		return Vector2i(int(raw_value.get("x", 0)), int(raw_value.get("y", 0)))
+	return Vector2i.ZERO
+
+func _neighbors(cell: Vector2i) -> Array[Vector2i]:
+	return [
+		cell + Vector2i(1, 0),
+		cell + Vector2i(-1, 0),
+		cell + Vector2i(0, 1),
+		cell + Vector2i(0, -1)
 	]
-	return directions[rng.randi_range(0, directions.size() - 1)]
