@@ -149,6 +149,17 @@ func _first_valid_node(nodes: Array[Node]) -> Node2D:
 	return null
 
 func _free_node_list(nodes: Array[Node]) -> void:
+	# Leave generated groups and the tree immediately. queue_free is deferred,
+	# so a same-session regenerate would otherwise stack tiles in
+	# generated_dungeon_tiles and in the world until the next idle frame.
 	for node in nodes:
-		if node and is_instance_valid(node):
-			node.queue_free()
+		if node == null or not is_instance_valid(node):
+			continue
+		if node.is_in_group("generated_dungeon_tiles"):
+			node.remove_from_group("generated_dungeon_tiles")
+		if node.is_in_group("generated_dungeon_monsters"):
+			node.remove_from_group("generated_dungeon_monsters")
+		var parent: Node = node.get_parent()
+		if parent:
+			parent.remove_child(node)
+		node.queue_free()
