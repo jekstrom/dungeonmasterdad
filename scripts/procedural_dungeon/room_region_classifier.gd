@@ -19,6 +19,7 @@ func classify_room_regions(room_seed_cells: Array[Vector2i]) -> Array[Dictionary
 
 		regions.append({
 			"roomId": "room_%d" % region_index,
+			"role": "mid",
 			"cells": _points_to_dict_array(component)
 		})
 		region_index += 1

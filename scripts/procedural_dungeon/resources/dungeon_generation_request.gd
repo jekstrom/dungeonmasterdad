@@ -1,5 +1,7 @@
 class_name DungeonGenerationRequest extends Resource
 
+const DungeonConstants = preload("res://scripts/procedural_dungeon/dungeon_constants.gd")
+
 @export var request_id: String = ""
 @export var start_position: Vector2i = Vector2i.ZERO
 @export var exit_position: Vector2i = Vector2i.ZERO
@@ -18,6 +20,17 @@ func validate() -> Dictionary:
 	if generation_bounds.size.x <= 0 or generation_bounds.size.y <= 0:
 		return _fail("INVALID_REQUEST", "Generation bounds must have positive size")
 
+	if generation_bounds.size.x < DungeonConstants.STANDARD_MIN_BOUNDS.x \
+			or generation_bounds.size.y < DungeonConstants.STANDARD_MIN_BOUNDS.y:
+		return _fail("BOUNDS_TOO_SMALL", "Generation bounds must be at least 16x16")
+
+	var resolved_profile: String = profile_id.strip_edges()
+	if resolved_profile.is_empty():
+		resolved_profile = "standard"
+		profile_id = "standard"
+	if resolved_profile != "standard":
+		return _fail("INVALID_REQUEST", "Unknown generation profile")
+
 	if start_position == exit_position:
 		return _fail("START_EQUALS_EXIT", "Start and exit positions must be different")
 
@@ -35,7 +48,10 @@ func from_payload(payload: Dictionary) -> void:
 	start_position = _parse_point(payload.get("startPosition", payload.get("start_position", {})))
 	exit_position = _parse_point(payload.get("exitPosition", payload.get("exit_position", {})))
 	generation_bounds = _parse_bounds(payload.get("generationBounds", payload.get("generation_bounds", {})))
-	profile_id = str(payload.get("profileId", payload.get("profile_id", "standard")))
+	var raw_profile: String = str(payload.get("profileId", payload.get("profile_id", "standard")))
+	if raw_profile.strip_edges().is_empty():
+		raw_profile = "standard"
+	profile_id = raw_profile
 	request_time_unix = int(Time.get_unix_time_from_system())
 
 func _parse_point(raw_value: Variant) -> Vector2i:

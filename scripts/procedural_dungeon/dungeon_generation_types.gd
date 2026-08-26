@@ -17,6 +17,7 @@ const FAILURE_START_EQUALS_EXIT: String = "START_EQUALS_EXIT"
 const FAILURE_LAYOUT_INFEASIBLE: String = "LAYOUT_INFEASIBLE"
 const FAILURE_AUTHORITY_VIOLATION: String = "AUTHORITY_VIOLATION"
 const FAILURE_SESSION_CONFLICT: String = "SESSION_CONFLICT"
+const FAILURE_BOUNDS_TOO_SMALL: String = "BOUNDS_TOO_SMALL"
 
 static func failure_codes() -> PackedStringArray:
 	return PackedStringArray([
@@ -26,7 +27,8 @@ static func failure_codes() -> PackedStringArray:
 		FAILURE_START_EQUALS_EXIT,
 		FAILURE_LAYOUT_INFEASIBLE,
 		FAILURE_AUTHORITY_VIOLATION,
-		FAILURE_SESSION_CONFLICT
+		FAILURE_SESSION_CONFLICT,
+		FAILURE_BOUNDS_TOO_SMALL
 	])
 
 static func is_valid_failure_code(error_code: String) -> bool:

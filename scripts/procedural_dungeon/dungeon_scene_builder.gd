@@ -44,10 +44,29 @@ func build_container(layout_data: DungeonLayoutData) -> Dictionary:
 		var point: Dictionary = placement.get("position", {})
 		tile_node.position = Vector2(float(point.get("x", 0)) * 128.0, float(point.get("y", 0)) * 128.0)
 		var variant_id: int = int(placement.get("variantId", -1))
-		if tile_role == "wall" and "wall_type" in tile_node:
-			tile_node.wall_type = variant_id if variant_id >= 0 else 1
-		elif "floor_type" in tile_node:
-			tile_node.floor_type = variant_id if variant_id >= 0 else 0
+		if tile_role == "wall":
+			if "wall_type" in tile_node:
+				var wall_type: int = variant_id
+				if wall_type < 0:
+					wall_type = 1
+				tile_node.wall_type = clampi(wall_type, 0, 3)
+			tile_node.add_to_group("wall")
+		else:
+			if "floor_type" in tile_node:
+				var floor_type: int = variant_id
+				if floor_type < 0:
+					floor_type = 0
+				tile_node.floor_type = clampi(floor_type, 0, 1)
+			if tile_role == "entrance":
+				tile_node.add_to_group("entrance")
+				tile_node.add_to_group("room")
+			elif tile_role == "exit":
+				tile_node.add_to_group("exit")
+				tile_node.add_to_group("room")
+			elif variant_id == 1:
+				tile_node.add_to_group("hallway")
+			else:
+				tile_node.add_to_group("room")
 		tiles_root.add_child(tile_node)
 
 	return {
