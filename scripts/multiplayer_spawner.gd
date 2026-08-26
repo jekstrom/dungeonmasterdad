@@ -124,7 +124,7 @@ func spawn_monster_from_scene_path(scene_path: String, world_position: Vector2, 
 	get_node(spawn_path).add_child(monster, true)
 	return monster
 
-func spawn_tile_from_scene_path(scene_path: String, world_position: Vector2, wall_type: int = -1) -> Node2D:
+func spawn_tile_from_scene_path(scene_path: String, world_position: Vector2, variant_id: int = -1) -> Node2D:
 	if !multiplayer.is_server():
 		return null
 
@@ -144,12 +144,10 @@ func spawn_tile_from_scene_path(scene_path: String, world_position: Vector2, wal
 
 	tile.position = world_position
 	tile.add_to_group("generated_dungeon_tiles")
-	# Set occupancy properties before add_child so spawn-only MultiplayerSynchronizer snapshots them.
-	if wall_type >= 0:
-		if "wall_type" in tile:
-			tile.wall_type = wall_type
-		if "floor_type" in tile:
-			tile.floor_type = wall_type
+	if "wall_type" in tile and variant_id >= 0:
+		tile.wall_type = clampi(variant_id, 0, 3)
+	if "floor_type" in tile and variant_id >= 0:
+		tile.floor_type = clampi(variant_id, 0, 1)
 
 	get_node(spawn_path).add_child(tile, true)
 	return tile
