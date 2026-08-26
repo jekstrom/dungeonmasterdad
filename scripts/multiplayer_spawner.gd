@@ -144,8 +144,12 @@ func spawn_tile_from_scene_path(scene_path: String, world_position: Vector2, wal
 
 	tile.position = world_position
 	tile.add_to_group("generated_dungeon_tiles")
-	if wall_type >= 0 and "wall_type" in tile:
-		tile.wall_type = wall_type
+	# Set occupancy properties before add_child so spawn-only MultiplayerSynchronizer snapshots them.
+	if wall_type >= 0:
+		if "wall_type" in tile:
+			tile.wall_type = wall_type
+		if "floor_type" in tile:
+			tile.floor_type = wall_type
 
 	get_node(spawn_path).add_child(tile, true)
 	return tile

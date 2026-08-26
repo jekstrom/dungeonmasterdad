@@ -413,10 +413,12 @@ func _build_tile_placements(layout_data: DungeonLayoutData, walkable_set: Dictio
 			"position": {"x": cell.x, "y": cell.y},
 			"tileRole": role,
 			"tileSourcePath": _tile_catalog.get_floor_scene_path(),
-			"variantId": -1
+			"variantId": 0
 		})
 
 	for cell in layout_data.blocked_cells:
+		if not _is_occupancy_adjacent(cell, walkable_set):
+			continue
 		placements.append({
 			"position": {"x": cell.x, "y": cell.y},
 			"tileRole": "wall",
@@ -426,14 +428,22 @@ func _build_tile_placements(layout_data: DungeonLayoutData, walkable_set: Dictio
 
 	return placements
 
+func _is_occupancy_adjacent(cell: Vector2i, walkable_set: Dictionary) -> bool:
+	return (
+		walkable_set.has(cell + Vector2i.RIGHT)
+		or walkable_set.has(cell + Vector2i.LEFT)
+		or walkable_set.has(cell + Vector2i.UP)
+		or walkable_set.has(cell + Vector2i.DOWN)
+	)
+
 func _wall_type_for_cell(cell: Vector2i, walkable_set: Dictionary) -> int:
 	# Type 2 uses vertical collision so east/west corridor edges actually block.
-	# Type 0 uses the default horizontal slab for north/south edges.
+	# Type 1 is the playground default horizontal slab for north/south edges.
 	var has_east: bool = walkable_set.has(cell + Vector2i.RIGHT)
 	var has_west: bool = walkable_set.has(cell + Vector2i.LEFT)
 	if has_east or has_west:
 		return 2
-	return 0
+	return 1
 
 func _commit_layout_to_world(layout_data: DungeonLayoutData) -> Dictionary:
 	if not multiplayer.is_server():
@@ -457,6 +467,7 @@ func _commit_layout_to_world(layout_data: DungeonLayoutData) -> Dictionary:
 		return spawn_result
 
 	level_manager.commit_generated_dungeon_stage()
+	_smoke_check_generated_tiles(layout_data)
 	return {
 		"ok": true
 	}
@@ -518,3 +529,41 @@ func _grid_to_world(point: Dictionary) -> Vector2:
 	var x: float = float(point.get("x", 0))
 	var y: float = float(point.get("y", 0))
 	return Vector2(x * 128.0, y * 128.0)
+
+func _smoke_check_generated_tiles(layout_data: DungeonLayoutData) -> void:
+	# Host-side smoke: generated tiles sit on the 128 grid and E/W occupancy walls use type 2.
+	var walkable_set: Dictionary = {}
+	for cell in layout_data.walkable_cells:
+		walkable_set[cell] = true
+
+	var tiles: Array = get_tree().get_nodes_in_group("generated_dungeon_tiles")
+	var off_grid: int = 0
+	var ew_ok: int = 0
+	var ew_bad: int = 0
+	for tile in tiles:
+		if not (tile is Node2D):
+			continue
+		var node: Node2D = tile
+		var px: int = int(round(node.position.x))
+		var py: int = int(round(node.position.y))
+		if px % 128 != 0 or py % 128 != 0:
+			off_grid += 1
+		if "wall_type" in node:
+			var cell: Vector2i = Vector2i(int(round(node.position.x / 128.0)), int(round(node.position.y / 128.0)))
+			var is_ew: bool = walkable_set.has(cell + Vector2i.RIGHT) or walkable_set.has(cell + Vector2i.LEFT)
+			if is_ew:
+				if int(node.wall_type) == 2:
+					ew_ok += 1
+				else:
+					ew_bad += 1
+
+	print(
+		"[dungeon] tile smoke tiles=%d off_grid=%d ew_type2=%d ew_bad=%d" % [
+			tiles.size(),
+			off_grid,
+			ew_ok,
+			ew_bad
+		]
+	)
+	if off_grid > 0 or ew_bad > 0:
+		push_warning("DungeonGenerationManager: tile smoke failed off_grid=%d ew_bad=%d" % [off_grid, ew_bad])
