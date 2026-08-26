@@ -1,4 +1,4 @@
-[gd_scene load_steps=4 format=3 uid="uid://ctdmthnldmbyy"]
+[gd_scene load_steps=5 format=3 uid="uid://ctdmthnldmbyy"]
 
 [ext_resource type="Script" uid="uid://cyssv7fveoc0o" path="res://level/floor.gd" id="1_wkfil"]
 [ext_resource type="Texture2D" uid="uid://k1iiqa48are4" path="res://sprites/dungeon1.png" id="2_rc4sh"]
@@ -9,6 +9,14 @@ atlas = ExtResource("2_rc4sh")
 region = Rect2(0, 0, 128, 128)
 metadata/wall_owner_id = 58823385699917
 
+[sub_resource type="SceneReplicationConfig" id="SceneReplicationConfig_floor"]
+properties/0/path = NodePath(".:position")
+properties/0/spawn = true
+properties/0/replication_mode = 0
+properties/1/path = NodePath(".:floor_type")
+properties/1/spawn = true
+properties/1/replication_mode = 0
+
 [node name="Floor" type="Node2D"]
 script = ExtResource("1_wkfil")
 floor_type = 0
@@ -18,3 +26,6 @@ y_sort_enabled = true
 position = Vector2(0, -63)
 texture = SubResource("AtlasTexture_wkfil")
 region_rect = Rect2(0, 0, 128, 128)
+
+[node name="MultiplayerSynchronizer" type="MultiplayerSynchronizer" parent="."]
+replication_config = SubResource("SceneReplicationConfig_floor")
