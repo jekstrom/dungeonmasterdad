@@ -7,6 +7,7 @@ var generated_dungeon_container: Node2D = null
 # Live dungeon stays until a replacement fully succeeds (swap-on-success).
 var _live_generated_nodes: Array[Node] = []
 var _staged_generated_nodes: Array[Node] = []
+var _canonical_dungeon_requested: bool = false
 
 # Handle global level-based events such as projectiles
 
@@ -16,13 +17,47 @@ func _ready() -> void:
 
 	if !SignalBus.on_explosion.is_connected(on_explosion):
 		SignalBus.on_explosion.connect(on_explosion)
-	
+
 	# Set up periodic cleanup of invalid nodes to prevent RPC errors
 	var cleanup_timer = Timer.new()
 	cleanup_timer.wait_time = 5.0  # Clean up every 5 seconds
 	cleanup_timer.timeout.connect(_periodic_cleanup)
 	cleanup_timer.autostart = true
 	add_child(cleanup_timer)
+
+	if not Lobby.host_started.is_connected(_on_host_started_generate_canonical_dungeon):
+		Lobby.host_started.connect(_on_host_started_generate_canonical_dungeon)
+	# Direct host/server run may already have a peer before playground _ready.
+	call_deferred("_try_generate_canonical_dungeon")
+
+func _on_host_started_generate_canonical_dungeon(_player_name: String = "") -> void:
+	_try_generate_canonical_dungeon()
+
+func _try_generate_canonical_dungeon() -> void:
+	if _canonical_dungeon_requested:
+		return
+	if not multiplayer.has_multiplayer_peer():
+		return
+	if not multiplayer.is_server():
+		return
+
+	var manager: Node = get_node_or_null("/root/DungeonGenerationManager")
+	if manager == null or not manager.has_method("request_generate_dungeon"):
+		push_warning("LevelManager: DungeonGenerationManager missing; skipped canonical generate")
+		return
+
+	_canonical_dungeon_requested = true
+	var payload: Dictionary = {
+		"requestId": "playground-canonical",
+		"startPosition": {"x": 2, "y": 2},
+		"exitPosition": {"x": 16, "y": 16},
+		"generationBounds": {
+			"origin": {"x": 0, "y": 0},
+			"size": {"x": 24, "y": 24}
+		},
+		"profileId": "standard"
+	}
+	manager.request_generate_dungeon(payload)
 
 func on_explosion(proj_position: Vector2, explosion_data: Dictionary) -> void:
 	if !multiplayer.is_server(): return
