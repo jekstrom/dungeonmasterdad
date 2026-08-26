@@ -27,7 +27,7 @@
 [ext_resource type="Script" uid="uid://3wvfcisfslpa" path="res://scripts/pickup_spawner.gd" id="24_vnugj"]
 [ext_resource type="Script" uid="uid://dcbuj26qlyp1r" path="res://scripts/building_spawner.gd" id="25_building"]
 
-[node name="Playground" type="Node2D" unique_id=1889552422]
+[node name="Playground" type="Node2D" unique_id=1889552422 groups=["level_manager"]]
 y_sort_enabled = true
 script = ExtResource("1_x6kx1")
 
@@ -39,7 +39,7 @@ position = Vector2(183, 74)
 base_radius = 500.0
 
 [node name="MultiplayerSpawner" type="MultiplayerSpawner" parent="." unique_id=1543425005]
-_spawnable_scenes = PackedStringArray("uid://cof1o04wsy0rc", "uid://dsls3d0radb5f", "uid://c5avpnnd3seqn", "uid://bebn5r64gbvmg")
+_spawnable_scenes = PackedStringArray("uid://cof1o04wsy0rc", "uid://dsls3d0radb5f", "uid://c5avpnnd3seqn", "uid://bebn5r64gbvmg", "uid://dkgdpjfkuciox", "uid://ctdmthnldmbyy", "uid://df2uqi8ynwtas")
 spawn_path = NodePath("..")
 script = ExtResource("5_o00ia")
 network_player = ExtResource("4_is3ju")
