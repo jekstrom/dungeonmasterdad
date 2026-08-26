@@ -1,4 +1,4 @@
-[gd_scene load_steps=27 format=3 uid="uid://de1ek0y5wi45g"]
+[gd_scene format=3 uid="uid://de1ek0y5wi45g"]
 
 [ext_resource type="PackedScene" uid="uid://diumvk6jwwd5v" path="res://zones/fantasy_zone.tscn" id="1_jgc46"]
 [ext_resource type="Script" uid="uid://both0q8u44cig" path="res://_globals/level_manager.gd" id="1_x6kx1"]
@@ -27,18 +27,18 @@
 [ext_resource type="Script" uid="uid://3wvfcisfslpa" path="res://scripts/pickup_spawner.gd" id="24_vnugj"]
 [ext_resource type="Script" uid="uid://dcbuj26qlyp1r" path="res://scripts/building_spawner.gd" id="25_building"]
 
-[node name="Playground" type="Node2D"]
+[node name="Playground" type="Node2D" unique_id=1889552422]
 y_sort_enabled = true
 script = ExtResource("1_x6kx1")
 
-[node name="FantasyZone" parent="." groups=["FantasyZone"] instance=ExtResource("1_jgc46")]
+[node name="FantasyZone" parent="." unique_id=1273427358 groups=["FantasyZone"] instance=ExtResource("1_jgc46")]
 position = Vector2(284, 294)
 
-[node name="RealityZone" parent="." groups=["RealityZone"] instance=ExtResource("2_dk0co")]
+[node name="RealityZone" parent="." unique_id=1980413600 groups=["RealityZone"] instance=ExtResource("2_dk0co")]
 position = Vector2(183, 74)
 base_radius = 500.0
 
-[node name="MultiplayerSpawner" type="MultiplayerSpawner" parent="."]
+[node name="MultiplayerSpawner" type="MultiplayerSpawner" parent="." unique_id=1543425005]
 _spawnable_scenes = PackedStringArray("uid://cof1o04wsy0rc", "uid://dsls3d0radb5f", "uid://c5avpnnd3seqn", "uid://bebn5r64gbvmg")
 spawn_path = NodePath("..")
 script = ExtResource("5_o00ia")
@@ -47,160 +47,160 @@ dm_player = ExtResource("5_ynsuh")
 gremlin = ExtResource("7_h1jm5")
 knight = ExtResource("22_ymgag")
 
-[node name="GameUI" parent="." instance=ExtResource("6_4bqqs")]
+[node name="GameUI" parent="." unique_id=2001332704 instance=ExtResource("6_4bqqs")]
 
-[node name="Hud" parent="." instance=ExtResource("8_v7dth")]
+[node name="Hud" parent="." unique_id=1855831494 instance=ExtResource("8_v7dth")]
 
-[node name="DmHud" parent="." instance=ExtResource("9_pi42a")]
+[node name="DmHud" parent="." unique_id=848067624 instance=ExtResource("9_pi42a")]
 
-[node name="PlayerHud" parent="." instance=ExtResource("12_te8jg")]
+[node name="PlayerHud" parent="." unique_id=975254691 instance=ExtResource("12_te8jg")]
 
-[node name="Skeleton" parent="." instance=ExtResource("13_3i8ot")]
+[node name="Skeleton" parent="." unique_id=1139584314 instance=ExtResource("13_3i8ot")]
 position = Vector2(118, -9)
 
-[node name="Buildings" type="Node2D" parent="." groups=["building_root"]]
+[node name="Buildings" type="Node2D" parent="." unique_id=53214145 groups=["building_root"]]
 y_sort_enabled = true
 script = ExtResource("13_yjl7g")
 
-[node name="BuildingSpawner" type="MultiplayerSpawner" parent="Buildings"]
+[node name="BuildingSpawner" type="MultiplayerSpawner" parent="Buildings" unique_id=1840442100]
 _spawnable_scenes = PackedStringArray("uid://d05hkhchi8k3x", "uid://dgm12ubgivyq7")
 spawn_path = NodePath("..")
 script = ExtResource("25_building")
 
-[node name="Projectiles" type="Node2D" parent="."]
+[node name="Projectiles" type="Node2D" parent="." unique_id=1576484997]
 
-[node name="ProjectileSpawner" type="MultiplayerSpawner" parent="Projectiles"]
+[node name="ProjectileSpawner" type="MultiplayerSpawner" parent="Projectiles" unique_id=1642934183]
 _spawnable_scenes = PackedStringArray("uid://si6i5r1yric1")
 spawn_path = NodePath("..")
 script = ExtResource("18_ycdrs")
 projectile_scene = ExtResource("13_ycdrs")
 
-[node name="Label" type="Label" parent="."]
+[node name="Label" type="Label" parent="." unique_id=431338753]
 z_index = 3
 offset_right = 40.0
 offset_bottom = 23.0
 theme_override_constants/outline_size = 2
 script = ExtResource("21_jufm4")
 
-[node name="Pickups" type="Node2D" parent="."]
+[node name="Pickups" type="Node2D" parent="." unique_id=1743433960]
 
-[node name="PickupSpawner" type="MultiplayerSpawner" parent="Pickups"]
+[node name="PickupSpawner" type="MultiplayerSpawner" parent="Pickups" unique_id=258334463]
 _spawnable_scenes = PackedStringArray("uid://c10eakv6dta4r")
 spawn_path = NodePath("..")
 script = ExtResource("24_vnugj")
 pickup_scene = ExtResource("2_wt17y")
 
-[node name="Floor" parent="." instance=ExtResource("20_2yo0f")]
+[node name="Floor" parent="." unique_id=281674844 instance=ExtResource("20_2yo0f")]
 z_index = -1
 position = Vector2(-237, -31)
 
-[node name="Floor2" parent="." instance=ExtResource("20_2yo0f")]
+[node name="Floor2" parent="." unique_id=1614141600 instance=ExtResource("20_2yo0f")]
 z_index = -1
 position = Vector2(-110, -31)
 
-[node name="Floor6" parent="." instance=ExtResource("20_2yo0f")]
+[node name="Floor6" parent="." unique_id=609264845 instance=ExtResource("20_2yo0f")]
 z_index = -1
 position = Vector2(-77, -16)
 
-[node name="Floor3" parent="." instance=ExtResource("20_2yo0f")]
+[node name="Floor3" parent="." unique_id=1060091880 instance=ExtResource("20_2yo0f")]
 z_index = -1
 position = Vector2(-110, 94)
 
-[node name="Floor5" parent="." instance=ExtResource("20_2yo0f")]
+[node name="Floor5" parent="." unique_id=41261369 instance=ExtResource("20_2yo0f")]
 z_index = -1
 position = Vector2(-59, 94)
 
-[node name="Floor4" parent="." instance=ExtResource("20_2yo0f")]
+[node name="Floor4" parent="." unique_id=2045506162 instance=ExtResource("20_2yo0f")]
 z_index = -1
 position = Vector2(-237, 94)
 
-[node name="Wall" parent="." instance=ExtResource("23_vnugj")]
+[node name="Wall" parent="." unique_id=1527744626 instance=ExtResource("23_vnugj")]
 position = Vector2(-237, -15)
 wall_type = 0
 
-[node name="Wall2" parent="." instance=ExtResource("23_vnugj")]
+[node name="Wall2" parent="." unique_id=709073538 instance=ExtResource("23_vnugj")]
 position = Vector2(-237, -145)
 wall_type = 0
 
-[node name="Wall9" parent="." instance=ExtResource("23_vnugj")]
+[node name="Wall9" parent="." unique_id=924769281 instance=ExtResource("23_vnugj")]
 position = Vector2(-110, 94)
 
-[node name="Wall10" parent="." instance=ExtResource("23_vnugj")]
+[node name="Wall10" parent="." unique_id=500207551 instance=ExtResource("23_vnugj")]
 position = Vector2(-110, -144)
 wall_type = 0
 
-[node name="Wall3" parent="." instance=ExtResource("23_vnugj")]
+[node name="Wall3" parent="." unique_id=273508622 instance=ExtResource("23_vnugj")]
 position = Vector2(-364, -16)
 wall_type = 2
 
-[node name="Wall4" parent="." instance=ExtResource("23_vnugj")]
+[node name="Wall4" parent="." unique_id=1481268600 instance=ExtResource("23_vnugj")]
 position = Vector2(-364, -145)
 wall_type = 2
 
-[node name="Wall5" parent="." instance=ExtResource("23_vnugj")]
+[node name="Wall5" parent="." unique_id=674821887 instance=ExtResource("23_vnugj")]
 position = Vector2(-46, 94)
 wall_type = 2
 
-[node name="Wall6" parent="." instance=ExtResource("23_vnugj")]
+[node name="Wall6" parent="." unique_id=1860279610 instance=ExtResource("23_vnugj")]
 position = Vector2(-46, -33)
 wall_type = 2
 
-[node name="Wall7" parent="." instance=ExtResource("23_vnugj")]
+[node name="Wall7" parent="." unique_id=1198889619 instance=ExtResource("23_vnugj")]
 position = Vector2(-364, 113)
 wall_type = 2
 
-[node name="Wall8" parent="." instance=ExtResource("23_vnugj")]
+[node name="Wall8" parent="." unique_id=1795760896 instance=ExtResource("23_vnugj")]
 position = Vector2(-237, 190)
 wall_type = 2
 
-[node name="SnakeTrailContainer" parent="." instance=ExtResource("19_jufm4")]
+[node name="SnakeTrailContainer" parent="." unique_id=1231364447 instance=ExtResource("19_jufm4")]
 
-[node name="TrailSpawner" type="MultiplayerSpawner" parent="SnakeTrailContainer"]
+[node name="TrailSpawner" type="MultiplayerSpawner" parent="SnakeTrailContainer" unique_id=1114203240]
 _spawnable_scenes = PackedStringArray("uid://be52gho0i3dak")
 spawn_path = NodePath("..")
 script = ExtResource("20_ymgag")
 trail_scene = ExtResource("21_u2qr3")
 
-[node name="Tree" parent="." instance=ExtResource("23_u2qr3")]
+[node name="Tree" parent="." unique_id=2096235380 instance=ExtResource("23_u2qr3")]
 position = Vector2(351, -225)
 tree_type = 4
 
-[node name="Tree2" parent="." instance=ExtResource("23_u2qr3")]
+[node name="Tree2" parent="." unique_id=2080924859 instance=ExtResource("23_u2qr3")]
 position = Vector2(295, -190)
 tree_type = 0
 
-[node name="Tree3" parent="." instance=ExtResource("23_u2qr3")]
+[node name="Tree3" parent="." unique_id=1238237330 instance=ExtResource("23_u2qr3")]
 position = Vector2(529, -235)
 tree_type = 4
 
-[node name="Tree4" parent="." instance=ExtResource("23_u2qr3")]
+[node name="Tree4" parent="." unique_id=1092293105 instance=ExtResource("23_u2qr3")]
 position = Vector2(731, -243)
 tree_type = 1
 
-[node name="Tree5" parent="." instance=ExtResource("23_u2qr3")]
+[node name="Tree5" parent="." unique_id=2026419938 instance=ExtResource("23_u2qr3")]
 position = Vector2(626, -185)
 tree_type = 6
 
-[node name="Tree6" parent="." instance=ExtResource("23_u2qr3")]
+[node name="Tree6" parent="." unique_id=1241128367 instance=ExtResource("23_u2qr3")]
 position = Vector2(549, -142)
 tree_type = 3
 
-[node name="Tree7" parent="." instance=ExtResource("23_u2qr3")]
+[node name="Tree7" parent="." unique_id=1711229998 instance=ExtResource("23_u2qr3")]
 position = Vector2(985, -148)
 tree_type = 9
 
-[node name="Tree8" parent="." instance=ExtResource("23_u2qr3")]
+[node name="Tree8" parent="." unique_id=1507659204 instance=ExtResource("23_u2qr3")]
 position = Vector2(848, -149)
 tree_type = 8
 
-[node name="Tree9" parent="." instance=ExtResource("23_u2qr3")]
+[node name="Tree9" parent="." unique_id=1657088337 instance=ExtResource("23_u2qr3")]
 position = Vector2(722, -123)
 tree_type = 7
 
-[node name="Tree10" parent="." instance=ExtResource("23_u2qr3")]
+[node name="Tree10" parent="." unique_id=2103749324 instance=ExtResource("23_u2qr3")]
 position = Vector2(377, -84)
 tree_type = 5
 
-[node name="Tree11" parent="." instance=ExtResource("23_u2qr3")]
+[node name="Tree11" parent="." unique_id=1006334536 instance=ExtResource("23_u2qr3")]
 position = Vector2(182, -84)
 tree_type = 2

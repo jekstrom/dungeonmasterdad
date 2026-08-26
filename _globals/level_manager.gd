@@ -2,6 +2,7 @@ extends Node2D
 
 var damage_numbers_scene: PackedScene = preload("res://spells/damage_number.tscn")
 var is_shadow_zone: bool = false
+var generated_dungeon_container: Node2D = null
 
 # Handle global level-based events such as projectiles
 
@@ -48,3 +49,23 @@ func _periodic_cleanup():
 		for spawner in pickup_spawners:
 			if spawner.has_method("cleanup_invalid_pickups"):
 				spawner.cleanup_invalid_pickups()
+
+func replace_generated_dungeon_container(new_container: Node2D) -> void:
+	if not multiplayer.is_server():
+		return
+
+	clear_generated_dungeon_container()
+
+	if not new_container:
+		return
+
+	if new_container.get_parent():
+		new_container.get_parent().remove_child(new_container)
+
+	get_tree().current_scene.add_child(new_container)
+	generated_dungeon_container = new_container
+
+func clear_generated_dungeon_container() -> void:
+	if generated_dungeon_container and is_instance_valid(generated_dungeon_container):
+		generated_dungeon_container.queue_free()
+	generated_dungeon_container = null

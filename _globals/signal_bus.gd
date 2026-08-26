@@ -55,3 +55,11 @@ signal player_respawn_delay_started(player_id: int, delay: float)
 signal respawn_location_selected(player_id: int, position: Vector2)
 @warning_ignore("unused_signal")
 signal player_respawn_completed(player_id: int, position: Vector2)
+
+# Procedural dungeon generation lifecycle signals
+@warning_ignore("unused_signal")
+signal dungeon_generation_requested(request_id: String, requester_peer_id: int)
+@warning_ignore("unused_signal")
+signal dungeon_generation_succeeded(request_id: String, layout_id: String)
+@warning_ignore("unused_signal")
+signal dungeon_generation_failed(request_id: String, error_code: String, message: String)

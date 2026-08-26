@@ -91,6 +91,31 @@ func cast_spell(spell_id: String) -> void:
 
 	get_node(spawn_path).call_deferred("add_child", spell, true)
 
+func spawn_monster_from_scene_path(scene_path: String, world_position: Vector2, spawn_id: String = "") -> bool:
+	if !multiplayer.is_server():
+		return false
+
+	if scene_path.is_empty():
+		return false
+
+	var packed_scene: PackedScene = load(scene_path)
+	if not packed_scene:
+		push_warning("MultiplayerSpawner: failed to load monster scene: %s" % scene_path)
+		return false
+
+	var monster: Node2D = packed_scene.instantiate() as Node2D
+	if not monster:
+		push_warning("MultiplayerSpawner: failed to instantiate monster scene: %s" % scene_path)
+		return false
+
+	monster.position = world_position
+	if not spawn_id.is_empty():
+		monster.set_meta("generated_spawn_id", spawn_id)
+	monster.add_to_group("generated_dungeon_monsters")
+
+	get_node(spawn_path).call_deferred("add_child", monster, true)
+	return true
+
 func spawn_host_player(player_name: String) -> void:
 	if !multiplayer.is_server(): return
 	

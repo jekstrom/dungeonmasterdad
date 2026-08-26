@@ -1,0 +1,212 @@
+openapi: 3.0.3
+info:
+  title: Dungeon Generation Service Contract
+  version: 0.1.0
+  description: |
+    Contract for server-authoritative procedural dungeon generation with explicit entrance and exit positions.
+servers:
+  - url: https://game-host.local
+paths:
+  /dungeons/generate:
+    post:
+      summary: Generate a dungeon from start and exit parameters
+      operationId: generateDungeon
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DungeonGenerationRequest'
+      responses:
+        '201':
+          description: Dungeon generated and committed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DungeonGenerationResult'
+        '400':
+          description: Invalid request parameters or infeasible generation constraints
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenerationError'
+        '409':
+          description: Generation rejected due to authority or session state conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenerationError'
+
+  /dungeons/{layoutId}:
+    get:
+      summary: Retrieve generated dungeon details by layout id
+      operationId: getDungeonById
+      parameters:
+        - name: layoutId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Layout retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DungeonGenerationResult'
+        '404':
+          description: Layout not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenerationError'
+
+components:
+  schemas:
+    GridPoint:
+      type: object
+      required: [x, y]
+      properties:
+        x:
+          type: integer
+        y:
+          type: integer
+
+    GenerationBounds:
+      type: object
+      required: [origin, size]
+      properties:
+        origin:
+          $ref: '#/components/schemas/GridPoint'
+        size:
+          $ref: '#/components/schemas/GridPoint'
+
+    DungeonGenerationRequest:
+      type: object
+      required:
+        - requestId
+        - startPosition
+        - exitPosition
+        - generationBounds
+      properties:
+        requestId:
+          type: string
+        startPosition:
+          $ref: '#/components/schemas/GridPoint'
+        exitPosition:
+          $ref: '#/components/schemas/GridPoint'
+        generationBounds:
+          $ref: '#/components/schemas/GenerationBounds'
+        profileId:
+          type: string
+          description: Optional generation profile identifier
+
+    RoomRegion:
+      type: object
+      required: [roomId, cells]
+      properties:
+        roomId:
+          type: string
+        cells:
+          type: array
+          items:
+            $ref: '#/components/schemas/GridPoint'
+
+    HallwayRegion:
+      type: object
+      required: [hallwayId, cells]
+      properties:
+        hallwayId:
+          type: string
+        cells:
+          type: array
+          items:
+            $ref: '#/components/schemas/GridPoint'
+
+    TilePlacement:
+      type: object
+      required: [position, tileRole, tileSourcePath]
+      properties:
+        position:
+          $ref: '#/components/schemas/GridPoint'
+        tileRole:
+          type: string
+          enum: [floor, wall, entrance, exit]
+        tileSourcePath:
+          type: string
+        variantId:
+          type: integer
+
+    MonsterSpawn:
+      type: object
+      required: [spawnId, monsterTypeId, monsterScenePath, position]
+      properties:
+        spawnId:
+          type: string
+        monsterTypeId:
+          type: string
+        monsterScenePath:
+          type: string
+        position:
+          $ref: '#/components/schemas/GridPoint'
+
+    DungeonGenerationResult:
+      type: object
+      required:
+        - requestId
+        - layoutId
+        - entrance
+        - exit
+        - roomRegions
+        - hallwayRegions
+        - tilePlacements
+      properties:
+        requestId:
+          type: string
+        layoutId:
+          type: string
+        entrance:
+          $ref: '#/components/schemas/GridPoint'
+        exit:
+          $ref: '#/components/schemas/GridPoint'
+        seed:
+          type: integer
+        roomRegions:
+          type: array
+          items:
+            $ref: '#/components/schemas/RoomRegion'
+        hallwayRegions:
+          type: array
+          items:
+            $ref: '#/components/schemas/HallwayRegion'
+        mainPath:
+          type: array
+          items:
+            $ref: '#/components/schemas/GridPoint'
+        tilePlacements:
+          type: array
+          items:
+            $ref: '#/components/schemas/TilePlacement'
+        monsterSpawns:
+          type: array
+          items:
+            $ref: '#/components/schemas/MonsterSpawn'
+
+    GenerationError:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+          enum:
+            - INVALID_REQUEST
+            - POSITION_OUT_OF_BOUNDS
+            - POSITION_NOT_PLACEABLE
+            - START_EQUALS_EXIT
+            - LAYOUT_INFEASIBLE
+            - AUTHORITY_VIOLATION
+            - SESSION_CONFLICT
+        message:
+          type: string
+        requestId:
+          type: string
