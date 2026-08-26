@@ -1,10 +1,16 @@
 extends MultiplayerSpawner
 
+const MonsterCatalog = preload("res://scripts/procedural_dungeon/monster_catalog.gd")
+const TileCatalog = preload("res://scripts/procedural_dungeon/tile_catalog.gd")
+
 @export var network_player: PackedScene
 @export var dm_player: PackedScene
 @export var gremlin: PackedScene
 @export var fireball_spell: PackedScene
 @export var knight: PackedScene
+
+var _monster_catalog: MonsterCatalog = MonsterCatalog.new()
+var _tile_catalog: TileCatalog = TileCatalog.new()
 
 func _enter_tree() -> void:
 	# Set server authority after multiplayer is ready
@@ -91,30 +97,58 @@ func cast_spell(spell_id: String) -> void:
 
 	get_node(spawn_path).call_deferred("add_child", spell, true)
 
-func spawn_monster_from_scene_path(scene_path: String, world_position: Vector2, spawn_id: String = "") -> bool:
+func spawn_monster_from_scene_path(scene_path: String, world_position: Vector2, spawn_id: String = "") -> Node2D:
 	if !multiplayer.is_server():
-		return false
+		return null
 
-	if scene_path.is_empty():
-		return false
+	if scene_path.is_empty() or not _monster_catalog.is_approved_scene_path(scene_path):
+		push_warning("MultiplayerSpawner: monster scene path is not in catalog: %s" % scene_path)
+		return null
 
 	var packed_scene: PackedScene = load(scene_path)
 	if not packed_scene:
 		push_warning("MultiplayerSpawner: failed to load monster scene: %s" % scene_path)
-		return false
+		return null
 
 	var monster: Node2D = packed_scene.instantiate() as Node2D
 	if not monster:
 		push_warning("MultiplayerSpawner: failed to instantiate monster scene: %s" % scene_path)
-		return false
+		return null
 
 	monster.position = world_position
 	if not spawn_id.is_empty():
 		monster.set_meta("generated_spawn_id", spawn_id)
 	monster.add_to_group("generated_dungeon_monsters")
 
-	get_node(spawn_path).call_deferred("add_child", monster, true)
-	return true
+	# Synchronous add_child so swap-on-success commit/rollback is not racing a deferred spawn.
+	get_node(spawn_path).add_child(monster, true)
+	return monster
+
+func spawn_tile_from_scene_path(scene_path: String, world_position: Vector2, wall_type: int = -1) -> Node2D:
+	if !multiplayer.is_server():
+		return null
+
+	if scene_path.is_empty() or not _tile_catalog.is_approved_scene_path(scene_path):
+		push_warning("MultiplayerSpawner: tile scene path is not in catalog: %s" % scene_path)
+		return null
+
+	var packed_scene: PackedScene = load(scene_path)
+	if not packed_scene:
+		push_warning("MultiplayerSpawner: failed to load tile scene: %s" % scene_path)
+		return null
+
+	var tile: Node2D = packed_scene.instantiate() as Node2D
+	if not tile:
+		push_warning("MultiplayerSpawner: failed to instantiate tile scene: %s" % scene_path)
+		return null
+
+	tile.position = world_position
+	tile.add_to_group("generated_dungeon_tiles")
+	if wall_type >= 0 and "wall_type" in tile:
+		tile.wall_type = wall_type
+
+	get_node(spawn_path).add_child(tile, true)
+	return tile
 
 func spawn_host_player(player_name: String) -> void:
 	if !multiplayer.is_server(): return
