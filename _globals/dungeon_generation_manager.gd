@@ -638,11 +638,18 @@ func _wall_type_for_cell(cell: Vector2i, walkable_set: Dictionary) -> int:
 		return 2
 	return 1
 
+func _is_east_v_wall(cell: Vector2i, walkable_set: Dictionary) -> bool:
+	# East wall of a room: walkable is west, column sits on the left half (frame 12).
+	# West wall keeps frame 1. Both sides (thin hallway) stays west; do not invent a double.
+	var walk_w: bool = walkable_set.has(cell + Vector2i.LEFT)
+	var walk_e: bool = walkable_set.has(cell + Vector2i.RIGHT)
+	return walk_w and not walk_e
+
 func _wall_frame_for_cell(cell: Vector2i, walkable_set: Dictionary, wall_set: Dictionary) -> int:
-	# 12-frame cubicle_stone_wall.png. Skip 4 (shadow). Collider stays in wall_type.
-	# Bitmask is which of N/E/S/W are also walls.
-	# 0 H middle, 1 V middle, 2 L-D, 3 L-U, 5 R-U, 6 R-D, 7 H left cap, 8 H right cap,
-	# 9 V top cap, 10 V bottom cap, 11 spare H (unused).
+	# 15-frame cubicle_stone_wall.png. Skip 4 (shadow). Collider stays in wall_type.
+	# Bitmask is which of N/E/S/W are also walls. East V (left-half) is 12/13/14.
+	# 0 H, 1 west V, 12 east V, 2 L-D, 3 L-U, 5 R-U, 6 R-D, 7/8 H caps,
+	# 9/10 west V caps, 13/14 east V caps. Do not fake east corners.
 	var n: bool = wall_set.has(cell + Vector2i.UP)
 	var e: bool = wall_set.has(cell + Vector2i.RIGHT)
 	var s: bool = wall_set.has(cell + Vector2i.DOWN)
@@ -650,17 +657,20 @@ func _wall_frame_for_cell(cell: Vector2i, walkable_set: Dictionary, wall_set: Di
 	var h_count: int = int(e) + int(w)
 	var v_count: int = int(n) + int(s)
 	var count: int = h_count + v_count
+	var east_v: bool = _is_east_v_wall(cell, walkable_set)
 	if count >= 3:
 		# T or + : keep the through-run. No T frame on the strip.
 		if v_count == 2 and h_count < 2:
-			return 1
+			return 12 if east_v else 1
 		if h_count == 2:
 			return 0
-		return 1 if _wall_type_for_cell(cell, walkable_set) == 2 else 0
+		if _wall_type_for_cell(cell, walkable_set) == 2:
+			return 12 if east_v else 1
+		return 0
 	if h_count == 2 and v_count == 0:
 		return 0
 	if v_count == 2 and h_count == 0:
-		return 1
+		return 12 if east_v else 1
 	if h_count == 1 and v_count == 1:
 		if w and s:
 			return 2
@@ -677,10 +687,12 @@ func _wall_frame_for_cell(cell: Vector2i, walkable_set: Dictionary, wall_set: Di
 		if w:
 			return 8
 		if s:
-			return 9
+			return 13 if east_v else 9
 		if n:
-			return 10
-	return 1 if _wall_type_for_cell(cell, walkable_set) == 2 else 0
+			return 14 if east_v else 10
+	if _wall_type_for_cell(cell, walkable_set) == 2:
+		return 12 if east_v else 1
+	return 0
 
 func _commit_layout_to_world(layout_data: DungeonLayoutData) -> Dictionary:
 	if not multiplayer.is_server():

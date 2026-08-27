@@ -64,7 +64,7 @@ func _resolved_frame() -> int:
 			frame = 1
 		else:
 			frame = 0
-	return clampi(frame, 0, 11)
+	return clampi(frame, 0, 14)
 
 func _set_wall_type(_value: int) -> void:
 	wall_type = _value
