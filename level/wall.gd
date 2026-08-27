@@ -58,13 +58,13 @@ func _resolved_frame() -> int:
 	if frame == 4:
 		frame = 0
 	if frame < 0:
-		# Playground instances: type 2 was the old end-on visual. Generated
-		# walls always set wall_frame. Unset random is middles only.
+		# Playground instances: type 2 is the vertical collider. Frame 1 is
+		# V middle. Generated walls always set wall_frame.
 		if wall_type == 2:
-			frame = 2
+			frame = 1
 		else:
 			frame = 0
-	return clampi(frame, 0, 9)
+	return clampi(frame, 0, 11)
 
 func _set_wall_type(_value: int) -> void:
 	wall_type = _value

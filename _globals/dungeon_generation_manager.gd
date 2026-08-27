@@ -639,40 +639,48 @@ func _wall_type_for_cell(cell: Vector2i, walkable_set: Dictionary) -> int:
 	return 1
 
 func _wall_frame_for_cell(cell: Vector2i, walkable_set: Dictionary, wall_set: Dictionary) -> int:
-	# Atlas indices from cubicle_stone_wall.png. Collider stays in wall_type.
-	# 0 seamless H middle, 3 left cap, 5 right cap, 2 inner corner, 8 outer corner.
-	# Skip 4 (shadow source). 1/6/7/9 are optional middles; generated walls use 0.
-	var wall_n: bool = wall_set.has(cell + Vector2i.UP)
-	var wall_s: bool = wall_set.has(cell + Vector2i.DOWN)
-	var wall_e: bool = wall_set.has(cell + Vector2i.RIGHT)
-	var wall_w: bool = wall_set.has(cell + Vector2i.LEFT)
-	var walk_n: bool = walkable_set.has(cell + Vector2i.UP)
-	var walk_s: bool = walkable_set.has(cell + Vector2i.DOWN)
-	var walk_e: bool = walkable_set.has(cell + Vector2i.RIGHT)
-	var walk_w: bool = walkable_set.has(cell + Vector2i.LEFT)
-	var walk_h: bool = walk_e or walk_w
-	var walk_v: bool = walk_n or walk_s
-	var wall_h: bool = wall_e or wall_w
-	var wall_v: bool = wall_n or wall_s
-	# Inner corner: occupancy on two perpendicular axes.
-	if walk_h and walk_v:
-		return 2
-	# Outer / return: Art 2 is left return, 8 is right return. Sit on the
-	# actual wall end so a straight 0 run meets the corner with no empty cell.
-	if wall_h and wall_v:
-		if wall_e and not wall_w:
-			return 2
-		if wall_w and not wall_e:
-			return 8
-		return 8
-	# Horizontal run ends (N/S occupancy). Vertical runs stay on the middle tile.
-	if not walk_h:
-		if wall_e and not wall_w:
-			return 3
-		if wall_w and not wall_e:
-			return 5
+	# 12-frame cubicle_stone_wall.png. Skip 4 (shadow). Collider stays in wall_type.
+	# Bitmask is which of N/E/S/W are also walls.
+	# 0 H middle, 1 V middle, 2 L-D, 3 L-U, 5 R-U, 6 R-D, 7 H left cap, 8 H right cap,
+	# 9 V top cap, 10 V bottom cap, 11 spare H (unused).
+	var n: bool = wall_set.has(cell + Vector2i.UP)
+	var e: bool = wall_set.has(cell + Vector2i.RIGHT)
+	var s: bool = wall_set.has(cell + Vector2i.DOWN)
+	var w: bool = wall_set.has(cell + Vector2i.LEFT)
+	var h_count: int = int(e) + int(w)
+	var v_count: int = int(n) + int(s)
+	var count: int = h_count + v_count
+	if count >= 3:
+		# T or + : keep the through-run. No T frame on the strip.
+		if v_count == 2 and h_count < 2:
+			return 1
+		if h_count == 2:
+			return 0
+		return 1 if _wall_type_for_cell(cell, walkable_set) == 2 else 0
+	if h_count == 2 and v_count == 0:
 		return 0
-	return 0
+	if v_count == 2 and h_count == 0:
+		return 1
+	if h_count == 1 and v_count == 1:
+		if w and s:
+			return 2
+		if w and n:
+			return 3
+		if e and n:
+			return 5
+		if e and s:
+			return 6
+		return 0
+	if count == 1:
+		if e:
+			return 7
+		if w:
+			return 8
+		if s:
+			return 9
+		if n:
+			return 10
+	return 1 if _wall_type_for_cell(cell, walkable_set) == 2 else 0
 
 func _commit_layout_to_world(layout_data: DungeonLayoutData) -> Dictionary:
 	if not multiplayer.is_server():
