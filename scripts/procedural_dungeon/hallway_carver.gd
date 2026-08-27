@@ -1,7 +1,5 @@
 class_name HallwayCarver extends RefCounted
 
-const DungeonGrid = preload("res://scripts/procedural_dungeon/dungeon_grid.gd")
-
 func carve_graph_hallways(rooms_by_id: Dictionary, graph_edges: Array, bounds: Rect2i) -> Dictionary:
 	var unique_cells: Dictionary = {}
 	for edge in graph_edges:

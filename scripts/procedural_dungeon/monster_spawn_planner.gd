@@ -1,8 +1,5 @@
 class_name MonsterSpawnPlanner extends RefCounted
 
-const DungeonGrid = preload("res://scripts/procedural_dungeon/dungeon_grid.gd")
-const MonsterCatalog = preload("res://scripts/procedural_dungeon/monster_catalog.gd")
-
 var _monster_catalog: MonsterCatalog = MonsterCatalog.new()
 
 func plan_spawns(
@@ -75,7 +72,7 @@ func plan_spawns(
 		for point in region.get("cells", []):
 			cells.append(DungeonGrid.cell_from(point))
 		for type_id in package_types:
-			var chosen: Vector2i = _pick_package_cell(cells, excluded, occupied, door_set, rng)
+			var chosen: Vector2i = _pick_package_cell(cells, excluded, occupied, door_set)
 			if chosen == DungeonGrid.SENTINEL:
 				continue
 			occupied[chosen] = true
@@ -103,7 +100,7 @@ func plan_spawns(
 			far_cells.append(cell)
 		if far_cells.is_empty():
 			continue
-		var chosen_hall: Vector2i = _pick_farthest(far_cells, door_set, occupied, rng, 8)
+		var chosen_hall: Vector2i = _pick_farthest(far_cells, door_set, occupied, 8)
 		if chosen_hall == DungeonGrid.SENTINEL:
 			continue
 		occupied[chosen_hall] = true
@@ -139,21 +136,19 @@ func _pick_package_cell(
 	cells: Array[Vector2i],
 	excluded: Dictionary,
 	occupied: Dictionary,
-	door_set: Dictionary,
-	rng: RandomNumberGenerator
+	door_set: Dictionary
 ) -> Vector2i:
 	var candidates: Array[Vector2i] = []
 	for cell in cells:
 		if excluded.has(cell) or occupied.has(cell):
 			continue
 		candidates.append(cell)
-	return _pick_farthest(candidates, door_set, occupied, rng, 8)
+	return _pick_farthest(candidates, door_set, occupied, 8)
 
 func _pick_farthest(
 	candidates: Array[Vector2i],
 	door_set: Dictionary,
 	occupied: Dictionary,
-	rng: RandomNumberGenerator,
 	retries: int
 ) -> Vector2i:
 	if candidates.is_empty():

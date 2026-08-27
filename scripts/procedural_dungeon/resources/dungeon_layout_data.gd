@@ -1,7 +1,5 @@
 class_name DungeonLayoutData extends Resource
 
-const DungeonGrid = preload("res://scripts/procedural_dungeon/dungeon_grid.gd")
-
 @export var layout_id: String = ""
 @export var request_id: String = ""
 @export var grid_size: Vector2i = Vector2i.ZERO

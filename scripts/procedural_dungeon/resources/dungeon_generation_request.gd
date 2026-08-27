@@ -1,8 +1,5 @@
 class_name DungeonGenerationRequest extends Resource
 
-const DungeonConstants = preload("res://scripts/procedural_dungeon/dungeon_constants.gd")
-const DungeonGrid = preload("res://scripts/procedural_dungeon/dungeon_grid.gd")
-
 @export var request_id: String = ""
 @export var start_position: Vector2i = Vector2i.ZERO
 @export var exit_position: Vector2i = Vector2i.ZERO

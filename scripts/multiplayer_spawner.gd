@@ -1,8 +1,8 @@
 extends MultiplayerSpawner
 
-const MonsterCatalog = preload("res://scripts/procedural_dungeon/monster_catalog.gd")
-const TileCatalog = preload("res://scripts/procedural_dungeon/tile_catalog.gd")
-const DungeonConstants = preload("res://scripts/procedural_dungeon/dungeon_constants.gd")
+#const MonsterCatalog = preload("res://scripts/procedural_dungeon/monster_catalog.gd")
+#const TileCatalog = preload("res://scripts/procedural_dungeon/tile_catalog.gd")
+#const DungeonConstants = preload("res://scripts/procedural_dungeon/dungeon_constants.gd")
 
 const FLOOR_Z_INDEX := DungeonConstants.FLOOR_Z_INDEX
 const WALL_Z_INDEX := DungeonConstants.WALL_Z_INDEX

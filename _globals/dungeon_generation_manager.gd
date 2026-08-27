@@ -1,21 +1,5 @@
 extends Node
 
-const DungeonGenerationTypes = preload("res://scripts/procedural_dungeon/dungeon_generation_types.gd")
-const DungeonConstants = preload("res://scripts/procedural_dungeon/dungeon_constants.gd")
-const DungeonGrid = preload("res://scripts/procedural_dungeon/dungeon_grid.gd")
-const DungeonGenerationRequest = preload("res://scripts/procedural_dungeon/resources/dungeon_generation_request.gd")
-const DungeonLayoutData = preload("res://scripts/procedural_dungeon/resources/dungeon_layout_data.gd")
-const DungeonSpawnSet = preload("res://scripts/procedural_dungeon/resources/dungeon_spawn_set.gd")
-const EntranceExitResolver = preload("res://scripts/procedural_dungeon/entrance_exit_resolver.gd")
-const RoomGraphGenerator = preload("res://scripts/procedural_dungeon/room_graph_generator.gd")
-const HallwayCarver = preload("res://scripts/procedural_dungeon/hallway_carver.gd")
-const MazeInfillGenerator = preload("res://scripts/procedural_dungeon/maze_infill_generator.gd")
-const LayoutComposer = preload("res://scripts/procedural_dungeon/layout_composer.gd")
-const PathValidator = preload("res://scripts/procedural_dungeon/path_validator.gd")
-const TilePlacementBuilder = preload("res://scripts/procedural_dungeon/tile_placement_builder.gd")
-const MonsterSpawnPlanner = preload("res://scripts/procedural_dungeon/monster_spawn_planner.gd")
-const DungeonSceneBuilder = preload("res://scripts/procedural_dungeon/dungeon_scene_builder.gd")
-
 var active_request_id: String = ""
 var active_layout_id: String = ""
 var generation_state: int = DungeonGenerationTypes.GenerationLifecycleState.RECEIVED

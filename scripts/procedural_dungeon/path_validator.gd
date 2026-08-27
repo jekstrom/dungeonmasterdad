@@ -1,7 +1,5 @@
 class_name PathValidator extends RefCounted
 
-const DungeonGrid = preload("res://scripts/procedural_dungeon/dungeon_grid.gd")
-
 func has_connected_path(start_cell: Vector2i, exit_cell: Vector2i, walkable_cells: Array[Vector2i]) -> bool:
 	return not build_shortest_path(start_cell, exit_cell, walkable_cells).is_empty()
 

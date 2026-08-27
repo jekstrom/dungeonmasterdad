@@ -1,8 +1,5 @@
 class_name LayoutComposer extends RefCounted
 
-const DungeonGrid = preload("res://scripts/procedural_dungeon/dungeon_grid.gd")
-const HallwayRegionClassifier = preload("res://scripts/procedural_dungeon/hallway_region_classifier.gd")
-
 var _hallway_classifier: HallwayRegionClassifier = HallwayRegionClassifier.new()
 
 func compose(

@@ -1,7 +1,5 @@
 class_name RoomGraphGenerator extends RefCounted
 
-const DungeonGrid = preload("res://scripts/procedural_dungeon/dungeon_grid.gd")
-
 const ROOM_RADIUS: int = 2
 const MIN_SEPARATION: int = 6
 const MIN_ROOM_CELLS: int = 9

@@ -1,8 +1,5 @@
 class_name MazeInfillGenerator extends RefCounted
 
-const DungeonGrid = preload("res://scripts/procedural_dungeon/dungeon_grid.gd")
-const PathValidator = preload("res://scripts/procedural_dungeon/path_validator.gd")
-
 var _path_validator: PathValidator = PathValidator.new()
 
 func generate_infill(
@@ -11,7 +8,7 @@ func generate_infill(
 	hallway_cells: Array[Vector2i],
 	entrance_cell: Vector2i,
 	exit_cell: Vector2i,
-	seed: int
+	d_seed: int
 ) -> Dictionary:
 	var empty_hall: Array[Vector2i] = []
 	var empty_dead: Array[Dictionary] = []
@@ -46,7 +43,7 @@ func generate_infill(
 		walkable_cells.append(cell)
 	var main_path: Dictionary = _path_validator.build_shortest_path_set(entrance_cell, exit_cell, walkable_cells)
 	var rng: RandomNumberGenerator = RandomNumberGenerator.new()
-	rng.seed = seed
+	rng.seed = d_seed
 
 	var branch_cells: Dictionary = {}
 	var deadend_regions: Array[Dictionary] = []

@@ -1,7 +1,5 @@
 class_name HallwayRegionClassifier extends RefCounted
 
-const DungeonGrid = preload("res://scripts/procedural_dungeon/dungeon_grid.gd")
-
 func classify_hallway_regions(all_walkable_cells: Array[Vector2i], room_cells: Array[Vector2i]) -> Array[Dictionary]:
 	var walkable_set: Dictionary = DungeonGrid.set_from(all_walkable_cells)
 	var room_set: Dictionary = DungeonGrid.set_from(room_cells)

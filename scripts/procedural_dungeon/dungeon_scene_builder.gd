@@ -1,10 +1,5 @@
 class_name DungeonSceneBuilder extends RefCounted
 
-const DungeonGrid = preload("res://scripts/procedural_dungeon/dungeon_grid.gd")
-const DungeonConstants = preload("res://scripts/procedural_dungeon/dungeon_constants.gd")
-const TileCatalog = preload("res://scripts/procedural_dungeon/tile_catalog.gd")
-const DungeonLayoutData = preload("res://scripts/procedural_dungeon/resources/dungeon_layout_data.gd")
-
 var _tile_catalog: TileCatalog = TileCatalog.new()
 
 func build_container(layout_data: DungeonLayoutData) -> Dictionary:
@@ -81,5 +76,3 @@ func build_container(layout_data: DungeonLayoutData) -> Dictionary:
 		"ok": true,
 		"container": container
 	}
-
-

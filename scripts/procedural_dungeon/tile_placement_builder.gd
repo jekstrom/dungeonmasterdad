@@ -1,10 +1,5 @@
 class_name TilePlacementBuilder extends RefCounted
 
-const DungeonGrid = preload("res://scripts/procedural_dungeon/dungeon_grid.gd")
-const WallAutotile = preload("res://scripts/procedural_dungeon/wall_autotile.gd")
-const TileCatalog = preload("res://scripts/procedural_dungeon/tile_catalog.gd")
-const DungeonLayoutData = preload("res://scripts/procedural_dungeon/resources/dungeon_layout_data.gd")
-
 var _tile_catalog: TileCatalog = TileCatalog.new()
 
 func build(layout_data: DungeonLayoutData, walkable_set: Dictionary) -> Array[Dictionary]:

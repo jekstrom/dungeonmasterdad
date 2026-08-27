@@ -1,8 +1,5 @@
 class_name DungeonSpawnSet extends Resource
 
-const DungeonGrid = preload("res://scripts/procedural_dungeon/dungeon_grid.gd")
-const MonsterCatalog = preload("res://scripts/procedural_dungeon/monster_catalog.gd")
-
 @export var layout_id: String = ""
 @export var spawn_ruleset_id: String = "standard"
 @export var spawns: Array[Dictionary] = []
@@ -30,5 +27,3 @@ func validate(entrance_cell: Vector2i, exit_cell: Vector2i, walkable_cells: Arra
 		"error_code": "",
 		"message": ""
 	}
-
-

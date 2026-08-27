@@ -1,7 +1,5 @@
 class_name EntranceExitResolver extends RefCounted
 
-const DungeonGrid = preload("res://scripts/procedural_dungeon/dungeon_grid.gd")
-
 func resolve_positions(start_position: Vector2i, exit_position: Vector2i, generation_bounds: Rect2i) -> Dictionary:
 	if start_position == exit_position:
 		return DungeonGrid.fail("START_EQUALS_EXIT", "Start and exit positions must be different")
