@@ -1,5 +1,7 @@
 class_name RoomGraphGenerator extends RefCounted
 
+const DungeonGrid = preload("res://scripts/procedural_dungeon/dungeon_grid.gd")
+
 const ROOM_RADIUS: int = 2
 const MIN_SEPARATION: int = 6
 const MIN_ROOM_CELLS: int = 9
@@ -10,7 +12,7 @@ func generate_room_backbone(
 	generation_bounds: Rect2i,
 	generation_seed: int
 ) -> Dictionary:
-	if _chebyshev(start_cell, exit_cell) < MIN_SEPARATION:
+	if DungeonGrid.chebyshev(start_cell, exit_cell) < MIN_SEPARATION:
 		return _fail("LAYOUT_INFEASIBLE", "Start and exit rooms violate center separation")
 
 	var start_cells: Array[Vector2i] = _build_room_cells(start_cell, generation_bounds, ROOM_RADIUS)
@@ -24,12 +26,12 @@ func generate_room_backbone(
 	var rng: RandomNumberGenerator = RandomNumberGenerator.new()
 	rng.seed = generation_seed
 
-	var l_cells: Array[Vector2i] = _carve_l(start_cell, exit_cell, generation_bounds)
+	var l_cells: Array[Vector2i] = DungeonGrid.carve_l(start_cell, exit_cell, generation_bounds)
 	var candidates: Array[Vector2i] = []
 	for cell in l_cells:
-		if _chebyshev(cell, start_cell) < MIN_SEPARATION:
+		if DungeonGrid.chebyshev(cell, start_cell) < MIN_SEPARATION:
 			continue
-		if _chebyshev(cell, exit_cell) < MIN_SEPARATION:
+		if DungeonGrid.chebyshev(cell, exit_cell) < MIN_SEPARATION:
 			continue
 		if not generation_bounds.has_point(cell):
 			continue
@@ -102,7 +104,7 @@ func generate_room_backbone(
 	var walkable_cells: Array[Vector2i] = []
 	for region in room_regions:
 		for point in region.get("cells", []):
-			var cell: Vector2i = Vector2i(int(point.get("x", 0)), int(point.get("y", 0)))
+			var cell: Vector2i = DungeonGrid.cell_from(point)
 			if walkable_set.has(cell):
 				continue
 			walkable_set[cell] = true
@@ -176,13 +178,13 @@ func _pick_extra_edge(
 ) -> Array:
 	var backbone_set: Dictionary = {}
 	for i in range(ordered_centers.size() - 1):
-		for cell in _carve_l(ordered_centers[i], ordered_centers[i + 1], bounds):
+		for cell in DungeonGrid.carve_l(ordered_centers[i], ordered_centers[i + 1], bounds):
 			backbone_set[cell] = true
 
 	var room_set: Dictionary = {}
 	for region in room_regions:
 		for point in region.get("cells", []):
-			room_set[Vector2i(int(point.get("x", 0)), int(point.get("y", 0)))] = true
+			room_set[DungeonGrid.cell_from(point)] = true
 
 	var pairs: Array = []
 	var first_mid_i: int = 1
@@ -199,7 +201,7 @@ func _pick_extra_edge(
 		var u: int = int(pair[0])
 		var v: int = int(pair[1])
 		var novel: int = 0
-		for cell in _carve_l(ordered_centers[u], ordered_centers[v], bounds):
+		for cell in DungeonGrid.carve_l(ordered_centers[u], ordered_centers[v], bounds):
 			if backbone_set.has(cell):
 				continue
 			if room_set.has(cell):
@@ -212,7 +214,7 @@ func _pick_extra_edge(
 
 func _separated_from_all(cell: Vector2i, others: Array[Vector2i]) -> bool:
 	for other in others:
-		if _chebyshev(cell, other) < MIN_SEPARATION:
+		if DungeonGrid.chebyshev(cell, other) < MIN_SEPARATION:
 			return false
 	return true
 
@@ -234,23 +236,8 @@ func _build_room_region(room_id: String, role: String, center: Vector2i, cells: 
 		"roomId": room_id,
 		"role": role,
 		"center": {"x": center.x, "y": center.y},
-		"cells": _points_to_dict_array(cells)
+		"cells": DungeonGrid.points_to_dicts(cells)
 	}
-
-func _carve_l(start_cell: Vector2i, exit_cell: Vector2i, bounds: Rect2i) -> Array[Vector2i]:
-	var cells: Array[Vector2i] = []
-	var current: Vector2i = start_cell
-	while current.x != exit_cell.x:
-		if bounds.has_point(current):
-			cells.append(current)
-		current.x += int(sign(exit_cell.x - current.x))
-	while current.y != exit_cell.y:
-		if bounds.has_point(current):
-			cells.append(current)
-		current.y += int(sign(exit_cell.y - current.y))
-	if bounds.has_point(exit_cell):
-		cells.append(exit_cell)
-	return cells
 
 func _shuffle_cells(cells: Array[Vector2i], rng: RandomNumberGenerator) -> void:
 	for i in range(cells.size() - 1, 0, -1):
@@ -265,15 +252,6 @@ func _shuffle_ints(values: Array[int], rng: RandomNumberGenerator) -> void:
 		var tmp: int = values[i]
 		values[i] = values[j]
 		values[j] = tmp
-
-func _chebyshev(a: Vector2i, b: Vector2i) -> int:
-	return maxi(absi(a.x - b.x), absi(a.y - b.y))
-
-func _points_to_dict_array(points: Array[Vector2i]) -> Array[Dictionary]:
-	var result: Array[Dictionary] = []
-	for point in points:
-		result.append({"x": point.x, "y": point.y})
-	return result
 
 func _fail(error_code: String, message: String) -> Dictionary:
 	var empty_cells: Array[Vector2i] = []

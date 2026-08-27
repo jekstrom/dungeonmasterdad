@@ -1,5 +1,6 @@
 class_name MonsterSpawnPlanner extends RefCounted
 
+const DungeonGrid = preload("res://scripts/procedural_dungeon/dungeon_grid.gd")
 const MonsterCatalog = preload("res://scripts/procedural_dungeon/monster_catalog.gd")
 
 var _monster_catalog: MonsterCatalog = MonsterCatalog.new()
@@ -20,18 +21,18 @@ func plan_spawns(
 	var hallway_set: Dictionary = {}
 	for region in hallway_regions:
 		for point in region.get("cells", []):
-			hallway_set[_cell_from(point)] = true
+			hallway_set[DungeonGrid.cell_from(point)] = true
 	for region in room_regions:
 		var cells: Array[Vector2i] = []
 		for point in region.get("cells", []):
-			var cell: Vector2i = _cell_from(point)
+			var cell: Vector2i = DungeonGrid.cell_from(point)
 			cells.append(cell)
 			all_room_set[cell] = true
 		room_cells_by_id[str(region.get("roomId", ""))] = cells
 
 	var door_set: Dictionary = {}
 	for cell in all_room_set.keys():
-		for neighbor in _neighbors(cell):
+		for neighbor in DungeonGrid.neighbors(cell):
 			if hallway_set.has(neighbor):
 				door_set[cell] = true
 				break
@@ -40,9 +41,9 @@ func plan_spawns(
 		entrance_cell: true,
 		exit_cell: true
 	}
-	for neighbor in _neighbors(entrance_cell):
+	for neighbor in DungeonGrid.neighbors(entrance_cell):
 		excluded[neighbor] = true
-	for neighbor in _neighbors(exit_cell):
+	for neighbor in DungeonGrid.neighbors(exit_cell):
 		excluded[neighbor] = true
 	for door in door_set.keys():
 		excluded[door] = true
@@ -51,7 +52,7 @@ func plan_spawns(
 		if role != "start" and role != "deadend":
 			continue
 		for point in region.get("cells", []):
-			excluded[_cell_from(point)] = true
+			excluded[DungeonGrid.cell_from(point)] = true
 
 	var walkable: Dictionary = {}
 	for cell in all_room_set.keys():
@@ -72,10 +73,10 @@ func plan_spawns(
 			knight_placed = true
 		var cells: Array[Vector2i] = []
 		for point in region.get("cells", []):
-			cells.append(_cell_from(point))
+			cells.append(DungeonGrid.cell_from(point))
 		for type_id in package_types:
 			var chosen: Vector2i = _pick_package_cell(cells, excluded, occupied, door_set, rng)
-			if chosen == Vector2i(2147483647, 2147483647):
+			if chosen == DungeonGrid.SENTINEL:
 				continue
 			occupied[chosen] = true
 			var spawn: Dictionary = _make_spawn(layout_id, spawn_index, type_id, chosen)
@@ -88,7 +89,7 @@ func plan_spawns(
 	for region in hallway_regions:
 		var cells: Array[Vector2i] = []
 		for point in region.get("cells", []):
-			cells.append(_cell_from(point))
+			cells.append(DungeonGrid.cell_from(point))
 		if cells.size() < 8:
 			continue
 		if rng.randi_range(0, 99) > 39:
@@ -103,7 +104,7 @@ func plan_spawns(
 		if far_cells.is_empty():
 			continue
 		var chosen_hall: Vector2i = _pick_farthest(far_cells, door_set, occupied, rng, 8)
-		if chosen_hall == Vector2i(2147483647, 2147483647):
+		if chosen_hall == DungeonGrid.SENTINEL:
 			continue
 		occupied[chosen_hall] = true
 		var hall_spawn: Dictionary = _make_spawn(layout_id, spawn_index, "goblin", chosen_hall)
@@ -156,7 +157,7 @@ func _pick_farthest(
 	retries: int
 ) -> Vector2i:
 	if candidates.is_empty():
-		return Vector2i(2147483647, 2147483647)
+		return DungeonGrid.SENTINEL
 	var scored: Array[Dictionary] = []
 	for cell in candidates:
 		scored.append({
@@ -172,14 +173,14 @@ func _pick_farthest(
 		if not occupied.has(cell):
 			return cell
 		attempts += 1
-	return Vector2i(2147483647, 2147483647)
+	return DungeonGrid.SENTINEL
 
 func _min_door_distance(cell: Vector2i, door_set: Dictionary) -> int:
 	if door_set.is_empty():
 		return 0
 	var best: int = 1_000_000
 	for door in door_set.keys():
-		var d: int = maxi(absi(cell.x - door.x), absi(cell.y - door.y))
+		var d: int = DungeonGrid.chebyshev(cell, door)
 		if d < best:
 			best = d
 	return best
@@ -195,7 +196,7 @@ func _multi_source_distance(sources: Dictionary, walkable: Dictionary) -> Dictio
 	while not queue.is_empty():
 		var current: Vector2i = queue.pop_front()
 		var current_d: int = int(dist[current])
-		for neighbor in _neighbors(current):
+		for neighbor in DungeonGrid.neighbors(current):
 			if not walkable.has(neighbor) or dist.has(neighbor):
 				continue
 			dist[neighbor] = current_d + 1
@@ -215,18 +216,3 @@ func _make_spawn(layout_id: String, index: int, type_id: String, cell: Vector2i)
 			"y": cell.y
 		}
 	}
-
-func _cell_from(raw_value: Variant) -> Vector2i:
-	if raw_value is Vector2i:
-		return raw_value
-	if raw_value is Dictionary:
-		return Vector2i(int(raw_value.get("x", 0)), int(raw_value.get("y", 0)))
-	return Vector2i.ZERO
-
-func _neighbors(cell: Vector2i) -> Array[Vector2i]:
-	return [
-		cell + Vector2i(1, 0),
-		cell + Vector2i(-1, 0),
-		cell + Vector2i(0, 1),
-		cell + Vector2i(0, -1)
-	]

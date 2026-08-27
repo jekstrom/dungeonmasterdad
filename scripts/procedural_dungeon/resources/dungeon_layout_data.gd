@@ -1,5 +1,7 @@
 class_name DungeonLayoutData extends Resource
 
+const DungeonGrid = preload("res://scripts/procedural_dungeon/dungeon_grid.gd")
+
 @export var layout_id: String = ""
 @export var request_id: String = ""
 @export var grid_size: Vector2i = Vector2i.ZERO
@@ -16,19 +18,19 @@ class_name DungeonLayoutData extends Resource
 
 func validate() -> Dictionary:
 	if layout_id.strip_edges().is_empty():
-		return _fail("INVALID_REQUEST", "Layout ID is required")
+		return DungeonGrid.fail("INVALID_REQUEST", "Layout ID is required")
 
 	if entrance_cell == exit_cell:
-		return _fail("START_EQUALS_EXIT", "Entrance and exit cells must be different")
+		return DungeonGrid.fail("START_EQUALS_EXIT", "Entrance and exit cells must be different")
 
 	if walkable_cells.is_empty():
-		return _fail("LAYOUT_INFEASIBLE", "Layout must contain walkable cells")
+		return DungeonGrid.fail("LAYOUT_INFEASIBLE", "Layout must contain walkable cells")
 
 	if not walkable_cells.has(entrance_cell) or not walkable_cells.has(exit_cell):
-		return _fail("POSITION_NOT_PLACEABLE", "Entrance and exit must be walkable cells")
+		return DungeonGrid.fail("POSITION_NOT_PLACEABLE", "Entrance and exit must be walkable cells")
 
 	if room_regions.is_empty() or hallway_regions.is_empty():
-		return _fail("LAYOUT_INFEASIBLE", "Layout must contain at least one room and one hallway region")
+		return DungeonGrid.fail("LAYOUT_INFEASIBLE", "Layout must contain at least one room and one hallway region")
 
 	return {
 		"ok": true,
@@ -45,20 +47,7 @@ func to_contract_dictionary() -> Dictionary:
 		"seed": generation_seed,
 		"roomRegions": room_regions,
 		"hallwayRegions": hallway_regions,
-		"mainPath": _points_to_dictionary_array(main_path_cells),
+		"mainPath": DungeonGrid.points_to_dicts(main_path_cells),
 		"tilePlacements": tile_placements,
 		"monsterSpawns": monster_spawns
-	}
-
-func _points_to_dictionary_array(points: Array[Vector2i]) -> Array[Dictionary]:
-	var result: Array[Dictionary] = []
-	for point in points:
-		result.append({"x": point.x, "y": point.y})
-	return result
-
-func _fail(error_code: String, message: String) -> Dictionary:
-	return {
-		"ok": false,
-		"error_code": error_code,
-		"message": message
 	}

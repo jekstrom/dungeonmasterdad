@@ -2,6 +2,7 @@ extends Node
 
 const DungeonGenerationTypes = preload("res://scripts/procedural_dungeon/dungeon_generation_types.gd")
 const DungeonConstants = preload("res://scripts/procedural_dungeon/dungeon_constants.gd")
+const DungeonGrid = preload("res://scripts/procedural_dungeon/dungeon_grid.gd")
 const DungeonGenerationRequest = preload("res://scripts/procedural_dungeon/resources/dungeon_generation_request.gd")
 const DungeonLayoutData = preload("res://scripts/procedural_dungeon/resources/dungeon_layout_data.gd")
 const DungeonSpawnSet = preload("res://scripts/procedural_dungeon/resources/dungeon_spawn_set.gd")
@@ -11,7 +12,7 @@ const HallwayCarver = preload("res://scripts/procedural_dungeon/hallway_carver.g
 const MazeInfillGenerator = preload("res://scripts/procedural_dungeon/maze_infill_generator.gd")
 const LayoutComposer = preload("res://scripts/procedural_dungeon/layout_composer.gd")
 const PathValidator = preload("res://scripts/procedural_dungeon/path_validator.gd")
-const TileCatalog = preload("res://scripts/procedural_dungeon/tile_catalog.gd")
+const TilePlacementBuilder = preload("res://scripts/procedural_dungeon/tile_placement_builder.gd")
 const MonsterSpawnPlanner = preload("res://scripts/procedural_dungeon/monster_spawn_planner.gd")
 const DungeonSceneBuilder = preload("res://scripts/procedural_dungeon/dungeon_scene_builder.gd")
 
@@ -34,7 +35,7 @@ var _hallway_carver: HallwayCarver = HallwayCarver.new()
 var _maze_infill_generator: MazeInfillGenerator = MazeInfillGenerator.new()
 var _layout_composer: LayoutComposer = LayoutComposer.new()
 var _path_validator: PathValidator = PathValidator.new()
-var _tile_catalog: TileCatalog = TileCatalog.new()
+var _tile_placement_builder: TilePlacementBuilder = TilePlacementBuilder.new()
 var _monster_spawn_planner: MonsterSpawnPlanner = MonsterSpawnPlanner.new()
 var _dungeon_scene_builder: DungeonSceneBuilder = DungeonSceneBuilder.new()
 
@@ -77,15 +78,6 @@ func generate_dungeon_contract(payload: Dictionary, requester_peer_id: int) -> D
 		return validation_error
 
 	var request: DungeonGenerationRequest = request_result["request"]
-	if request.profile_id != "standard":
-		var profile_error: Dictionary = _error_response(
-			request.request_id,
-			DungeonGenerationTypes.FAILURE_INVALID_REQUEST,
-			"Unknown generation profile"
-		)
-		_log_generation_failure(profile_error)
-		return profile_error
-
 	active_request_id = request.request_id
 	generation_state = DungeonGenerationTypes.GenerationLifecycleState.VALIDATED
 	SignalBus.dungeon_generation_requested.emit(request.request_id, request.requested_by_peer_id)
@@ -115,7 +107,6 @@ func generate_dungeon_contract(payload: Dictionary, requester_peer_id: int) -> D
 
 	layouts_by_id[layout_data.layout_id] = layout_data
 	active_layout_id = layout_data.layout_id
-	_print_region_dump(layout_data)
 	_log_generation_success(request.request_id, layout_data.layout_id)
 	_release_contract_session(true)
 
@@ -174,7 +165,7 @@ func validate_generation_request_payload(payload: Dictionary, requester_peer_id:
 			"message": validation.get("message", "Request validation failed")
 		}
 
-	if request.profile_id != "standard":
+	if request.profile_id != DungeonConstants.DEFAULT_PROFILE_ID:
 		return {
 			"ok": false,
 			"request_id": request.request_id,
@@ -221,6 +212,12 @@ func _get_level_manager() -> Node:
 	if current_scene and current_scene.has_method("begin_generated_dungeon_stage"):
 		return current_scene
 	return get_tree().get_first_node_in_group("level_manager")
+
+func _multiplayer_spawner() -> Node:
+	var spawners: Array = get_tree().get_nodes_in_group("multiplayer_spawner")
+	if spawners.is_empty():
+		return null
+	return spawners[0]
 
 func _build_layout_with_retry(request: DungeonGenerationRequest) -> Dictionary:
 	var last_error: Dictionary = _error_response(
@@ -277,7 +274,7 @@ func _build_layout_candidate(request: DungeonGenerationRequest, generation_seed:
 			str(room_result.get("message", "Failed to place room backbone"))
 		)
 
-	var room_regions: Array[Dictionary] = _to_dict_array(room_result.get("room_regions", []))
+	var room_regions: Array[Dictionary] = DungeonGrid.dicts_from(room_result.get("room_regions", []))
 	var graph_edges: Array = room_result.get("graph_edges", [])
 	var rooms_by_id: Dictionary = _rooms_by_id(room_regions)
 
@@ -286,7 +283,7 @@ func _build_layout_candidate(request: DungeonGenerationRequest, generation_seed:
 		graph_edges,
 		request.generation_bounds
 	)
-	var graph_hallway_cells: Array[Vector2i] = _to_cell_array(hallway_result.get("hallway_cells", []))
+	var graph_hallway_cells: Array[Vector2i] = DungeonGrid.cells_from(hallway_result.get("hallway_cells", []))
 
 	var infill_result: Dictionary = _maze_infill_generator.generate_infill(
 		request.generation_bounds,
@@ -303,8 +300,8 @@ func _build_layout_candidate(request: DungeonGenerationRequest, generation_seed:
 			str(infill_result.get("message", "Failed to place dead-end pockets"))
 		)
 
-	var infill_hallway_cells: Array[Vector2i] = _to_cell_array(infill_result.get("hallway_cells", []))
-	var deadend_regions: Array[Dictionary] = _to_dict_array(infill_result.get("deadend_regions", []))
+	var infill_hallway_cells: Array[Vector2i] = DungeonGrid.cells_from(infill_result.get("hallway_cells", []))
+	var deadend_regions: Array[Dictionary] = DungeonGrid.dicts_from(infill_result.get("deadend_regions", []))
 	var all_hallway_cells: Array[Vector2i] = []
 	all_hallway_cells.append_array(graph_hallway_cells)
 	all_hallway_cells.append_array(infill_hallway_cells)
@@ -315,9 +312,9 @@ func _build_layout_candidate(request: DungeonGenerationRequest, generation_seed:
 		deadend_regions
 	)
 
-	var walkable_cells: Array[Vector2i] = _to_cell_array(composed_layout.get("walkable_cells", []))
-	room_regions = _to_dict_array(composed_layout.get("room_regions", []))
-	var hallway_regions: Array[Dictionary] = _to_dict_array(composed_layout.get("hallway_regions", []))
+	var walkable_cells: Array[Vector2i] = DungeonGrid.cells_from(composed_layout.get("walkable_cells", []))
+	room_regions = DungeonGrid.dicts_from(composed_layout.get("room_regions", []))
+	var hallway_regions: Array[Dictionary] = DungeonGrid.dicts_from(composed_layout.get("hallway_regions", []))
 
 	if hallway_regions.is_empty():
 		return _error_response(request.request_id, DungeonGenerationTypes.FAILURE_LAYOUT_INFEASIBLE, "Layout missing hallway regions")
@@ -326,15 +323,13 @@ func _build_layout_candidate(request: DungeonGenerationRequest, generation_seed:
 	if not _rooms_meet_size_and_separation(room_regions):
 		return _error_response(request.request_id, DungeonGenerationTypes.FAILURE_LAYOUT_INFEASIBLE, "Room size or separation failed")
 
-	var walkable_set: Dictionary = {}
-	for cell in walkable_cells:
-		walkable_set[cell] = true
+	var walkable_set: Dictionary = DungeonGrid.set_from(walkable_cells)
 
 	if not _path_validator.has_connected_path(entrance_cell, exit_cell, walkable_cells):
 		return _error_response(request.request_id, DungeonGenerationTypes.FAILURE_LAYOUT_INFEASIBLE, "Entrance and exit are not connected")
 
 	var main_path: Array[Vector2i] = _path_validator.build_shortest_path(entrance_cell, exit_cell, walkable_cells)
-	var blocked_cells: Array[Vector2i] = _build_blocked_cells(request.generation_bounds, walkable_set)
+	var blocked_cells: Array[Vector2i] = DungeonGrid.blocked_cells(request.generation_bounds, walkable_set)
 
 	var layout_data: DungeonLayoutData = DungeonLayoutData.new()
 	layout_data.layout_id = "layout_%s_%d" % [request.request_id, Time.get_ticks_msec()]
@@ -348,7 +343,7 @@ func _build_layout_candidate(request: DungeonGenerationRequest, generation_seed:
 	layout_data.hallway_regions = hallway_regions
 	layout_data.main_path_cells = main_path
 	layout_data.generation_seed = generation_seed
-	layout_data.tile_placements = _build_tile_placements(layout_data, walkable_set)
+	layout_data.tile_placements = _tile_placement_builder.build(layout_data, walkable_set)
 	layout_data.monster_spawns = _monster_spawn_planner.plan_spawns(
 		layout_data.layout_id,
 		layout_data.room_regions,
@@ -411,67 +406,41 @@ func _rooms_meet_size_and_separation(room_regions: Array[Dictionary]) -> bool:
 			continue
 		if cells.size() < 9:
 			return false
-		centers.append(_region_center(region))
+		centers.append(DungeonGrid.cell_from(region.get("center", {})))
 	for i in range(centers.size()):
 		for j in range(i + 1, centers.size()):
-			var dx: int = absi(centers[i].x - centers[j].x)
-			var dy: int = absi(centers[i].y - centers[j].y)
-			if maxi(dx, dy) < 6:
+			if DungeonGrid.chebyshev(centers[i], centers[j]) < 6:
 				return false
 	return true
-
-func _region_center(region: Dictionary) -> Vector2i:
-	var raw_center: Variant = region.get("center", {})
-	if raw_center is Vector2i:
-		return raw_center
-	if raw_center is Dictionary:
-		return Vector2i(int(raw_center.get("x", 0)), int(raw_center.get("y", 0)))
-	return Vector2i.ZERO
 
 func _rooms_by_id(room_regions: Array[Dictionary]) -> Dictionary:
 	var rooms: Dictionary = {}
 	for region in room_regions:
 		var room_id: String = str(region.get("roomId", ""))
-		rooms[room_id] = {"center": _region_center(region)}
+		rooms[room_id] = {"center": DungeonGrid.cell_from(region.get("center", {}))}
 	return rooms
-
-func _to_dict_array(raw_value: Variant) -> Array[Dictionary]:
-	var result: Array[Dictionary] = []
-	if raw_value is Array:
-		for item in raw_value:
-			if item is Dictionary:
-				result.append(item)
-	return result
-
-func _to_cell_array(raw_value: Variant) -> Array[Vector2i]:
-	var result: Array[Vector2i] = []
-	if raw_value is Array:
-		for item in raw_value:
-			if item is Vector2i:
-				result.append(item)
-	return result
 
 func _print_region_dump(layout_data: DungeonLayoutData) -> void:
 	var room_set: Dictionary = {}
 	for region in layout_data.room_regions:
 		for point in region.get("cells", []):
-			room_set[_point_to_cell(point)] = true
+			room_set[DungeonGrid.cell_from(point)] = true
 	var hall_set: Dictionary = {}
 	for cell in layout_data.walkable_cells:
 		if not room_set.has(cell):
 			hall_set[cell] = true
 	var spawn_counts: Dictionary = {}
 	for spawn in layout_data.monster_spawns:
-		var spawn_cell: Vector2i = _point_to_cell(spawn.get("position", {}))
+		var spawn_cell: Vector2i = DungeonGrid.cell_from(spawn.get("position", {}))
 		spawn_counts[spawn_cell] = int(spawn_counts.get(spawn_cell, 0)) + 1
 	for region in layout_data.room_regions:
 		var doors: int = 0
 		var spawns: int = 0
 		var cells: Array = region.get("cells", [])
 		for point in cells:
-			var cell: Vector2i = _point_to_cell(point)
+			var cell: Vector2i = DungeonGrid.cell_from(point)
 			var is_door: bool = false
-			for neighbor in [cell + Vector2i.RIGHT, cell + Vector2i.LEFT, cell + Vector2i.DOWN, cell + Vector2i.UP]:
+			for neighbor in DungeonGrid.neighbors(cell):
 				if hall_set.has(neighbor):
 					is_door = true
 					break
@@ -488,25 +457,9 @@ func _print_region_dump(layout_data: DungeonLayoutData) -> void:
 			]
 		)
 
-func _point_to_cell(raw_value: Variant) -> Vector2i:
-	if raw_value is Vector2i:
-		return raw_value
-	if raw_value is Dictionary:
-		return Vector2i(int(raw_value.get("x", 0)), int(raw_value.get("y", 0)))
-	return Vector2i.ZERO
-
 func _calculate_generation_seed(request: DungeonGenerationRequest, attempt_index: int) -> int:
 	var request_hash: int = request.request_id.hash()
 	return request_hash + (attempt_index + 1) * 7919
-
-func _build_blocked_cells(bounds: Rect2i, walkable_set: Dictionary) -> Array[Vector2i]:
-	var blocked_cells: Array[Vector2i] = []
-	for y in range(bounds.position.y, bounds.end.y):
-		for x in range(bounds.position.x, bounds.end.x):
-			var candidate: Vector2i = Vector2i(x, y)
-			if not walkable_set.has(candidate):
-				blocked_cells.append(candidate)
-	return blocked_cells
 
 func _error_response(request_id: String, error_code: String, message: String) -> Dictionary:
 	return {
@@ -555,146 +508,6 @@ func _log_generation_failure(error_payload: Dictionary) -> void:
 		]
 	)
 
-func _build_tile_placements(layout_data: DungeonLayoutData, walkable_set: Dictionary) -> Array[Dictionary]:
-	var placements: Array[Dictionary] = []
-	var room_set: Dictionary = {}
-	for region in layout_data.room_regions:
-		for point in region.get("cells", []):
-			room_set[_point_to_cell(point)] = true
-
-	for cell in layout_data.walkable_cells:
-		var role: String = "floor"
-		var variant_id: int = 1
-		if room_set.has(cell):
-			variant_id = 0
-		if cell == layout_data.entrance_cell:
-			role = "entrance"
-			variant_id = 0
-		elif cell == layout_data.exit_cell:
-			role = "exit"
-			variant_id = 0
-
-		placements.append({
-			"position": {"x": cell.x, "y": cell.y},
-			"tileRole": role,
-			"tileSourcePath": _tile_catalog.get_floor_scene_path(),
-			"variantId": variant_id
-		})
-
-	var wall_set: Dictionary = {}
-	for cell in layout_data.blocked_cells:
-		if _is_occupancy_adjacent(cell, walkable_set):
-			wall_set[cell] = true
-	# Outer corners are diagonal to walkable, so occupancy-adjacent misses them
-	# and leaves a gap between a straight run and the 2/8 return. Snap those
-	# cells onto the shell when two occupancy walls already form an L.
-	for cell in layout_data.blocked_cells:
-		if _is_shell_corner_cell(cell, walkable_set, wall_set):
-			wall_set[cell] = true
-	for cell in wall_set:
-		placements.append({
-			"position": {"x": cell.x, "y": cell.y},
-			"tileRole": "wall",
-			"tileSourcePath": _tile_catalog.get_wall_scene_path(),
-			"variantId": _wall_type_for_cell(cell, walkable_set),
-			"wallFrame": _wall_frame_for_cell(cell, walkable_set, wall_set)
-		})
-
-	return placements
-
-func _is_occupancy_adjacent(cell: Vector2i, walkable_set: Dictionary) -> bool:
-	return (
-		walkable_set.has(cell + Vector2i.RIGHT)
-		or walkable_set.has(cell + Vector2i.LEFT)
-		or walkable_set.has(cell + Vector2i.UP)
-		or walkable_set.has(cell + Vector2i.DOWN)
-	)
-
-func _is_shell_corner_cell(cell: Vector2i, walkable_set: Dictionary, wall_set: Dictionary) -> bool:
-	if walkable_set.has(cell) or wall_set.has(cell):
-		return false
-	var wall_n: bool = wall_set.has(cell + Vector2i.UP)
-	var wall_s: bool = wall_set.has(cell + Vector2i.DOWN)
-	var wall_e: bool = wall_set.has(cell + Vector2i.RIGHT)
-	var wall_w: bool = wall_set.has(cell + Vector2i.LEFT)
-	if not ((wall_e or wall_w) and (wall_n or wall_s)):
-		return false
-	# Inside of the L must be walkable so we do not fill hollow blocked space.
-	if wall_e and wall_s and walkable_set.has(cell + Vector2i.RIGHT + Vector2i.DOWN):
-		return true
-	if wall_w and wall_s and walkable_set.has(cell + Vector2i.LEFT + Vector2i.DOWN):
-		return true
-	if wall_e and wall_n and walkable_set.has(cell + Vector2i.RIGHT + Vector2i.UP):
-		return true
-	if wall_w and wall_n and walkable_set.has(cell + Vector2i.LEFT + Vector2i.UP):
-		return true
-	return false
-
-func _wall_type_for_cell(cell: Vector2i, walkable_set: Dictionary) -> int:
-	# Type 2 is the vertical collider so east/west occupancy edges actually block.
-	var has_east: bool = walkable_set.has(cell + Vector2i.RIGHT)
-	var has_west: bool = walkable_set.has(cell + Vector2i.LEFT)
-	if has_east or has_west:
-		return 2
-	return 1
-
-func _is_east_v_wall(cell: Vector2i, walkable_set: Dictionary) -> bool:
-	# East wall of a room: walkable is west, column sits on the left half (frame 12).
-	# West wall keeps frame 1. Both sides (thin hallway) stays west; do not invent a double.
-	var walk_w: bool = walkable_set.has(cell + Vector2i.LEFT)
-	var walk_e: bool = walkable_set.has(cell + Vector2i.RIGHT)
-	return walk_w and not walk_e
-
-func _wall_frame_for_cell(cell: Vector2i, walkable_set: Dictionary, wall_set: Dictionary) -> int:
-	# 17-frame cubicle_stone_wall.png. Skip 4 (shadow). Collider stays in wall_type.
-	# East V (left-half) is 12/13/14. East LD/LU corners are 15/16 (same topology as 2/3).
-	# West corners stay 2/3/5/6.
-	var n: bool = wall_set.has(cell + Vector2i.UP)
-	var e: bool = wall_set.has(cell + Vector2i.RIGHT)
-	var s: bool = wall_set.has(cell + Vector2i.DOWN)
-	var w: bool = wall_set.has(cell + Vector2i.LEFT)
-	var h_count: int = int(e) + int(w)
-	var v_count: int = int(n) + int(s)
-	var count: int = h_count + v_count
-	var east_v: bool = _is_east_v_wall(cell, walkable_set)
-	if count >= 3:
-		# T or + : keep the through-run. No T frame on the strip.
-		if v_count == 2 and h_count < 2:
-			return 12 if east_v else 1
-		if h_count == 2:
-			return 0
-		if _wall_type_for_cell(cell, walkable_set) == 2:
-			return 12 if east_v else 1
-		return 0
-	if h_count == 2 and v_count == 0:
-		return 0
-	if v_count == 2 and h_count == 0:
-		return 12 if east_v else 1
-	if h_count == 1 and v_count == 1:
-		# Corner cell is wall-west, so it cannot also be walkable-west.
-		# Face 15/16 from the V neighbor, which is the east 12-run.
-		if w and s:
-			return 15 if _is_east_v_wall(cell + Vector2i.DOWN, walkable_set) else 2
-		if w and n:
-			return 16 if _is_east_v_wall(cell + Vector2i.UP, walkable_set) else 3
-		if e and n:
-			return 5
-		if e and s:
-			return 6
-		return 0
-	if count == 1:
-		if e:
-			return 7
-		if w:
-			return 8
-		if s:
-			return 13 if east_v else 9
-		if n:
-			return 14 if east_v else 10
-	if _wall_type_for_cell(cell, walkable_set) == 2:
-		return 12 if east_v else 1
-	return 0
-
 func _commit_layout_to_world(layout_data: DungeonLayoutData) -> Dictionary:
 	if not multiplayer.is_server():
 		return _error_response(layout_data.request_id, DungeonGenerationTypes.FAILURE_AUTHORITY_VIOLATION, "Only server can commit generated dungeons")
@@ -725,8 +538,8 @@ func _commit_layout_to_world(layout_data: DungeonLayoutData) -> Dictionary:
 	}
 
 func _spawn_generated_tiles(layout_data: DungeonLayoutData, level_manager: Node) -> Dictionary:
-	var spawners: Array = get_tree().get_nodes_in_group("multiplayer_spawner")
-	if spawners.is_empty() or not spawners[0].has_method("spawn_tile_from_scene_path"):
+	var spawner: Node = _multiplayer_spawner()
+	if spawner == null or not spawner.has_method("spawn_tile_from_scene_path"):
 		var built_scene: Dictionary = _dungeon_scene_builder.build_container(layout_data)
 		if not built_scene.get("ok", false):
 			return built_scene
@@ -738,12 +551,10 @@ func _spawn_generated_tiles(layout_data: DungeonLayoutData, level_manager: Node)
 		get_tree().current_scene.add_child(container)
 		level_manager.register_staged_generated_node(container)
 		return {"ok": true}
-
-	var spawner: Node = spawners[0]
 	for placement in layout_data.tile_placements:
 		var scene_path: String = str(placement.get("tileSourcePath", ""))
 		var point: Dictionary = placement.get("position", {})
-		var world_position: Vector2 = _grid_to_world(point)
+		var world_position: Vector2 = DungeonGrid.to_world_from_dict(point)
 		var variant_id: int = int(placement.get("variantId", -1))
 		var wall_frame: int = int(placement.get("wallFrame", -1))
 		var tile: Node2D = spawner.spawn_tile_from_scene_path(scene_path, world_position, variant_id, wall_frame)
@@ -754,17 +565,13 @@ func _spawn_generated_tiles(layout_data: DungeonLayoutData, level_manager: Node)
 	return {"ok": true}
 
 func _spawn_generated_monsters(layout_data: DungeonLayoutData, level_manager: Node) -> Dictionary:
-	var spawners: Array = get_tree().get_nodes_in_group("multiplayer_spawner")
-	if spawners.is_empty():
-		return {"ok": true}
-
-	var spawner: Node = spawners[0]
-	if not spawner.has_method("spawn_monster_from_scene_path"):
+	var spawner: Node = _multiplayer_spawner()
+	if spawner == null or not spawner.has_method("spawn_monster_from_scene_path"):
 		return {"ok": true}
 
 	for spawn in layout_data.monster_spawns:
 		var position_dict: Dictionary = spawn.get("position", {})
-		var world_position: Vector2 = _grid_to_world(position_dict)
+		var world_position: Vector2 = DungeonGrid.to_world_from_dict(position_dict)
 		var monster: Node2D = spawner.spawn_monster_from_scene_path(
 			str(spawn.get("monsterScenePath", "")),
 			world_position,
@@ -778,15 +585,8 @@ func _spawn_generated_monsters(layout_data: DungeonLayoutData, level_manager: No
 		"ok": true
 	}
 
-func _grid_to_world(point: Dictionary) -> Vector2:
-	var x: float = float(point.get("x", 0))
-	var y: float = float(point.get("y", 0))
-	return Vector2(x * 128.0, y * 128.0)
-
 func _smoke_check_generated_tiles(layout_data: DungeonLayoutData) -> void:
-	var walkable_set: Dictionary = {}
-	for cell in layout_data.walkable_cells:
-		walkable_set[cell] = true
+	var walkable_set: Dictionary = DungeonGrid.set_from(layout_data.walkable_cells)
 	var tiles: Array = get_tree().get_nodes_in_group("generated_dungeon_tiles")
 	var off_grid: int = 0
 	var ew_ok: int = 0
@@ -797,10 +597,11 @@ func _smoke_check_generated_tiles(layout_data: DungeonLayoutData) -> void:
 		var node: Node2D = tile
 		var px: int = int(round(node.position.x))
 		var py: int = int(round(node.position.y))
-		if px % 128 != 0 or py % 128 != 0:
+		var cell_px: int = int(DungeonGrid.CELL_PX)
+		if px % cell_px != 0 or py % cell_px != 0:
 			off_grid += 1
 		if "wall_type" in node:
-			var cell: Vector2i = Vector2i(int(round(node.position.x / 128.0)), int(round(node.position.y / 128.0)))
+			var cell: Vector2i = Vector2i(int(round(node.position.x / DungeonGrid.CELL_PX)), int(round(node.position.y / DungeonGrid.CELL_PX)))
 			var is_ew: bool = walkable_set.has(cell + Vector2i.RIGHT) or walkable_set.has(cell + Vector2i.LEFT)
 			if is_ew:
 				if int(node.wall_type) == 2:

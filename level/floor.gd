@@ -24,9 +24,19 @@ func _update_texture() -> void:
 		return
 	if not sprite_2d.texture is AtlasTexture:
 		return
+	(sprite_2d.texture as AtlasTexture).region = Rect2(_visual_frame() * 128, 0, 128, 128)
+
+
+func _visual_frame() -> int:
+	# 4x4 megatile sliced from a 512px seamless floor. Grid placement
+	# reconstructs it so adjacent cells do not share one repeating stamp.
+	var gx := int(round(position.x / 128.0))
+	var gy := int(round(position.y / 128.0))
+	if absf(position.x - float(gx * 128)) < 1.0 and absf(position.y - float(gy * 128)) < 1.0:
+		return posmod(gx, 4) + posmod(gy, 4) * 4
 	if floor_type < 0:
-		floor_type = randi_range(0, 9)
-	(sprite_2d.texture as AtlasTexture).region = Rect2(floor_type * 128, 0, 128, 128)
+		return randi_range(0, 15)
+	return clampi(floor_type, 0, 15)
 
 func _set_floor_type(_value: int) -> void:
 	floor_type = _value

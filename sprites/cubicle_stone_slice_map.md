@@ -2,40 +2,45 @@
 
 Tile size 128x128. `Rect2(type * 128, 0, 128, 128)`.
 
-## Floor `res://sprites/cubicle_stone_floor.png` (1280x128)
+Diablo 1 cathedral 3/4 tileset: dark gray small-brick caps, grimy south faces, cobble floor.
 
-All walkable. Frames 0-9 share the same cobble on the outer 8px so variants tile against 0/1. Paper/carpet/fluorescent live in the interior.
+## Floor `res://sprites/cubicle_stone_floor.png` (2048x128)
 
-| type | x | Role |
-|---|---|---|
-| 0 | 0 | room cobble |
-| 1 | 128 | hallway cobble |
-| 2-9 | 256-1152 | variants, cobble-edged |
+16 slices of a 512×512 seamless cathedral floor (4×4). `floor.gd` picks frame from cell `x%4 + (y%4)*4` so a 2×2 of rooms reconstructs the megatile instead of stamping one tile.
 
-Partitions: `cubicle_partitions.png`. Not walls. Not this strip.
+Wall sprites are transparent outside the cap/face so floor z-index never comes from a wall.
 
-## Wall `res://sprites/cubicle_stone_wall.png` (2176x128, 17 frames)
+## Wall `res://sprites/cubicle_stone_wall.png` (3584x128, 28 frames)
 
-Same small-brick + light cap as frame 0. West V occupies the right half (x~64-119). East V occupies the left half (x~8-63). Frame 4 is shadow only. Frames 0-14 unchanged; 15-16 appended.
+Centered 40px wall plan. South-exposed tops get a 44px face. Non-wall pixels are transparent. Frame 4 is shadow only. Frames 12-16 are east aliases of the centered V/corner art. 17-21 are T and +. Collision uses an H rect and a V rect from each frame's connections.
 
 | type | x | Kind |
 |---|---|---|
-| 0 | 0 | H middle (seamless) |
-| 1 | 128 | V middle west (N-S column, right half) |
-| 2 | 256 | L-corner Left-Down west |
-| 3 | 384 | L-corner Left-Up west |
-| 4 | 512 | shadow only. not a wall. wall.tscn Shadow stays Rect2(512,0,128,128) |
-| 5 | 640 | L-corner Right-Up |
-| 6 | 768 | L-corner Right-Down |
-| 7 | 896 | H left end-cap |
-| 8 | 1024 | H right end-cap |
-| 9 | 1152 | V top end-cap west (right-aligned) |
-| 10 | 1280 | V bottom end-cap west (right-aligned) |
+| 0 | 0 | H middle |
+| 1 | 128 | V middle |
+| 2 | 256 | L-corner W+S |
+| 3 | 384 | L-corner W+N |
+| 4 | 512 | shadow only. wall.tscn Shadow stays Rect2(512,0,128,128) |
+| 5 | 640 | L-corner E+N |
+| 6 | 768 | L-corner E+S |
+| 7 | 896 | H left end-cap (connects E) |
+| 8 | 1024 | H right end-cap (connects W) |
+| 9 | 1152 | V top end-cap (connects S) |
+| 10 | 1280 | V bottom end-cap (connects N) |
 | 11 | 1408 | spare H middle |
-| 12 | 1536 | V middle east (N-S column, left half, mirror of 1) |
-| 13 | 1664 | V top end-cap east (left-aligned, mirror of 9) |
-| 14 | 1792 | V bottom end-cap east (left-aligned, mirror of 10) |
-| 15 | 1920 | L-corner Left-Down east (NE against left-half V) |
-| 16 | 2048 | L-corner Left-Up east (SE against left-half V) |
+| 12 | 1536 | V middle (east alias of 1) |
+| 13 | 1664 | V top (east alias of 9) |
+| 14 | 1792 | V bottom (east alias of 10) |
+| 15 | 1920 | L-corner W+S (east alias of 2) |
+| 16 | 2048 | L-corner W+N (east alias of 3) |
+| 17 | 2176 | T stem north (N+E+W) |
+| 18 | 2304 | T stem east (N+S+E) |
+| 19 | 2432 | T stem south (S+E+W) |
+| 20 | 2560 | T stem west (N+S+W) |
+| 21 | 2688 | cross (+) |
+| 22 | 2816 | H left end north-hug (south wall of a room) |
+| 23 | 2944 | H right end north-hug |
 
-Pick: 0 H straight, 1 west V, 12 east V, 2/3 west LD/LU, 15/16 east LD/LU, 5/6 RU/RD, 7/8 H ends, 9/10 west V ends, 13/14 east V ends, skip 4. East wall of a room: 15 + 12-run + 16. `wall.gd` clamp to 16.
+H 0 = south-hug (north wall, against floor below). H 11 = north-hug (south wall, against floor above). V 1 = east-hug (west wall). V 12 = west-hug (east wall). Sprite offset matches floor `(0, -63)`. Skip 4.
+
+Inner (concave) corners 24-27 hug toward walkable when the floor is on the opposite diagonal from the outer L. `wall.gd` clamp to 27.

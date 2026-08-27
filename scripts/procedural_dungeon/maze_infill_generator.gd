@@ -1,5 +1,10 @@
 class_name MazeInfillGenerator extends RefCounted
 
+const DungeonGrid = preload("res://scripts/procedural_dungeon/dungeon_grid.gd")
+const PathValidator = preload("res://scripts/procedural_dungeon/path_validator.gd")
+
+var _path_validator: PathValidator = PathValidator.new()
+
 func generate_infill(
 	bounds: Rect2i,
 	room_regions: Array[Dictionary],
@@ -18,10 +23,10 @@ func generate_infill(
 		if str(region.get("role", "")) == "mid":
 			mid_count += 1
 		var center_raw: Variant = region.get("center", {})
-		if center_raw is Dictionary:
-			room_centers.append(Vector2i(int(center_raw.get("x", 0)), int(center_raw.get("y", 0))))
+		if center_raw is Dictionary or center_raw is Vector2i:
+			room_centers.append(DungeonGrid.cell_from(center_raw))
 		for point in region.get("cells", []):
-			room_set[_cell_from(point)] = true
+			room_set[DungeonGrid.cell_from(point)] = true
 
 	var deadend_count: int = clampi(mid_count, 1, 3)
 	var hallway_set: Dictionary = {}
@@ -36,7 +41,10 @@ func generate_infill(
 	for cell in hallway_set.keys():
 		walkable[cell] = true
 
-	var main_path: Dictionary = _bfs_path_set(entrance_cell, exit_cell, walkable)
+	var walkable_cells: Array[Vector2i] = []
+	for cell in walkable.keys():
+		walkable_cells.append(cell)
+	var main_path: Dictionary = _path_validator.build_shortest_path_set(entrance_cell, exit_cell, walkable_cells)
 	var rng: RandomNumberGenerator = RandomNumberGenerator.new()
 	rng.seed = seed
 
@@ -55,7 +63,7 @@ func generate_infill(
 				used_roots,
 				rng
 			)
-			if root == Vector2i(2147483647, 2147483647):
+			if root == DungeonGrid.SENTINEL:
 				break
 			used_roots[root] = true
 			var grown: Dictionary = _grow_deadend(
@@ -128,7 +136,7 @@ func _grow_deadend(
 		var options: Array[Vector2i] = []
 		var better: Array[Vector2i] = []
 		var current_d: int = _nearest_center_distance(current, room_centers)
-		for neighbor in _neighbors(current):
+		for neighbor in DungeonGrid.neighbors(current):
 			if not bounds.has_point(neighbor):
 				continue
 			if blocked.has(neighbor):
@@ -207,77 +215,29 @@ func _pick_root(
 	if pool.is_empty():
 		pool = any_hall
 	if pool.is_empty():
-		return Vector2i(2147483647, 2147483647)
+		return DungeonGrid.SENTINEL
 	return pool[rng.randi_range(0, pool.size() - 1)]
 
 func _door_neighbor_hallway_cells(room_set: Dictionary, hallway_set: Dictionary) -> Dictionary:
 	var result: Dictionary = {}
 	for room_cell in room_set.keys():
-		for neighbor in _neighbors(room_cell):
+		for neighbor in DungeonGrid.neighbors(room_cell):
 			if hallway_set.has(neighbor):
 				result[neighbor] = true
 	return result
 
-func _bfs_path_set(start_cell: Vector2i, exit_cell: Vector2i, walkable: Dictionary) -> Dictionary:
-	if not walkable.has(start_cell) or not walkable.has(exit_cell):
-		return {}
-	var queue: Array[Vector2i] = [start_cell]
-	var visited: Dictionary = {start_cell: true}
-	var parent: Dictionary = {}
-	var found: bool = false
-	while not queue.is_empty():
-		var current: Vector2i = queue.pop_front()
-		if current == exit_cell:
-			found = true
-			break
-		for neighbor in _neighbors(current):
-			if not walkable.has(neighbor) or visited.has(neighbor):
-				continue
-			visited[neighbor] = true
-			parent[neighbor] = current
-			queue.append(neighbor)
-	if not found:
-		return {}
-	var path: Dictionary = {}
-	var cursor: Vector2i = exit_cell
-	path[cursor] = true
-	while cursor != start_cell:
-		if not parent.has(cursor):
-			break
-		cursor = parent[cursor]
-		path[cursor] = true
-	return path
-
 func _nearest_center_distance(cell: Vector2i, centers: Array[Vector2i]) -> int:
 	var best: int = 1_000_000
 	for center in centers:
-		var d: int = maxi(absi(cell.x - center.x), absi(cell.y - center.y))
+		var d: int = DungeonGrid.chebyshev(cell, center)
 		if d < best:
 			best = d
 	return best
 
 func _build_deadend_region(index: int, center: Vector2i, cells: Array[Vector2i]) -> Dictionary:
-	var points: Array[Dictionary] = []
-	for cell in cells:
-		points.append({"x": cell.x, "y": cell.y})
 	return {
 		"roomId": "room_deadend_%d" % index,
 		"role": "deadend",
 		"center": {"x": center.x, "y": center.y},
-		"cells": points
+		"cells": DungeonGrid.points_to_dicts(cells)
 	}
-
-func _cell_from(raw_value: Variant) -> Vector2i:
-	if raw_value is Vector2i:
-		return raw_value
-	if raw_value is Dictionary:
-		return Vector2i(int(raw_value.get("x", 0)), int(raw_value.get("y", 0)))
-	return Vector2i.ZERO
-
-func _neighbors(cell: Vector2i) -> Array[Vector2i]:
-	return [
-		cell + Vector2i(1, 0),
-		cell + Vector2i(-1, 0),
-		cell + Vector2i(0, 1),
-		cell + Vector2i(0, -1)
-	]
