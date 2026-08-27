@@ -4,7 +4,7 @@ const MonsterCatalog = preload("res://scripts/procedural_dungeon/monster_catalog
 const TileCatalog = preload("res://scripts/procedural_dungeon/tile_catalog.gd")
 
 const FLOOR_Z_INDEX := -1
-const WALL_Z_INDEX := 1
+const WALL_Z_INDEX := 0
 
 @export var network_player: PackedScene
 @export var dm_player: PackedScene

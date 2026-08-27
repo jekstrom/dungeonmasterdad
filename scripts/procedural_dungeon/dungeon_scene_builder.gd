@@ -4,7 +4,7 @@ const TileCatalog = preload("res://scripts/procedural_dungeon/tile_catalog.gd")
 const DungeonLayoutData = preload("res://scripts/procedural_dungeon/resources/dungeon_layout_data.gd")
 
 const FLOOR_Z_INDEX := -1
-const WALL_Z_INDEX := 1
+const WALL_Z_INDEX := 0
 
 var _tile_catalog: TileCatalog = TileCatalog.new()
 

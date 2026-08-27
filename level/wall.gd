@@ -1,7 +1,7 @@
 @tool
 class_name WallDoodad extends Node2D
 
-const WALL_Z_INDEX := 1
+const WALL_Z_INDEX := 0
 
 @export var wall_type: int = -1: set = _set_wall_type
 @onready var sprite_2d: Sprite2D = $StaticBody/Sprite2D
@@ -10,11 +10,13 @@ const WALL_Z_INDEX := 1
 
 func _enter_tree() -> void:
 	z_index = WALL_Z_INDEX
+	y_sort_enabled = true
 	if Engine.is_editor_hint():
 		_ensure_unique_texture()
 
 func _ready() -> void:
 	z_index = WALL_Z_INDEX
+	y_sort_enabled = true
 	_ensure_unique_texture()
 	_update_texture()
 	if Engine.is_editor_hint():

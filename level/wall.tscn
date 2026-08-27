@@ -23,7 +23,7 @@ properties/1/spawn = true
 properties/1/replication_mode = 0
 
 [node name="Wall" type="Node2D"]
-z_index = 1
+y_sort_enabled = true
 script = ExtResource("1_sklim")
 wall_type = 1
 
@@ -32,13 +32,11 @@ collision_layer = 16
 collision_mask = 0
 
 [node name="Sprite2D" type="Sprite2D" parent="StaticBody"]
-y_sort_enabled = true
 position = Vector2(0, -63)
 texture = SubResource("AtlasTexture_sklim")
 
 [node name="Shadow" type="Sprite2D" parent="StaticBody"]
 modulate = Color(1, 1, 1, 0.22745098)
-z_index = 2
 position = Vector2(0, -80)
 scale = Vector2(1, 0.2265625)
 texture = SubResource("AtlasTexture_uccme")
