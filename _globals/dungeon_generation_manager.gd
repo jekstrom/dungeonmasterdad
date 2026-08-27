@@ -585,6 +585,12 @@ func _build_tile_placements(layout_data: DungeonLayoutData, walkable_set: Dictio
 	for cell in layout_data.blocked_cells:
 		if _is_occupancy_adjacent(cell, walkable_set):
 			wall_set[cell] = true
+	# Outer corners are diagonal to walkable, so occupancy-adjacent misses them
+	# and leaves a gap between a straight run and the 2/8 return. Snap those
+	# cells onto the shell when two occupancy walls already form an L.
+	for cell in layout_data.blocked_cells:
+		if _is_shell_corner_cell(cell, walkable_set, wall_set):
+			wall_set[cell] = true
 	for cell in wall_set:
 		placements.append({
 			"position": {"x": cell.x, "y": cell.y},
@@ -603,6 +609,26 @@ func _is_occupancy_adjacent(cell: Vector2i, walkable_set: Dictionary) -> bool:
 		or walkable_set.has(cell + Vector2i.UP)
 		or walkable_set.has(cell + Vector2i.DOWN)
 	)
+
+func _is_shell_corner_cell(cell: Vector2i, walkable_set: Dictionary, wall_set: Dictionary) -> bool:
+	if walkable_set.has(cell) or wall_set.has(cell):
+		return false
+	var wall_n: bool = wall_set.has(cell + Vector2i.UP)
+	var wall_s: bool = wall_set.has(cell + Vector2i.DOWN)
+	var wall_e: bool = wall_set.has(cell + Vector2i.RIGHT)
+	var wall_w: bool = wall_set.has(cell + Vector2i.LEFT)
+	if not ((wall_e or wall_w) and (wall_n or wall_s)):
+		return false
+	# Inside of the L must be walkable so we do not fill hollow blocked space.
+	if wall_e and wall_s and walkable_set.has(cell + Vector2i.RIGHT + Vector2i.DOWN):
+		return true
+	if wall_w and wall_s and walkable_set.has(cell + Vector2i.LEFT + Vector2i.DOWN):
+		return true
+	if wall_e and wall_n and walkable_set.has(cell + Vector2i.RIGHT + Vector2i.UP):
+		return true
+	if wall_w and wall_n and walkable_set.has(cell + Vector2i.LEFT + Vector2i.UP):
+		return true
+	return false
 
 func _wall_type_for_cell(cell: Vector2i, walkable_set: Dictionary) -> int:
 	# Type 2 is the vertical collider so east/west occupancy edges actually block.
@@ -631,8 +657,13 @@ func _wall_frame_for_cell(cell: Vector2i, walkable_set: Dictionary, wall_set: Di
 	# Inner corner: occupancy on two perpendicular axes.
 	if walk_h and walk_v:
 		return 2
-	# Outer corner: wall run turns without being an inner occupancy corner.
+	# Outer / return: Art 2 is left return, 8 is right return. Sit on the
+	# actual wall end so a straight 0 run meets the corner with no empty cell.
 	if wall_h and wall_v:
+		if wall_e and not wall_w:
+			return 2
+		if wall_w and not wall_e:
+			return 8
 		return 8
 	# Horizontal run ends (N/S occupancy). Vertical runs stay on the middle tile.
 	if not walk_h:
