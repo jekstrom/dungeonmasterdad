@@ -671,10 +671,12 @@ func _wall_frame_for_cell(cell: Vector2i, walkable_set: Dictionary, wall_set: Di
 	if v_count == 2 and h_count == 0:
 		return 12 if east_v else 1
 	if h_count == 1 and v_count == 1:
+		# Corner cell is wall-west, so it cannot also be walkable-west.
+		# Face 15/16 from the V neighbor, which is the east 12-run.
 		if w and s:
-			return 15 if east_v else 2
+			return 15 if _is_east_v_wall(cell + Vector2i.DOWN, walkable_set) else 2
 		if w and n:
-			return 16 if east_v else 3
+			return 16 if _is_east_v_wall(cell + Vector2i.UP, walkable_set) else 3
 		if e and n:
 			return 5
 		if e and s:
