@@ -111,6 +111,7 @@ func commit_generated_dungeon_stage() -> void:
 	_live_generated_nodes = _staged_generated_nodes.duplicate()
 	_staged_generated_nodes.clear()
 	generated_dungeon_container = _first_valid_node(_live_generated_nodes)
+	_sync_generated_tiles_to_clients()
 
 func rollback_generated_dungeon_stage() -> void:
 	if not multiplayer.is_server():
@@ -141,6 +142,14 @@ func clear_generated_dungeon_container() -> void:
 	if generated_dungeon_container and is_instance_valid(generated_dungeon_container):
 		generated_dungeon_container.queue_free()
 	generated_dungeon_container = null
+
+func _sync_generated_tiles_to_clients() -> void:
+	var spawners: Array = get_tree().get_nodes_in_group("multiplayer_spawner")
+	if spawners.is_empty():
+		return
+	var spawner: Node = spawners[0]
+	if spawner.has_method("sync_generated_tiles_to_peers"):
+		spawner.sync_generated_tiles_to_peers()
 
 func _first_valid_node(nodes: Array[Node]) -> Node2D:
 	for node in nodes:

@@ -41,8 +41,10 @@ func _on_connected_to_server() -> void:
 	set_multiplayer_authority(1)
 	on_connected_ok()
 
-func _on_peer_connected_authority(_id: int) -> void:
+func _on_peer_connected_authority(id: int) -> void:
 	set_multiplayer_authority(1)
+	if multiplayer.is_server():
+		sync_generated_tiles_to_peer(id)
 
 func on_connected_ok():
 	var id = multiplayer.get_unique_id()
@@ -138,7 +140,24 @@ func spawn_monster_from_scene_path(scene_path: String, world_position: Vector2, 
 func spawn_tile_from_scene_path(scene_path: String, world_position: Vector2, variant_id: int = -1, wall_frame: int = -1) -> Node2D:
 	if !multiplayer.is_server():
 		return null
+	# Generated floor/wall stay off MultiplayerSpawner auto-spawn. Tracking them
+	# makes the joining client hit _update_spawn_visibility without authority
+	# (ERR_BUG ~once per tile). Server instantiates locally; clients get a
+	# replace RPC at commit / peer connect.
+	return _instantiate_generated_tile(scene_path, world_position, variant_id, wall_frame)
 
+func _generated_tile_name(scene_path: String, world_position: Vector2) -> String:
+	var gx := int(round(world_position.x / 128.0))
+	var gy := int(round(world_position.y / 128.0))
+	var prefix := "gw" if scene_path.ends_with("wall.tscn") else "gf"
+	return "%s_%d_%d" % [prefix, gx, gy]
+
+func _disable_generated_tile_sync(tile: Node) -> void:
+	var sync := tile.get_node_or_null("MultiplayerSynchronizer")
+	if sync:
+		sync.public_visibility = false
+
+func _instantiate_generated_tile(scene_path: String, world_position: Vector2, variant_id: int, wall_frame: int) -> Node2D:
 	if scene_path.is_empty() or not _tile_catalog.is_approved_scene_path(scene_path):
 		push_warning("MultiplayerSpawner: tile scene path is not in catalog: %s" % scene_path)
 		return null
@@ -153,8 +172,10 @@ func spawn_tile_from_scene_path(scene_path: String, world_position: Vector2, var
 		push_warning("MultiplayerSpawner: failed to instantiate tile scene: %s" % scene_path)
 		return null
 
+	tile.name = _generated_tile_name(scene_path, world_position)
 	tile.position = world_position
 	tile.add_to_group("generated_dungeon_tiles")
+	_disable_generated_tile_sync(tile)
 	if "wall_type" in tile:
 		if variant_id >= 0:
 			tile.wall_type = 2 if variant_id == 2 else 1
@@ -166,8 +187,75 @@ func spawn_tile_from_scene_path(scene_path: String, world_position: Vector2, var
 			tile.floor_type = clampi(variant_id, 0, 1)
 		tile.z_index = FLOOR_Z_INDEX
 
-	get_node(spawn_path).add_child(tile, true)
+	var parent: Node = get_node(spawn_path)
+	var existing: Node = parent.get_node_or_null(tile.name)
+	if existing:
+		existing.remove_from_group("generated_dungeon_tiles")
+		parent.remove_child(existing)
+		existing.queue_free()
+	parent.add_child(tile, false)
 	return tile
+
+func _generated_tiles_payload() -> Array:
+	var payload: Array = []
+	for node in get_tree().get_nodes_in_group("generated_dungeon_tiles"):
+		if not (node is Node2D) or not is_instance_valid(node):
+			continue
+		var tile: Node2D = node
+		var scene_path := tile.scene_file_path
+		if scene_path.is_empty():
+			continue
+		var variant_id := -1
+		var wall_frame := -1
+		if "wall_type" in tile:
+			variant_id = int(tile.wall_type)
+			if "wall_frame" in tile:
+				wall_frame = int(tile.wall_frame)
+		elif "floor_type" in tile:
+			variant_id = int(tile.floor_type)
+		payload.append({
+			"p": scene_path,
+			"n": tile.name,
+			"x": tile.position.x,
+			"y": tile.position.y,
+			"v": variant_id,
+			"f": wall_frame,
+		})
+	return payload
+
+func sync_generated_tiles_to_peers() -> void:
+	if not multiplayer.is_server():
+		return
+	_rpc_replace_generated_tiles.rpc(_generated_tiles_payload())
+
+func sync_generated_tiles_to_peer(peer_id: int) -> void:
+	if not multiplayer.is_server():
+		return
+	_rpc_replace_generated_tiles.rpc_id(peer_id, _generated_tiles_payload())
+
+func _clear_generated_tiles_local() -> void:
+	for node in get_tree().get_nodes_in_group("generated_dungeon_tiles"):
+		if not is_instance_valid(node):
+			continue
+		node.remove_from_group("generated_dungeon_tiles")
+		var node_parent: Node = node.get_parent()
+		if node_parent:
+			node_parent.remove_child(node)
+		node.queue_free()
+
+@rpc("authority", "reliable")
+func _rpc_replace_generated_tiles(payload: Array) -> void:
+	if multiplayer.is_server():
+		return
+	_clear_generated_tiles_local()
+	for item in payload:
+		if typeof(item) != TYPE_DICTIONARY:
+			continue
+		var scene_path := str(item.get("p", ""))
+		var world_position := Vector2(float(item.get("x", 0.0)), float(item.get("y", 0.0)))
+		var variant_id := int(item.get("v", -1))
+		var wall_frame := int(item.get("f", -1))
+		_instantiate_generated_tile(scene_path, world_position, variant_id, wall_frame)
 
 func spawn_host_player(player_name: String) -> void:
 	if !multiplayer.is_server(): return

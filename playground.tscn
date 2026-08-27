@@ -39,7 +39,7 @@ position = Vector2(183, 74)
 base_radius = 500.0
 
 [node name="MultiplayerSpawner" type="MultiplayerSpawner" parent="." unique_id=1543425005]
-_spawnable_scenes = PackedStringArray("uid://cof1o04wsy0rc", "uid://dsls3d0radb5f", "uid://c5avpnnd3seqn", "uid://bebn5r64gbvmg", "uid://dkgdpjfkuciox", "uid://ctdmthnldmbyy", "uid://df2uqi8ynwtas")
+_spawnable_scenes = PackedStringArray("uid://cof1o04wsy0rc", "uid://dsls3d0radb5f", "uid://c5avpnnd3seqn", "uid://bebn5r64gbvmg", "uid://dkgdpjfkuciox")
 spawn_path = NodePath("..")
 script = ExtResource("5_o00ia")
 network_player = ExtResource("4_is3ju")
