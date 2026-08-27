@@ -581,14 +581,17 @@ func _build_tile_placements(layout_data: DungeonLayoutData, walkable_set: Dictio
 			"variantId": variant_id
 		})
 
+	var wall_set: Dictionary = {}
 	for cell in layout_data.blocked_cells:
-		if not _is_occupancy_adjacent(cell, walkable_set):
-			continue
+		if _is_occupancy_adjacent(cell, walkable_set):
+			wall_set[cell] = true
+	for cell in wall_set:
 		placements.append({
 			"position": {"x": cell.x, "y": cell.y},
 			"tileRole": "wall",
 			"tileSourcePath": _tile_catalog.get_wall_scene_path(),
-			"variantId": _wall_type_for_cell(cell, walkable_set)
+			"variantId": _wall_type_for_cell(cell, walkable_set),
+			"wallFrame": _wall_frame_for_cell(cell, walkable_set, wall_set)
 		})
 
 	return placements
@@ -608,6 +611,37 @@ func _wall_type_for_cell(cell: Vector2i, walkable_set: Dictionary) -> int:
 	if has_east or has_west:
 		return 2
 	return 1
+
+func _wall_frame_for_cell(cell: Vector2i, walkable_set: Dictionary, wall_set: Dictionary) -> int:
+	# Atlas indices from cubicle_stone_wall.png. Collider stays in wall_type.
+	# 0 seamless H middle, 3 left cap, 5 right cap, 2 inner corner, 8 outer corner.
+	# Skip 4 (shadow source). 1/6/7/9 are optional middles; generated walls use 0.
+	var wall_n: bool = wall_set.has(cell + Vector2i.UP)
+	var wall_s: bool = wall_set.has(cell + Vector2i.DOWN)
+	var wall_e: bool = wall_set.has(cell + Vector2i.RIGHT)
+	var wall_w: bool = wall_set.has(cell + Vector2i.LEFT)
+	var walk_n: bool = walkable_set.has(cell + Vector2i.UP)
+	var walk_s: bool = walkable_set.has(cell + Vector2i.DOWN)
+	var walk_e: bool = walkable_set.has(cell + Vector2i.RIGHT)
+	var walk_w: bool = walkable_set.has(cell + Vector2i.LEFT)
+	var walk_h: bool = walk_e or walk_w
+	var walk_v: bool = walk_n or walk_s
+	var wall_h: bool = wall_e or wall_w
+	var wall_v: bool = wall_n or wall_s
+	# Inner corner: occupancy on two perpendicular axes.
+	if walk_h and walk_v:
+		return 2
+	# Outer corner: wall run turns without being an inner occupancy corner.
+	if wall_h and wall_v:
+		return 8
+	# Horizontal run ends (N/S occupancy). Vertical runs stay on the middle tile.
+	if not walk_h:
+		if wall_e and not wall_w:
+			return 3
+		if wall_w and not wall_e:
+			return 5
+		return 0
+	return 0
 
 func _commit_layout_to_world(layout_data: DungeonLayoutData) -> Dictionary:
 	if not multiplayer.is_server():
@@ -659,7 +693,8 @@ func _spawn_generated_tiles(layout_data: DungeonLayoutData, level_manager: Node)
 		var point: Dictionary = placement.get("position", {})
 		var world_position: Vector2 = _grid_to_world(point)
 		var variant_id: int = int(placement.get("variantId", -1))
-		var tile: Node2D = spawner.spawn_tile_from_scene_path(scene_path, world_position, variant_id)
+		var wall_frame: int = int(placement.get("wallFrame", -1))
+		var tile: Node2D = spawner.spawn_tile_from_scene_path(scene_path, world_position, variant_id, wall_frame)
 		if not tile:
 			return _error_response(layout_data.request_id, DungeonGenerationTypes.FAILURE_LAYOUT_INFEASIBLE, "Failed to spawn one or more tiles")
 		level_manager.register_staged_generated_node(tile)

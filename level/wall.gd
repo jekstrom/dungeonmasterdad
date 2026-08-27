@@ -3,7 +3,10 @@ class_name WallDoodad extends Node2D
 
 const WALL_Z_INDEX := 0
 
+# wall_type is the collider: 1 = horizontal, 2 = vertical (generator contract).
+# wall_frame is the atlas index from cubicle_stone_wall.png. 4 is shadow-only.
 @export var wall_type: int = -1: set = _set_wall_type
+@export var wall_frame: int = -1: set = _set_wall_frame
 @onready var sprite_2d: Sprite2D = $StaticBody/Sprite2D
 @onready var collision_shape_2d: CollisionShape2D = $StaticBody/CollisionShape2D
 @onready var shadow: Sprite2D = $StaticBody/Shadow
@@ -29,11 +32,9 @@ func _update_texture() -> void:
 	if not sprite_2d.texture is AtlasTexture:
 		return
 	if wall_type < 0:
-		# Skip 2 (EW vertical collider) and 4 (shadow source, not a wall).
-		# Generator-written 1 and 2 stay as-is.
-		var options: Array[int] = [0, 1, 3, 5, 6, 7, 8, 9]
-		wall_type = options[randi() % options.size()]
-	if wall_type == 2: #vertical
+		wall_type = 1
+	var vertical: bool = wall_type == 2
+	if vertical:
 		collision_shape_2d.position = Vector2(32, -64)
 		collision_shape_2d.rotation_degrees = 90.0
 		var shape = RectangleShape2D.new()
@@ -49,10 +50,32 @@ func _update_texture() -> void:
 		collision_shape_2d.shape = shape
 		if shadow:
 			shadow.visible = true
-	(sprite_2d.texture as AtlasTexture).region = Rect2(wall_type * 128, 0, 128, 128)
+	var frame: int = _resolved_frame()
+	(sprite_2d.texture as AtlasTexture).region = Rect2(frame * 128, 0, 128, 128)
+
+func _resolved_frame() -> int:
+	var frame: int = wall_frame
+	if frame == 4:
+		frame = 0
+	if frame < 0:
+		# Playground instances: type 2 was the old end-on visual. Generated
+		# walls always set wall_frame. Unset random is middles only.
+		if wall_type == 2:
+			frame = 2
+		else:
+			frame = 0
+	return clampi(frame, 0, 9)
 
 func _set_wall_type(_value: int) -> void:
 	wall_type = _value
+	if not is_inside_tree() or not _resolve_sprite():
+		if Engine.is_editor_hint():
+			call_deferred("_apply_wall_type")
+		return
+	_apply_wall_type()
+
+func _set_wall_frame(_value: int) -> void:
+	wall_frame = _value
 	if not is_inside_tree() or not _resolve_sprite():
 		if Engine.is_editor_hint():
 			call_deferred("_apply_wall_type")
@@ -96,4 +119,4 @@ func _smoke_generated_tile() -> void:
 	var px := int(round(position.x))
 	var py := int(round(position.y))
 	if px % 128 != 0 or py % 128 != 0:
-		push_warning("WallDoodad: generated tile off-grid at %s wall_type=%d (peer=%d)" % [position, wall_type, multiplayer.get_unique_id()])
+		push_warning("WallDoodad: generated tile off-grid at %s wall_type=%d wall_frame=%d (peer=%d)" % [position, wall_type, wall_frame, multiplayer.get_unique_id()])

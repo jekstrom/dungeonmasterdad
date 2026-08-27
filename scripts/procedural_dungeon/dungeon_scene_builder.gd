@@ -52,7 +52,11 @@ func build_container(layout_data: DungeonLayoutData) -> Dictionary:
 				var wall_type: int = variant_id
 				if wall_type < 0:
 					wall_type = 1
-				tile_node.wall_type = clampi(wall_type, 0, 3)
+				tile_node.wall_type = 2 if wall_type == 2 else 1
+			if "wall_frame" in tile_node:
+				var wall_frame: int = int(placement.get("wallFrame", -1))
+				if wall_frame >= 0:
+					tile_node.wall_frame = wall_frame
 			tile_node.z_index = WALL_Z_INDEX
 			tile_node.add_to_group("wall")
 		else:

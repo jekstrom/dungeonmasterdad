@@ -1,79 +1,40 @@
 # Cubicle-stone slice map
 
-Drop-in for `level/floor.tscn` and `level/wall.tscn`. Do not rewrite the generator. Do not treat cubicle partitions as walls.
+Tile size: **128 x 128**. UV: `Rect2(type * 128, 0, 128, 128)`.
 
-`doodads/dungeon.tres` (`autotile_template.png`) is a leftover Godot TileSet. The generator does not use it. Leave it.
+## Floor — `res://sprites/cubicle_stone_floor.png` (1280 x 128)
 
-## Files
+All walkable. Generator 0=room, 1=hallway.
 
-| Path | Size | Use |
+| type | x | Role |
 |---|---|---|
-| `res://sprites/cubicle_stone_floor.png` | 1280 x 128 | `floor.tscn` Sprite2D atlas |
-| `res://sprites/cubicle_stone_wall.png` | 1280 x 128 | `wall.tscn` Sprite2D + Shadow atlas |
-| `res://sprites/cubicle_partitions.png` | 512 x 128 | doodads only, later. NOT walls. NOT generator floor_type |
+| 0 | 0 | room / entrance / exit |
+| 1 | 128 | hallway |
+| 2–9 | 256–1152 | walkable variants |
 
-Tile size: **128 x 128**. Same UV math as today:
+Cubicle partitions are NOT on this strip. See `cubicle_partitions.png`. Doodads only. Not walls.
 
-```
-region = Rect2(type * 128, 0, 128, 128)
-```
+## Wall — `res://sprites/cubicle_stone_wall.png` (1280 x 128)
 
-Nearest-neighbor. Project already has `default_texture_filter=0`.
+Overwrite of the dual-end-cap strip. Neighbor-based pick:
 
-## Floor (`cubicle_stone_floor.png`)
-
-All 10 frames are **walkable**. No collision. Generator today only writes 0 and 1. Frames 2–9 exist so `floor.gd` `randi_range(0, 9)` is no longer junk UVs.
-
-| type | x | Role | Look |
+| type | x | Kind | Place when |
 |---|---|---|---|
-| 0 | 0 | room / entrance / exit (generator) | plain cobble |
-| 1 | 128 | hallway (generator) | cobble + paper specks |
-| 2 | 256 | walkable variant | coffee stains |
-| 3 | 384 | walkable variant | papers |
-| 4 | 512 | walkable variant | fluorescent strip |
-| 5 | 640 | walkable variant | moss |
-| 6 | 768 | walkable variant | beige carpet |
-| 7 | 896 | walkable variant | PAPER FIRM rug |
-| 8 | 1024 | walkable variant | drain |
-| 9 | 1152 | walkable variant | green puddle |
+| **0** | 0 | **seamless horizontal middle** | straight E/W run (default) |
+| 1 | 128 | seamless H middle variant | straight E/W variant |
+| **2** | 256 | **inner-corner / end-on** | actual inner corners only |
+| **3** | 384 | **left end-cap** | west end of a straight run |
+| 4 | 512 | shadow source only | `wall.tscn` Shadow `Rect2(512,0,128,128)`. Not a wall. |
+| **5** | 640 | **right end-cap** | east end of a straight run |
+| 6 | 768 | moss middle | straight variant |
+| 7 | 896 | window middle | straight variant |
+| **8** | 1024 | **outer corner** | actual outer corners only |
+| 9 | 1152 | skull middle | straight variant |
 
-## Wall (`cubicle_stone_wall.png`)
+Do not place 2 or 8 on straight runs. Do not place 0/1/6/7/9 as corners. Skip 4 for wall instances.
 
-All frames except type 4 are **blocking** (`StaticBody2D`, existing colliders). Type 4 is the **shadow sprite source only** (`wall.tscn` Shadow region `Rect2(512, 0, 128, 128)`).
+Y-sort is GP (`339e8a8`). Art does not set `z_index=1`.
 
-Generator today: non-EW occupancy-adjacent → `wall_type = 1`. E/W walkable neighbor → `wall_type = 2` (vertical collider in `wall.gd`). Do not change that.
+## Partitions — `res://sprites/cubicle_partitions.png`
 
-| type | x | Blocking | Look |
-|---|---|---|---|
-| 0 | 0 | yes, horizontal collider | clean standard |
-| 1 | 128 | yes, horizontal collider (generator default) | standard + small crack |
-| 2 | 256 | yes, **vertical collider** (generator EW) | inner-corner / end-on |
-| 3 | 384 | yes, horizontal collider | damaged fissure |
-| 4 | 512 | **no** (shadow texture only) | top-down cobble, flattened by existing Shadow node |
-| 5 | 640 | yes | note pinned |
-| 6 | 768 | yes | moss |
-| 7 | 896 | yes | barred window |
-| 8 | 1024 | yes | outer corner |
-| 9 | 1152 | yes | skull pillar |
-
-`wall.gd` `randi_range(0, 9)` is now in-bounds. Prefer keeping generator on 1 and 2 so colliders stay correct. Random 0–9 can pick type 2 (vertical collider) on a horizontal edge, or type 4 (flat cobble) as a "wall" visual. If you still randomize, skip 2 and 4.
-
-## Cubicle partitions (`cubicle_partitions.png`)
-
-These sat on the concept atlas floor row. **Do not map them to `wall.tscn`.** They will z-fight with occupancy walls.
-
-| type | x | Layer | Collision |
-|---|---|---|---|
-| 0 | 0 | floor doodad / y-sorted obstacle | own low collider later, not wall |
-| 1 | 128 | same | same |
-| 2 | 256 | same | same |
-| 3 | 384 | same | same |
-
-Looks: corner, straight, T-junction, doorway gap. Out of v1 generator catalog (no trees/buildings/doodads in v1). Ship the PNG so they exist. Do not instance them in this swap.
-
-## Swap
-
-1. `level/floor.tscn` `ExtResource` texture → `res://sprites/cubicle_stone_floor.png`. Keep AtlasTexture `Rect2(0, 0, 128, 128)`.
-2. `level/wall.tscn` both AtlasTextures → `res://sprites/cubicle_stone_wall.png`. Sprite region stays `Rect2(0, 0, 128, 128)` (script overwrites from `wall_type`). Shadow stays `Rect2(512, 0, 128, 128)`.
-3. Leave `floor.gd` / `wall.gd` / generator math alone.
-4. Do not touch `doodads/dungeon.tres`.
+Out of v1. Not walls.

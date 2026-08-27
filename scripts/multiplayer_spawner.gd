@@ -135,7 +135,7 @@ func spawn_monster_from_scene_path(scene_path: String, world_position: Vector2, 
 	get_node(spawn_path).add_child(monster, true)
 	return monster
 
-func spawn_tile_from_scene_path(scene_path: String, world_position: Vector2, variant_id: int = -1) -> Node2D:
+func spawn_tile_from_scene_path(scene_path: String, world_position: Vector2, variant_id: int = -1, wall_frame: int = -1) -> Node2D:
 	if !multiplayer.is_server():
 		return null
 
@@ -157,7 +157,9 @@ func spawn_tile_from_scene_path(scene_path: String, world_position: Vector2, var
 	tile.add_to_group("generated_dungeon_tiles")
 	if "wall_type" in tile:
 		if variant_id >= 0:
-			tile.wall_type = clampi(variant_id, 0, 3)
+			tile.wall_type = 2 if variant_id == 2 else 1
+		if "wall_frame" in tile and wall_frame >= 0:
+			tile.wall_frame = wall_frame
 		tile.z_index = WALL_Z_INDEX
 	elif "floor_type" in tile:
 		if variant_id >= 0:
