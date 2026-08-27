@@ -207,6 +207,15 @@ func _release_contract_session(success: bool) -> void:
 	else:
 		generation_state = DungeonGenerationTypes.GenerationLifecycleState.REJECTED
 
+func get_entrance_world_position() -> Vector2:
+	if active_layout_id.is_empty() or not layouts_by_id.has(active_layout_id):
+		return Vector2.INF
+	var layout: DungeonLayoutData = layouts_by_id[active_layout_id]
+	if layout == null:
+		return Vector2.INF
+	return DungeonGrid.to_world(layout.entrance_cell)
+
+
 func _get_level_manager() -> Node:
 	var current_scene: Node = get_tree().current_scene
 	if current_scene and current_scene.has_method("begin_generated_dungeon_stage"):

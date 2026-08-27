@@ -48,12 +48,12 @@ func _try_generate_canonical_dungeon() -> void:
 
 	_canonical_dungeon_requested = true
 	var payload: Dictionary = {
-		"requestId": "playground-canonical",
-		"startPosition": {"x": 2, "y": 2},
-		"exitPosition": {"x": 16, "y": 16},
+		"requestId": "playground-canonical-2",
+		"startPosition": {"x": 4, "y": 4},
+		"exitPosition": {"x": 24, "y": 24},
 		"generationBounds": {
 			"origin": {"x": 0, "y": 0},
-			"size": {"x": 24, "y": 24}
+			"size": {"x": 64, "y": 64}
 		},
 		"profileId": "standard"
 	}

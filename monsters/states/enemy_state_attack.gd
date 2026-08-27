@@ -24,7 +24,6 @@ func exit() -> void:
 func process(_delta: float) -> EnemyState:
 	if DmManager.dm and enemy_node and DmManager.dm.position.distance_to(enemy_node.position) < 200:
 		_direction = enemy_node.position.direction_to(DmManager.dm.position)
-		print("attack")
 		enemy.velocity = _direction * walk_speed
 		enemy.SetDirection(_direction)
 		return null

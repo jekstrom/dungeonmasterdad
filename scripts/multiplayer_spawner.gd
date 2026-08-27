@@ -37,6 +37,8 @@ func _ready() -> void:
 		Lobby.host_started.connect(spawn_host_player)
 		DmManager.spawn_gremlin_cast.connect(spawn_gremlin)
 		DmManager.spawn_knight_cast.connect(spawn_knight)
+		if not SignalBus.dungeon_generation_succeeded.is_connected(_on_dungeon_generation_succeeded):
+			SignalBus.dungeon_generation_succeeded.connect(_on_dungeon_generation_succeeded)
 
 func _on_connected_to_server() -> void:
 	set_multiplayer_authority(1)
@@ -258,6 +260,31 @@ func _rpc_replace_generated_tiles(payload: Array) -> void:
 		var wall_frame := int(item.get("f", -1))
 		_instantiate_generated_tile(scene_path, world_position, variant_id, wall_frame)
 
+func _on_dungeon_generation_succeeded(_request_id: String, _layout_id: String) -> void:
+	_place_dm_at_entrance()
+
+
+func _place_dm_at_entrance() -> void:
+	var dm: Node = get_tree().get_first_node_in_group("dm")
+	_place_dm_node_at_entrance(dm)
+
+
+func _place_dm_node_at_entrance(dm: Node) -> void:
+	if not (dm is Node2D):
+		return
+	var spawn_position: Vector2 = _entrance_world_position()
+	if not spawn_position.is_finite():
+		return
+	(dm as Node2D).position = spawn_position
+
+
+func _entrance_world_position() -> Vector2:
+	var manager: Node = get_node_or_null("/root/DungeonGenerationManager")
+	if manager == null or not manager.has_method("get_entrance_world_position"):
+		return Vector2.INF
+	return manager.get_entrance_world_position()
+
+
 func spawn_host_player(player_name: String) -> void:
 	if !multiplayer.is_server(): return
 	
@@ -268,9 +295,10 @@ func spawn_host_player(player_name: String) -> void:
 	var dm: Node = dm_player.instantiate()
 	dm.name = "dm"
 	DmManager.dm_player_name = player_name
-	
-	get_node(spawn_path).call_deferred("add_child", dm)
 	dm.add_to_group("dm")
+	_place_dm_node_at_entrance(dm)
+	get_node(spawn_path).call_deferred("add_child", dm)
+	call_deferred("_place_dm_at_entrance")
 	PlayerManager.register_player(1, player_name)
 	
 	for i in range(0, 10):  # Reduced number for testing

@@ -14,7 +14,7 @@ const DungeonGrid = preload("res://scripts/procedural_dungeon/dungeon_grid.gd")
 @export var main_path_cells: Array[Vector2i] = []
 @export var tile_placements: Array[Dictionary] = []
 @export var monster_spawns: Array[Dictionary] = []
-@export var generation_seed: int = 0
+@export var generation_seed: int = 100
 
 func validate() -> Dictionary:
 	if layout_id.strip_edges().is_empty():
