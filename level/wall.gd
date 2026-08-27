@@ -27,7 +27,10 @@ func _update_texture() -> void:
 	if not sprite_2d.texture is AtlasTexture:
 		return
 	if wall_type < 0:
-		wall_type = randi_range(0, 9)
+		# Skip 2 (EW vertical collider) and 4 (shadow source, not a wall).
+		# Generator-written 1 and 2 stay as-is.
+		var options: Array[int] = [0, 1, 3, 5, 6, 7, 8, 9]
+		wall_type = options[randi() % options.size()]
 	if wall_type == 2: #vertical
 		collision_shape_2d.position = Vector2(32, -64)
 		collision_shape_2d.rotation_degrees = 90.0

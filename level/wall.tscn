@@ -1,6 +1,6 @@
 [gd_scene load_steps=7 format=3 uid="uid://df2uqi8ynwtas"]
 
-[ext_resource type="Texture2D" uid="uid://cm642x1dq6ssx" path="res://sprites/wall1.png" id="1_kyd43"]
+[ext_resource type="Texture2D" uid="uid://bfgvyttq7x4g7" path="res://sprites/cubicle_stone_wall.png" id="1_kyd43"]
 [ext_resource type="Script" uid="uid://ytgqag3p0d50" path="res://level/wall.gd" id="1_sklim"]
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_sklim"]

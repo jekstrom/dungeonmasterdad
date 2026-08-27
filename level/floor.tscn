@@ -1,7 +1,7 @@
 [gd_scene load_steps=5 format=3 uid="uid://ctdmthnldmbyy"]
 
 [ext_resource type="Script" uid="uid://cyssv7fveoc0o" path="res://level/floor.gd" id="1_wkfil"]
-[ext_resource type="Texture2D" uid="uid://k1iiqa48are4" path="res://sprites/dungeon1.png" id="2_rc4sh"]
+[ext_resource type="Texture2D" uid="uid://dmhfmm2s0omsf" path="res://sprites/cubicle_stone_floor.png" id="2_rc4sh"]
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_wkfil"]
 resource_local_to_scene = true
