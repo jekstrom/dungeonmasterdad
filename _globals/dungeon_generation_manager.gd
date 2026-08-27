@@ -646,10 +646,9 @@ func _is_east_v_wall(cell: Vector2i, walkable_set: Dictionary) -> bool:
 	return walk_w and not walk_e
 
 func _wall_frame_for_cell(cell: Vector2i, walkable_set: Dictionary, wall_set: Dictionary) -> int:
-	# 15-frame cubicle_stone_wall.png. Skip 4 (shadow). Collider stays in wall_type.
-	# Bitmask is which of N/E/S/W are also walls. East V (left-half) is 12/13/14.
-	# 0 H, 1 west V, 12 east V, 2 L-D, 3 L-U, 5 R-U, 6 R-D, 7/8 H caps,
-	# 9/10 west V caps, 13/14 east V caps. Do not fake east corners.
+	# 17-frame cubicle_stone_wall.png. Skip 4 (shadow). Collider stays in wall_type.
+	# East V (left-half) is 12/13/14. East LD/LU corners are 15/16 (same topology as 2/3).
+	# West corners stay 2/3/5/6.
 	var n: bool = wall_set.has(cell + Vector2i.UP)
 	var e: bool = wall_set.has(cell + Vector2i.RIGHT)
 	var s: bool = wall_set.has(cell + Vector2i.DOWN)
@@ -673,9 +672,9 @@ func _wall_frame_for_cell(cell: Vector2i, walkable_set: Dictionary, wall_set: Di
 		return 12 if east_v else 1
 	if h_count == 1 and v_count == 1:
 		if w and s:
-			return 2
+			return 15 if east_v else 2
 		if w and n:
-			return 3
+			return 16 if east_v else 3
 		if e and n:
 			return 5
 		if e and s:
