@@ -1,14 +1,18 @@
 @tool
 class_name FloorDoodad extends Node2D
 
+const FLOOR_Z_INDEX := -1
+
 @export var floor_type: int = -1: set = _set_floor_type
 @onready var sprite_2d: Sprite2D = $Sprite2D
 
 func _enter_tree() -> void:
+	z_index = FLOOR_Z_INDEX
 	if Engine.is_editor_hint():
 		_ensure_unique_texture()
 
 func _ready() -> void:
+	z_index = FLOOR_Z_INDEX
 	_ensure_unique_texture()
 	_update_texture()
 	if Engine.is_editor_hint():

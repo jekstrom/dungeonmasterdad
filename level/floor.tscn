@@ -18,6 +18,7 @@ properties/1/spawn = true
 properties/1/replication_mode = 0
 
 [node name="Floor" type="Node2D"]
+z_index = -1
 script = ExtResource("1_wkfil")
 floor_type = 0
 

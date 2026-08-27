@@ -3,6 +3,9 @@ extends MultiplayerSpawner
 const MonsterCatalog = preload("res://scripts/procedural_dungeon/monster_catalog.gd")
 const TileCatalog = preload("res://scripts/procedural_dungeon/tile_catalog.gd")
 
+const FLOOR_Z_INDEX := -1
+const WALL_Z_INDEX := 1
+
 @export var network_player: PackedScene
 @export var dm_player: PackedScene
 @export var gremlin: PackedScene
@@ -13,25 +16,33 @@ var _monster_catalog: MonsterCatalog = MonsterCatalog.new()
 var _tile_catalog: TileCatalog = TileCatalog.new()
 
 func _enter_tree() -> void:
-	# Set server authority after multiplayer is ready
-	if multiplayer.has_multiplayer_peer():
-		set_multiplayer_authority(1)
+	# Server is always peer 1. Set on every peer in _enter_tree (not only
+	# is_server / after the peer exists) so MultiplayerSpawner spawn
+	# visibility does not ERR_BUG on clients:
+	# scene_replication_interface.cpp _update_spawn_visibility.
+	set_multiplayer_authority(1)
 
 func _ready() -> void:
-	# Add to group for easy lookup by PlayerManager
 	add_to_group("multiplayer_spawner")
-	
-	# Ensure server authority is set when multiplayer is ready
-	if multiplayer.has_multiplayer_peer() and multiplayer.is_server():
-		set_multiplayer_authority(1)
-	
-	multiplayer.connected_to_server.connect(on_connected_ok)
+	set_multiplayer_authority(1)
+
+	if not multiplayer.connected_to_server.is_connected(_on_connected_to_server):
+		multiplayer.connected_to_server.connect(_on_connected_to_server)
+	if not multiplayer.peer_connected.is_connected(_on_peer_connected_authority):
+		multiplayer.peer_connected.connect(_on_peer_connected_authority)
 
 	# Only server should handle hosting and spawning
 	if multiplayer.is_server():
 		Lobby.host_started.connect(spawn_host_player)
 		DmManager.spawn_gremlin_cast.connect(spawn_gremlin)
 		DmManager.spawn_knight_cast.connect(spawn_knight)
+
+func _on_connected_to_server() -> void:
+	set_multiplayer_authority(1)
+	on_connected_ok()
+
+func _on_peer_connected_authority(_id: int) -> void:
+	set_multiplayer_authority(1)
 
 func on_connected_ok():
 	var id = multiplayer.get_unique_id()
@@ -144,10 +155,14 @@ func spawn_tile_from_scene_path(scene_path: String, world_position: Vector2, var
 
 	tile.position = world_position
 	tile.add_to_group("generated_dungeon_tiles")
-	if "wall_type" in tile and variant_id >= 0:
-		tile.wall_type = clampi(variant_id, 0, 3)
-	if "floor_type" in tile and variant_id >= 0:
-		tile.floor_type = clampi(variant_id, 0, 1)
+	if "wall_type" in tile:
+		if variant_id >= 0:
+			tile.wall_type = clampi(variant_id, 0, 3)
+		tile.z_index = WALL_Z_INDEX
+	elif "floor_type" in tile:
+		if variant_id >= 0:
+			tile.floor_type = clampi(variant_id, 0, 1)
+		tile.z_index = FLOOR_Z_INDEX
 
 	get_node(spawn_path).add_child(tile, true)
 	return tile

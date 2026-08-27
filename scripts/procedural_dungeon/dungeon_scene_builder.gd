@@ -3,6 +3,9 @@ class_name DungeonSceneBuilder extends RefCounted
 const TileCatalog = preload("res://scripts/procedural_dungeon/tile_catalog.gd")
 const DungeonLayoutData = preload("res://scripts/procedural_dungeon/resources/dungeon_layout_data.gd")
 
+const FLOOR_Z_INDEX := -1
+const WALL_Z_INDEX := 1
+
 var _tile_catalog: TileCatalog = TileCatalog.new()
 
 func build_container(layout_data: DungeonLayoutData) -> Dictionary:
@@ -50,6 +53,7 @@ func build_container(layout_data: DungeonLayoutData) -> Dictionary:
 				if wall_type < 0:
 					wall_type = 1
 				tile_node.wall_type = clampi(wall_type, 0, 3)
+			tile_node.z_index = WALL_Z_INDEX
 			tile_node.add_to_group("wall")
 		else:
 			if "floor_type" in tile_node:
@@ -57,6 +61,7 @@ func build_container(layout_data: DungeonLayoutData) -> Dictionary:
 				if floor_type < 0:
 					floor_type = 0
 				tile_node.floor_type = clampi(floor_type, 0, 1)
+			tile_node.z_index = FLOOR_Z_INDEX
 			if tile_role == "entrance":
 				tile_node.add_to_group("entrance")
 				tile_node.add_to_group("room")
