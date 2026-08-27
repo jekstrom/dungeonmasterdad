@@ -188,7 +188,7 @@ func _instantiate_generated_tile(scene_path: String, world_position: Vector2, va
 		tile.z_index = FLOOR_Z_INDEX
 
 	var parent: Node = get_node(spawn_path)
-	var existing: Node = parent.get_node_or_null(tile.name)
+	var existing: Node = parent.get_node_or_null(NodePath(str(tile.name)))
 	if existing:
 		existing.remove_from_group("generated_dungeon_tiles")
 		parent.remove_child(existing)
