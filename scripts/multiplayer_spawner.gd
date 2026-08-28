@@ -88,7 +88,7 @@ func spawn_player(id: int, player_name: String) -> void:
 	get_node(spawn_path).add_child(player, true)
 	player.add_to_group("players")
 	PlayerManager.register_player(id, player_name)
-	sync_global_state.rpc_id(id, DmManager.fantasy_level)
+	sync_global_state.rpc_id(id, DmManager.fantasy_level, DmManager.current_mana, DmManager.max_mana)
 
 func _west_spawn_world() -> Vector2:
 	var level: Node = get_tree().get_first_node_in_group("level_manager")
@@ -361,5 +361,6 @@ func spawn_host_player(player_name: String) -> void:
 	SignalBus.on_item_drop.emit(cloak_data)
 		
 @rpc("authority", "call_local", "reliable")
-func sync_global_state(f: int):
+func sync_global_state(f: int, mana: int = 0, mana_max: int = 100) -> void:
 	DmManager.fantasy_level = f
+	DmManager.apply_replicated_mana(mana, mana_max)
