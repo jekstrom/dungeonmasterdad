@@ -1,7 +1,7 @@
 class_name DmIdleState extends DmState
 
 @onready var walk: DmState = $"../walk"
-#@onready var attack: State = $"../attack"
+@onready var attack: DmState = $"../attack"
 
 func Enter() -> void:
 	dm.update_animation("idle")
@@ -20,8 +20,7 @@ func Physics(_delta: float) -> DmState:
 	
 func HandleInput(_event: InputEvent) -> DmState:
 	if _event.is_action_pressed("attack"):
-		return null
-		#return attack
+		return attack
 	if _event.is_action_pressed("interact"):
 		DmManager.interact_pressed.emit()
 	return null

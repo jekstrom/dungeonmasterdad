@@ -1,8 +1,7 @@
-class_name EnemyStateAttack extends EnemyState
+class_name EnemyStateAggro extends EnemyState
 
 @export var anim_name: String = "walk"
-@export var walk_speed: float = 220
-@export var next_state: EnemyState
+@export var run_speed: float = 220
 @export var wander_state: EnemyState
 @export var melee_cooldown: float = 1.0
 
@@ -19,10 +18,10 @@ func exit() -> void:
 
 func process(_delta: float) -> EnemyState:
 	if not enemy.has_aggro_target():
-		return _lose_target_state()
+		return wander_state
 	var target: Node2D = enemy.aggro_target
 	var to_target: Vector2 = enemy.global_position.direction_to(target.global_position)
-	enemy.velocity = to_target * walk_speed
+	enemy.velocity = to_target * run_speed
 	enemy.SetDirection(to_target)
 	enemy.UpdateAnimation(anim_name)
 	_update_melee(_delta)
@@ -30,11 +29,6 @@ func process(_delta: float) -> EnemyState:
 
 func physics(_delta: float) -> EnemyState:
 	return null
-
-func _lose_target_state() -> EnemyState:
-	if wander_state:
-		return wander_state
-	return next_state
 
 func _update_melee(delta: float) -> void:
 	_melee_timer = maxf(0.0, _melee_timer - delta)

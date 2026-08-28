@@ -1,4 +1,4 @@
-[gd_scene load_steps=21 format=3 uid="uid://dsls3d0radb5f"]
+[gd_scene load_steps=26 format=3 uid="uid://dsls3d0radb5f"]
 
 [ext_resource type="Script" uid="uid://ba4nueqw22frb" path="res://dm/dm.gd" id="1_x8nee"]
 [ext_resource type="PackedScene" uid="uid://dldavdu1jtevs" path="res://spells/targeting.tscn" id="2_s1sn4"]
@@ -9,6 +9,9 @@
 [ext_resource type="Script" uid="uid://dr1mlo553wqnp" path="res://dm/scripts/dm_walk_state.gd" id="5_1yv43"]
 [ext_resource type="Script" uid="uid://dtedc1udmbghb" path="res://dm/scripts/dm_camera.gd" id="7_5uq1k"]
 [ext_resource type="PackedScene" uid="uid://c1c212xev4n6e" path="res://hitbox.tscn" id="9_rnenc"]
+[ext_resource type="Script" path="res://dm/scripts/dm_hitbox.gd" id="10_dmhit"]
+[ext_resource type="Script" path="res://dm/scripts/dm_attack_state.gd" id="11_attack"]
+[ext_resource type="PackedScene" uid="uid://cmhep8oix5sk6" path="res://hurtbox.tscn" id="12_hurt"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_f7x0i"]
 
@@ -129,9 +132,60 @@ tracks/0/keys = {
 "values": [13, 16]
 }
 
+[sub_resource type="Animation" id="Animation_atk_down"]
+resource_name = "attack_down"
+length = 0.28
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Sprite2D:frame")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.14),
+"transitions": PackedFloat32Array(1, 1),
+"update": 1,
+"values": [21, 22]
+}
+
+[sub_resource type="Animation" id="Animation_atk_side"]
+resource_name = "attack_side"
+length = 0.28
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Sprite2D:frame")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.14),
+"transitions": PackedFloat32Array(1, 1),
+"update": 1,
+"values": [23, 24]
+}
+
+[sub_resource type="Animation" id="Animation_atk_up"]
+resource_name = "attack_up"
+length = 0.28
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Sprite2D:frame")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.14),
+"transitions": PackedFloat32Array(1, 1),
+"update": 1,
+"values": [27, 27]
+}
+
 [sub_resource type="AnimationLibrary" id="AnimationLibrary_5uq1k"]
 _data = {
 &"RESET": SubResource("Animation_wdqou"),
+&"attack_down": SubResource("Animation_atk_down"),
+&"attack_side": SubResource("Animation_atk_side"),
+&"attack_up": SubResource("Animation_atk_up"),
 &"idle_down": SubResource("Animation_1yv43"),
 &"idle_side": SubResource("Animation_5uq1k"),
 &"idle_up": SubResource("Animation_s1sn4"),
@@ -139,6 +193,9 @@ _data = {
 &"walk_side": SubResource("Animation_6hcig"),
 &"walk_up": SubResource("Animation_ma1ak")
 }
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_melee"]
+radius = 16.0
 
 [sub_resource type="SceneReplicationConfig" id="SceneReplicationConfig_5uq1k"]
 properties/0/path = NodePath(".:position")
@@ -161,7 +218,7 @@ properties/4/replication_mode = 1
 
 [node name="Dm" type="CharacterBody2D"]
 scale = Vector2(1.2, 1.2)
-collision_mask = 16
+collision_mask = 272
 motion_mode = 1
 script = ExtResource("1_x8nee")
 targeting_scene = ExtResource("2_s1sn4")
@@ -186,6 +243,9 @@ script = ExtResource("4_g7l52")
 
 [node name="walk" type="Node" parent="DmStateMachine"]
 script = ExtResource("5_1yv43")
+
+[node name="attack" type="Node" parent="DmStateMachine"]
+script = ExtResource("11_attack")
 
 [node name="AnimationPlayer" type="AnimationPlayer" parent="."]
 libraries = {
@@ -217,7 +277,18 @@ replication_config = SubResource("SceneReplicationConfig_5uq1k")
 [node name="AudioListener2D" type="AudioListener2D" parent="."]
 
 [node name="Hitbox" parent="." instance=ExtResource("9_rnenc")]
+collision_layer = 4
+script = ExtResource("10_dmhit")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Hitbox"]
 position = Vector2(0, -7.5)
 shape = SubResource("CapsuleShape2D_6hcig")
+
+[node name="AttackHurtbox" parent="." instance=ExtResource("12_hurt")]
+collision_mask = 8
+monitoring = false
+damage = 1
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="AttackHurtbox"]
+position = Vector2(0, -8)
+shape = SubResource("CircleShape2D_melee")

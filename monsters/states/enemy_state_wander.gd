@@ -29,8 +29,7 @@ func exit() -> void:
 	
 func process(_delta: float) -> EnemyState:
 	_timer -= _delta
-	if DmManager.dm and enemy_node and DmManager.dm.position.distance_to(enemy_node.position) < 150:
-		print("close to DM")
+	if attack_state and enemy.has_aggro_target():
 		return attack_state
 	if _timer <= 0:
 		return next_state

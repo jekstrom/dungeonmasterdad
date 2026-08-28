@@ -6,6 +6,8 @@ var generation_state: int = DungeonGenerationTypes.GenerationLifecycleState.RECE
 var request_start_time_msec: int = 0
 
 var layouts_by_id: Dictionary = {}
+var _walkable_cell_set: Dictionary = {}
+var _dungeon_cell_bounds: Rect2i = Rect2i()
 var telemetry: Dictionary = {
 	"total_requests": 0,
 	"total_successes": 0,
@@ -91,6 +93,8 @@ func generate_dungeon_contract(payload: Dictionary, requester_peer_id: int) -> D
 
 	layouts_by_id[layout_data.layout_id] = layout_data
 	active_layout_id = layout_data.layout_id
+	_walkable_cell_set = DungeonGrid.set_from(layout_data.walkable_cells)
+	_dungeon_cell_bounds = _bounds_from_walkable(layout_data.walkable_cells)
 	_log_generation_success(request.request_id, layout_data.layout_id)
 	_release_contract_session(true)
 
@@ -190,6 +194,27 @@ func _release_contract_session(success: bool) -> void:
 		generation_state = DungeonGenerationTypes.GenerationLifecycleState.COMMITTED
 	else:
 		generation_state = DungeonGenerationTypes.GenerationLifecycleState.REJECTED
+
+func is_world_position_in_dungeon(world_position: Vector2) -> bool:
+	if _dungeon_cell_bounds.size.x <= 0 or _dungeon_cell_bounds.size.y <= 0:
+		return true
+	return _dungeon_cell_bounds.has_point(DungeonGrid.from_world(world_position))
+
+
+func _bounds_from_walkable(walkable_cells: Array[Vector2i]) -> Rect2i:
+	if walkable_cells.is_empty():
+		return Rect2i()
+	var min_c: Vector2i = walkable_cells[0]
+	var max_c: Vector2i = walkable_cells[0]
+	for cell in walkable_cells:
+		min_c.x = mini(min_c.x, cell.x)
+		min_c.y = mini(min_c.y, cell.y)
+		max_c.x = maxi(max_c.x, cell.x)
+		max_c.y = maxi(max_c.y, cell.y)
+	var origin: Vector2i = min_c - Vector2i.ONE
+	var size: Vector2i = (max_c - min_c) + Vector2i(3, 3)
+	return Rect2i(origin, size)
+
 
 func get_entrance_world_position() -> Vector2:
 	if active_layout_id.is_empty() or not layouts_by_id.has(active_layout_id):

@@ -2,7 +2,7 @@ class_name DmWalkState extends DmState
 
 @export var move_speed: float = 100.0
 @onready var idle: DmState = $"../idle"
-#@onready var attack: StateAttack = $"../attack"
+@onready var attack: DmState = $"../attack"
 
 func Enter() -> void:
 	dm.update_animation("walk")
@@ -28,8 +28,7 @@ func HandleInput(_event: InputEvent) -> DmState:
 	if !is_multiplayer_authority(): return
 	
 	if _event.is_action_pressed("attack"):
-		return null
-		#return attack
+		return attack
 	if _event.is_action_pressed("interact"):
 		DmManager.interact_pressed.emit()
 	return null

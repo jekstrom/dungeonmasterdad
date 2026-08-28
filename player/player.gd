@@ -20,6 +20,9 @@ var ghost_building: Node2D
 @onready var hitbox: Hitbox = $Hitbox
 @onready var animation_player: AnimationPlayer = $AnimationPlayer
 @onready var sprite: Sprite2D = $Sprite2D
+@onready var attack_hurtbox: Hurtbox = $AttackHurtbox
+
+@export var melee_damage: int = 1
 
 @export var sync_name: String:
 	set(val):
@@ -130,7 +133,9 @@ func update_ghost(pos: Vector2):
 
 func _physics_process(_delta: float) -> void:
 	if !is_multiplayer_authority(): return
-	if state_machine.current_state.name == "death": return
+	if state_machine.current_state == null: return
+	var state_name: String = state_machine.current_state.name
+	if state_name == "death": return
 	
 	if direction != Vector2.ZERO:
 		prev_direction = direction
@@ -139,9 +144,47 @@ func _physics_process(_delta: float) -> void:
 		Input.get_axis("up", "down")
 	).normalized()
 	
-	if state_machine.current_state.name == "snake": return
+	if state_name == "snake": return
+	if state_name == "attack":
+		velocity = Vector2.ZERO
+		move_and_slide()
+		return
 	velocity = direction * 300
 	move_and_slide()
+
+func start_melee_attack() -> void:
+	var facing: Vector2 = cardinal_direction
+	if multiplayer.is_server():
+		_pulse_melee_hurtbox(facing)
+	else:
+		request_melee_attack.rpc_id(1, facing)
+
+func end_melee_attack() -> void:
+	if attack_hurtbox:
+		attack_hurtbox.monitoring = false
+
+@rpc("any_peer", "reliable")
+func request_melee_attack(facing: Vector2) -> void:
+	if not multiplayer.is_server():
+		return
+	var sender: int = multiplayer.get_remote_sender_id()
+	if sender != 0 and sender != get_multiplayer_authority():
+		return
+	_pulse_melee_hurtbox(facing)
+
+func _pulse_melee_hurtbox(facing: Vector2) -> void:
+	if attack_hurtbox == null:
+		return
+	attack_hurtbox.damage = melee_damage
+	attack_hurtbox.position = Vector2(facing.x * 20.0, facing.y * 16.0 - 8.0)
+	attack_hurtbox.monitoring = false
+	attack_hurtbox.monitoring = true
+	var tree := get_tree()
+	if tree:
+		tree.create_timer(0.12).timeout.connect(func() -> void:
+			if is_instance_valid(attack_hurtbox):
+				attack_hurtbox.monitoring = false
+		)
 
 func update_animation(state: String) -> void:
 	animation_player.play(state + "_" + anim_direction())

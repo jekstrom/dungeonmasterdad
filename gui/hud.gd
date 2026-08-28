@@ -26,7 +26,6 @@ func _on_dm_lock(lock: String) -> void:
 		mode_display.text = ""
 		
 func update_dm_bar(fantasy_level: int) -> void:
-	print("updating dm bar to ", fantasy_level)
 	fantasy_rect.custom_minimum_size.x = 150 + fantasy_level
 	fantasy_label.text = "FANTASY LEVEL " + str(fantasy_level)
 	
