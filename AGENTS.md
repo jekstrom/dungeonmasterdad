@@ -1,14 +1,17 @@
 # AGENTS.md - Development Guidelines for Dungeon Master Dad
 
-This file contains development guidelines, coding standards, and build instructions for AI coding agents working on the **Dungeon Master Dad** Godot 4.5 multiplayer RPG game.
+This file contains development guidelines, coding standards, and build instructions for AI coding agents working on the **Dungeon Master Dad** Godot 4.7 multiplayer RPG game.
+
+Project skills live in `.grok/skills/` (`game-dev`, `godot`, `testing`). Copy `.grok/templates/skill/SKILL.md` when adding a new one. Grok also loads these as slash commands (`/godot`, `/testing`, `/game-dev`). See https://docs.x.ai/build/features/skills-plugins-marketplaces
 
 ## 🎮 Project Overview
 
-- **Engine**: Godot 4.5 (Forward Plus rendering)
+- **Engine**: Godot 4.7 (Forward Plus rendering)
 - **Language**: GDScript (primary)
 - **Type**: Multiplayer dungeon master/RPG game
 - **Network**: ENet multiplayer on port 42069
 - **Architecture**: State machine-based with singleton managers
+- **Main scene**: `playground.tscn` (lobby Start/Join, then generated dungeon)
 
 ## 🔧 Build & Development Commands
 
@@ -26,11 +29,19 @@ godot --path /home/james/dungeon-master-dad --export-release "Linux/X11"
 
 ### Testing
 ```bash
-# Currently no automated test framework is configured
-# Manual testing through running the game scenes:
-# - game.tscn (main game)
-# - playground.tscn (development testing)
+# Procedural dungeon contract test (headless)
+godot --path /home/james/dungeon-master-dad --headless --quit-after 20 \
+  test_harness/procedural_dungeon/room_knobs_test.tscn
+
+# Two-instance playtest: editor Run Multiple Instances, or:
+./start_server.sh    # terminal 1
+./start_client.sh    # terminal 2
+
+# Network harness (not playground):
+cd test_harness && ./run_tests.sh quick
 ```
+
+Use the `testing` skill for join-log failures and which check matches a change.
 
 ### Development Tools
 ```bash
@@ -45,10 +56,12 @@ godot --path /home/james/dungeon-master-dad --import
 
 ### File Organization
 - **Global singletons**: `_globals/` directory, loaded via autoload
-- **Character systems**: `player/`, `dm/`, `goblin/` directories
+- **Character systems**: `player/`, `dm/`, `monsters/`
 - **UI components**: `gui/` with subdirectories for different UIs
-- **Game systems**: `buildings/`, `pickups/`, `spells/`, `zones/`
+- **Game systems**: `buildings/`, `pickups/`, `spells/`, `zones/`, `level/`
+- **Procedural dungeon**: `scripts/procedural_dungeon/`, scene node `scenes/dungeon_generator.tscn`
 - **Shared utilities**: `scripts/` directory
+- **Agent skills**: `.grok/skills/`
 
 ### Naming Conventions
 - **Files**: `snake_case.gd` (e.g., `player_idle_state.gd`)
@@ -171,12 +184,11 @@ Character scenes (Player, DM, Goblin):
 
 ## 🧪 Testing Guidelines
 
-Since no automated testing framework is currently set up:
-- Test multiplayer by running server + client instances
-- Use `playground.tscn` for feature testing
-- Validate state machine transitions manually
-- Test building placement in reality zones
-- Verify inventory and item pickup systems
+- Headless contract tests: `test_harness/procedural_dungeon/` (attach the `.gd` to a `.tscn`; do not use a bare `.gd` as the main scene).
+- Playground host+client: `DungeonGenerator.generate_on_ready` must stay false so both instances do not generate on `OfflineMultiplayerPeer`.
+- Treat client-join `_update_spawn_visibility ERR_BUG`, `on_spawn_receive has_node`, and invalid `on_delta_receive` as failures.
+- Use `Lobby.is_network_server()` when "are we the real host?" matters; `multiplayer.is_server()` is true for the default offline peer.
+- Playtest movement/y-sort/collision in `playground.tscn`; test buildings in reality zones.
 
 ## 🚨 Critical Notes for AI Agents
 
@@ -185,6 +197,12 @@ Since no automated testing framework is currently set up:
 - Validate server authority for game-changing operations
 - Use RPC appropriately - don't break client-server authority model
 - Test networking code with multiple instances
+- `MultiplayerSpawner` only auto-replicates **direct** children of `spawn_path`
+- Do not generate dungeons or spawn catalog scenes on a client; tiles live under `GeneratedTiles`
+
+### Godot 4.7
+- No `Node2D.y_sort_origin`. Sort at the node origin (south foot) with sprite `offset`.
+- Dungeon layout knobs: `DungeonGenerator` inspector (`room_size`, `room_count`, start/exit, bounds), not `level_manager.gd`.
 
 ### State Machine Rules
 - Only one state can be active at a time
@@ -223,11 +241,12 @@ When making changes, consider:
 Remember: This is a multiplayer game where synchronization and authority are critical. Always test changes in multiplayer scenarios.
 
 ## Active Technologies
-- GDScript / Godot 4.5 (Forward Plus rendering) + ENet multiplayer on port 42069, Godot's built-in networking system, SignalBus singleton (001-fix-snake-death)
+- GDScript / Godot 4.7 (Forward Plus rendering) + ENet multiplayer on port 42069, Godot's built-in networking system, SignalBus singleton (001-fix-snake-death)
 - Scene (.tscn) files and Resource (.tres) files for game data persistence (001-fix-snake-death)
-- GDScript / Godot 4.5 (Forward Plus rendering) + ENet multiplayer on port 42069, Godot's built-in networking system, MultiplayerSynchronizer nodes (002-snake-multiplayer-sync)
-- GDScript / Godot 4.5 (Forward Plus rendering) + Godot ENet multiplayer (port 42069), existing level scenes (`level/floor.tscn`, `level/wall.tscn`), existing monster scenes under `monsters/`, existing multiplayer spawner flow (`scripts/multiplayer_spawner.gd`) (001-procedural-dungeon-generator)
+- GDScript / Godot 4.7 (Forward Plus rendering) + ENet multiplayer on port 42069, Godot's built-in networking system, MultiplayerSynchronizer nodes (002-snake-multiplayer-sync)
+- GDScript / Godot 4.7 (Forward Plus rendering) + Godot ENet multiplayer (port 42069), existing level scenes (`level/floor.tscn`, `level/wall.tscn`), existing monster scenes under `monsters/`, existing multiplayer spawner flow (`scripts/multiplayer_spawner.gd`) (001-procedural-dungeon-generator)
 - In-memory generation output represented in scene graph and existing resources (`.tscn`/`.tres`) (001-procedural-dungeon-generator)
+- `DungeonGenerator` node (`scenes/dungeon_generator.tscn`) for per-scene layout knobs (001-procedural-dungeon-generator)
 
 ## Recent Changes
 - 001-fix-snake-death: Added GDScript / Godot 4.5 (Forward Plus rendering) + ENet multiplayer on port 42069, Godot's built-in networking system, SignalBus singleton
