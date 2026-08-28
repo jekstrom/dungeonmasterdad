@@ -16,7 +16,7 @@ compatibility/default_parent_skeleton_in_mesh_instance_3d=true
 
 config/name="dungeon_master_dad"
 run/main_scene="uid://de1ek0y5wi45g"
-config/features=PackedStringArray("4.6", "Forward Plus")
+config/features=PackedStringArray("4.7", "Forward Plus")
 
 [autoload]
 
@@ -36,6 +36,7 @@ DmUnlocks="*res://_globals/DMUnlocks.gd"
 TrailManager="*res://_globals/trail_manager.gd"
 DeathSystem="*res://scripts/multiplayer/DeathSystem.gd"
 ItemPickupPool="*res://_globals/item_pickup_pool.gd"
+DungeonGenerationManager="*res://_globals/dungeon_generation_manager.gd"
 
 [input]
 

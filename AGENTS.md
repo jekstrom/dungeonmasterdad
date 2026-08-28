@@ -226,6 +226,8 @@ Remember: This is a multiplayer game where synchronization and authority are cri
 - GDScript / Godot 4.5 (Forward Plus rendering) + ENet multiplayer on port 42069, Godot's built-in networking system, SignalBus singleton (001-fix-snake-death)
 - Scene (.tscn) files and Resource (.tres) files for game data persistence (001-fix-snake-death)
 - GDScript / Godot 4.5 (Forward Plus rendering) + ENet multiplayer on port 42069, Godot's built-in networking system, MultiplayerSynchronizer nodes (002-snake-multiplayer-sync)
+- GDScript / Godot 4.5 (Forward Plus rendering) + Godot ENet multiplayer (port 42069), existing level scenes (`level/floor.tscn`, `level/wall.tscn`), existing monster scenes under `monsters/`, existing multiplayer spawner flow (`scripts/multiplayer_spawner.gd`) (001-procedural-dungeon-generator)
+- In-memory generation output represented in scene graph and existing resources (`.tscn`/`.tres`) (001-procedural-dungeon-generator)
 
 ## Recent Changes
 - 001-fix-snake-death: Added GDScript / Godot 4.5 (Forward Plus rendering) + ENet multiplayer on port 42069, Godot's built-in networking system, SignalBus singleton

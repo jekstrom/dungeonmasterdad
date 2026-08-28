@@ -2,13 +2,21 @@ extends Node2D
 
 var damage_numbers_scene: PackedScene = preload("res://spells/damage_number.tscn")
 var is_shadow_zone: bool = false
+var generated_dungeon_container: Node2D = null
+
+# Live dungeon stays until a replacement fully succeeds (swap-on-success).
+var _live_generated_nodes: Array[Node] = []
+var _staged_generated_nodes: Array[Node] = []
 
 # Handle global level-based events such as projectiles
 
 func _ready() -> void:
+	if not is_in_group("level_manager"):
+		add_to_group("level_manager")
+
 	if !SignalBus.on_explosion.is_connected(on_explosion):
 		SignalBus.on_explosion.connect(on_explosion)
-	
+
 	# Set up periodic cleanup of invalid nodes to prevent RPC errors
 	var cleanup_timer = Timer.new()
 	cleanup_timer.wait_time = 5.0  # Clean up every 5 seconds
@@ -48,3 +56,84 @@ func _periodic_cleanup():
 		for spawner in pickup_spawners:
 			if spawner.has_method("cleanup_invalid_pickups"):
 				spawner.cleanup_invalid_pickups()
+
+func begin_generated_dungeon_stage() -> void:
+	if not multiplayer.is_server():
+		return
+	_free_node_list(_staged_generated_nodes)
+	_staged_generated_nodes.clear()
+
+func register_staged_generated_node(node: Node) -> void:
+	if node == null:
+		return
+	_staged_generated_nodes.append(node)
+
+func commit_generated_dungeon_stage() -> void:
+	if not multiplayer.is_server():
+		return
+	# Only discard the last good dungeon after the replacement is fully spawned.
+	_free_node_list(_live_generated_nodes)
+	_live_generated_nodes = _staged_generated_nodes.duplicate()
+	_staged_generated_nodes.clear()
+	generated_dungeon_container = _first_valid_node(_live_generated_nodes)
+	_sync_generated_tiles_to_clients()
+
+func rollback_generated_dungeon_stage() -> void:
+	if not multiplayer.is_server():
+		return
+	_free_node_list(_staged_generated_nodes)
+	_staged_generated_nodes.clear()
+
+func replace_generated_dungeon_container(new_container: Node2D) -> void:
+	if not multiplayer.is_server():
+		return
+	# Do not wipe the live dungeon unless a replacement node exists.
+	if not new_container:
+		return
+	begin_generated_dungeon_stage()
+	if new_container.get_parent():
+		new_container.get_parent().remove_child(new_container)
+	get_tree().current_scene.add_child(new_container)
+	register_staged_generated_node(new_container)
+	commit_generated_dungeon_stage()
+
+func clear_generated_dungeon_container() -> void:
+	if not multiplayer.is_server():
+		return
+	_free_node_list(_live_generated_nodes)
+	_free_node_list(_staged_generated_nodes)
+	_live_generated_nodes.clear()
+	_staged_generated_nodes.clear()
+	if generated_dungeon_container and is_instance_valid(generated_dungeon_container):
+		generated_dungeon_container.queue_free()
+	generated_dungeon_container = null
+
+func _sync_generated_tiles_to_clients() -> void:
+	var spawners: Array = get_tree().get_nodes_in_group("multiplayer_spawner")
+	if spawners.is_empty():
+		return
+	var spawner: Node = spawners[0]
+	if spawner.has_method("sync_generated_tiles_to_peers"):
+		spawner.sync_generated_tiles_to_peers()
+
+func _first_valid_node(nodes: Array[Node]) -> Node2D:
+	for node in nodes:
+		if node and is_instance_valid(node) and node is Node2D:
+			return node
+	return null
+
+func _free_node_list(nodes: Array[Node]) -> void:
+	# Leave generated groups and the tree immediately. queue_free is deferred,
+	# so a same-session regenerate would otherwise stack tiles in
+	# generated_dungeon_tiles and in the world until the next idle frame.
+	for node in nodes:
+		if node == null or not is_instance_valid(node):
+			continue
+		if node.is_in_group("generated_dungeon_tiles"):
+			node.remove_from_group("generated_dungeon_tiles")
+		if node.is_in_group("generated_dungeon_monsters"):
+			node.remove_from_group("generated_dungeon_monsters")
+		var parent: Node = node.get_parent()
+		if parent:
+			parent.remove_child(node)
+		node.queue_free()

@@ -25,3 +25,14 @@ func start_client() -> void:
 func start_host(player_name: String) -> void:
 	start_server()
 	host_started.emit(player_name)
+
+
+# Godot assigns OfflineMultiplayerPeer by default (unique id 1 / is_server true).
+# Treat only a real listen/dedicated server as the network authority so clients
+# do not generate dungeons or track MultiplayerSpawner nodes before Join.
+func is_network_server() -> bool:
+	if not multiplayer.has_multiplayer_peer():
+		return false
+	if multiplayer.multiplayer_peer is OfflineMultiplayerPeer:
+		return false
+	return multiplayer.is_server()

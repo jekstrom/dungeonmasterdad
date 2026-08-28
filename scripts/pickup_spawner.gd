@@ -7,27 +7,15 @@ var active_pickups: Dictionary = {}  # pickup_name -> pickup_node reference
 func _enter_tree():
 	# Add to group for easy lookup by DeathSystem
 	add_to_group("multiplayer_pickup_spawner")
+	set_multiplayer_authority(1)
 
 func _ready():
 	# Set up the spawner function
 	spawn_function = _custom_spawn
+	set_multiplayer_authority(1)
 	
 	# Connect to signals
 	SignalBus.on_item_drop.connect(on_item_drop)
-	
-	# Set authority when multiplayer is ready
-	_setup_authority()
-
-func _setup_authority():
-	# Wait for multiplayer to be properly initialized
-	if not multiplayer.has_multiplayer_peer():
-		# Try again after a frame
-		call_deferred("_setup_authority")
-		return
-	
-	# Only set authority on server
-	if multiplayer.is_server():
-		set_multiplayer_authority(1)
 
 func _custom_spawn(data: Dictionary) -> Node2D:
 	# Validate required data before spawning

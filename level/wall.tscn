@@ -1,7 +1,8 @@
-[gd_scene load_steps=6 format=3 uid="uid://df2uqi8ynwtas"]
+[gd_scene load_steps=8 format=3 uid="uid://df2uqi8ynwtas"]
 
-[ext_resource type="Texture2D" uid="uid://cm642x1dq6ssx" path="res://sprites/wall1.png" id="1_kyd43"]
+[ext_resource type="Texture2D" uid="uid://bfgvyttq7x4g7" path="res://sprites/cubicle_stone_wall.png" id="1_kyd43"]
 [ext_resource type="Script" uid="uid://ytgqag3p0d50" path="res://level/wall.gd" id="1_sklim"]
+[ext_resource type="Texture2D" uid="uid://dmhfmm2s0omsf" path="res://sprites/cubicle_stone_floor.png" id="2_floor"]
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_sklim"]
 atlas = ExtResource("1_kyd43")
@@ -11,25 +12,46 @@ region = Rect2(0, 0, 128, 128)
 atlas = ExtResource("1_kyd43")
 region = Rect2(512, 0, 128, 128)
 
+[sub_resource type="AtlasTexture" id="AtlasTexture_floor"]
+atlas = ExtResource("2_floor")
+region = Rect2(0, 0, 128, 128)
+
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_sklim"]
-size = Vector2(127, 33)
+size = Vector2(128, 48)
+
+[sub_resource type="SceneReplicationConfig" id="SceneReplicationConfig_wall"]
+properties/0/path = NodePath(".:position")
+properties/0/spawn = true
+properties/0/replication_mode = 0
+properties/1/path = NodePath(".:wall_type")
+properties/1/spawn = true
+properties/1/replication_mode = 0
+properties/2/path = NodePath(".:wall_frame")
+properties/2/spawn = true
+properties/2/replication_mode = 0
 
 [node name="Wall" type="Node2D"]
+y_sort_enabled = true
 script = ExtResource("1_sklim")
 wall_type = 1
+wall_frame = 0
+
+[node name="FloorUnderlay" type="Sprite2D" parent="."]
+z_index = -1
+z_as_relative = false
+position = Vector2(0, -63)
+texture = SubResource("AtlasTexture_floor")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+offset = Vector2(0, -63)
+texture = SubResource("AtlasTexture_sklim")
 
 [node name="StaticBody" type="StaticBody2D" parent="."]
 collision_layer = 16
 collision_mask = 0
 
-[node name="Sprite2D" type="Sprite2D" parent="StaticBody"]
-y_sort_enabled = true
-position = Vector2(0, -63)
-texture = SubResource("AtlasTexture_sklim")
-
 [node name="Shadow" type="Sprite2D" parent="StaticBody"]
 modulate = Color(1, 1, 1, 0.22745098)
-z_index = 2
 position = Vector2(0, -80)
 scale = Vector2(1, 0.2265625)
 texture = SubResource("AtlasTexture_uccme")
@@ -37,3 +59,10 @@ texture = SubResource("AtlasTexture_uccme")
 [node name="CollisionShape2D" type="CollisionShape2D" parent="StaticBody"]
 position = Vector2(0, -17)
 shape = SubResource("RectangleShape2D_sklim")
+
+[node name="CollisionShapeVertical" type="CollisionShape2D" parent="StaticBody"]
+position = Vector2(0, -64)
+disabled = true
+
+[node name="MultiplayerSynchronizer" type="MultiplayerSynchronizer" parent="."]
+replication_config = SubResource("SceneReplicationConfig_wall")
