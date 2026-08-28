@@ -19,6 +19,8 @@ properties/2/spawn = true
 properties/2/replication_mode = 1
 
 [sub_resource type="CapsuleShape2D" id="CapsuleShape2D_pu8af"]
+radius = 8.0
+height = 16.0
 
 [node name="Shadow" type="Node2D"]
 script = ExtResource("1_pu8af")
@@ -28,8 +30,16 @@ texture = SubResource("AtlasTexture_pu8af")
 replication_config = SubResource("SceneReplicationConfig_pu8af")
 
 [node name="Area2D" type="Area2D" parent="."]
+collision_layer = 0
+collision_mask = 1
+monitoring = false
+monitorable = false
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Area2D"]
 shape = SubResource("CapsuleShape2D_pu8af")
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
+z_index = 1
+position = Vector2(0, -13)
+texture = SubResource("AtlasTexture_pu8af")
+modulate = Color(0.3, 0.3, 0.3, 0.7)
