@@ -5,6 +5,7 @@
 [sub_resource type="SceneReplicationConfig" id="SceneReplicationConfig_1"]
 
 [node name="SnakeTrailContainer" type="Node2D"]
+y_sort_enabled = true
 script = ExtResource("1_0hdqc")
 
 [node name="MultiplayerSynchronizer" type="MultiplayerSynchronizer" parent="."]
