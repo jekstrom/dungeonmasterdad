@@ -12,7 +12,6 @@
 [ext_resource type="PackedScene" uid="uid://dcevmqir2nyr6" path="res://gui/hud.tscn" id="8_v7dth"]
 [ext_resource type="PackedScene" uid="uid://f15sgptli5oi" path="res://gui/dm/dm_hud.tscn" id="9_pi42a"]
 [ext_resource type="PackedScene" uid="uid://bglfuu7ga823v" path="res://gui/player/player_hud.tscn" id="12_te8jg"]
-
 [ext_resource type="PackedScene" uid="uid://si6i5r1yric1" path="res://spells/fireball/fireball_spell.tscn" id="13_ycdrs"]
 [ext_resource type="Script" uid="uid://b1w5sp8jtdo2y" path="res://_globals/building_manager.gd" id="13_yjl7g"]
 [ext_resource type="Script" uid="uid://7l00cqarwjaa" path="res://scripts/projectile_spawner.gd" id="18_ycdrs"]
@@ -24,6 +23,7 @@
 [ext_resource type="PackedScene" uid="uid://h7p7to6n20ld" path="res://doodads/tree.tscn" id="23_u2qr3"]
 [ext_resource type="Script" uid="uid://3wvfcisfslpa" path="res://scripts/pickup_spawner.gd" id="24_vnugj"]
 [ext_resource type="Script" uid="uid://dcbuj26qlyp1r" path="res://scripts/building_spawner.gd" id="25_building"]
+[ext_resource type="PackedScene" path="res://scenes/dungeon_generator.tscn" id="26_dungeon"]
 
 [node name="Playground" type="Node2D" unique_id=1889552422 groups=["level_manager"]]
 y_sort_enabled = true
@@ -45,6 +45,14 @@ dm_player = ExtResource("5_ynsuh")
 gremlin = ExtResource("7_h1jm5")
 knight = ExtResource("22_ymgag")
 
+[node name="DungeonGenerator" parent="." unique_id=281097532 instance=ExtResource("26_dungeon")]
+generate_on_ready = false
+request_id = "poop"
+start_cell = Vector2i(48, 48)
+exit_cell = Vector2i(1, 1)
+bounds_size = Vector2i(50, 50)
+room_count = 8
+
 [node name="GameUI" parent="." unique_id=2001332704 instance=ExtResource("6_4bqqs")]
 
 [node name="Hud" parent="." unique_id=1855831494 instance=ExtResource("8_v7dth")]
@@ -53,7 +61,7 @@ knight = ExtResource("22_ymgag")
 
 [node name="PlayerHud" parent="." unique_id=975254691 instance=ExtResource("12_te8jg")]
 
-[node name="GeneratedTiles" type="Node2D" parent="."]
+[node name="GeneratedTiles" type="Node2D" parent="." unique_id=602063859]
 y_sort_enabled = true
 
 [node name="Buildings" type="Node2D" parent="." unique_id=53214145 groups=["building_root"]]

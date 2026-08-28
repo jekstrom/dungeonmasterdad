@@ -1,25 +1,30 @@
 class_name RoomGraphGenerator extends RefCounted
 
 const ROOM_RADIUS: int = 2
-const MIN_SEPARATION: int = 6
 const MIN_ROOM_CELLS: int = 9
 
 func generate_room_backbone(
 	start_cell: Vector2i,
 	exit_cell: Vector2i,
 	generation_bounds: Rect2i,
-	generation_seed: int
+	generation_seed: int,
+	room_radius: int = ROOM_RADIUS,
+	requested_mid_count: int = -1
 ) -> Dictionary:
-	if DungeonGrid.chebyshev(start_cell, exit_cell) < MIN_SEPARATION:
+	var radius: int = ROOM_RADIUS if room_radius < 1 else room_radius
+	var separation: int = (radius * 2) + 2
+	if DungeonGrid.chebyshev(start_cell, exit_cell) < separation:
 		return _fail("LAYOUT_INFEASIBLE", "Start and exit rooms violate center separation")
 
-	var start_cells: Array[Vector2i] = _build_room_cells(start_cell, generation_bounds, ROOM_RADIUS)
-	var exit_cells: Array[Vector2i] = _build_room_cells(exit_cell, generation_bounds, ROOM_RADIUS)
+	var start_cells: Array[Vector2i] = _build_room_cells(start_cell, generation_bounds, radius)
+	var exit_cells: Array[Vector2i] = _build_room_cells(exit_cell, generation_bounds, radius)
 	if start_cells.size() < MIN_ROOM_CELLS or exit_cells.size() < MIN_ROOM_CELLS:
 		return _fail("LAYOUT_INFEASIBLE", "Start or exit room too small after clip")
 
-	var area: int = generation_bounds.size.x * generation_bounds.size.y
-	var mid_count: int = clampi(area / 180, 1, 3)
+	var mid_count: int = requested_mid_count
+	if mid_count < 1:
+		var area: int = generation_bounds.size.x * generation_bounds.size.y
+		mid_count = clampi(area / 180, 1, 3)
 
 	var rng: RandomNumberGenerator = RandomNumberGenerator.new()
 	rng.seed = generation_seed
@@ -27,9 +32,9 @@ func generate_room_backbone(
 	var l_cells: Array[Vector2i] = DungeonGrid.carve_l(start_cell, exit_cell, generation_bounds)
 	var candidates: Array[Vector2i] = []
 	for cell in l_cells:
-		if DungeonGrid.chebyshev(cell, start_cell) < MIN_SEPARATION:
+		if DungeonGrid.chebyshev(cell, start_cell) < separation:
 			continue
-		if DungeonGrid.chebyshev(cell, exit_cell) < MIN_SEPARATION:
+		if DungeonGrid.chebyshev(cell, exit_cell) < separation:
 			continue
 		if not generation_bounds.has_point(cell):
 			continue
@@ -41,9 +46,9 @@ func generate_room_backbone(
 	for cand in candidates:
 		if chosen.size() >= mid_count:
 			break
-		if not _separated_from_all(cand, chosen):
+		if not _separated_from_all(cand, chosen, separation):
 			continue
-		var clipped: Array[Vector2i] = _build_room_cells(cand, generation_bounds, ROOM_RADIUS)
+		var clipped: Array[Vector2i] = _build_room_cells(cand, generation_bounds, radius)
 		if clipped.size() < MIN_ROOM_CELLS:
 			continue
 		chosen.append(cand)
@@ -57,7 +62,9 @@ func generate_room_backbone(
 			start_cell,
 			exit_cell,
 			generation_bounds,
-			rng
+			rng,
+			radius,
+			separation
 		)
 		if jittered.is_empty():
 			return _fail("LAYOUT_INFEASIBLE", "Unable to jitter a mid room off the backbone L")
@@ -76,7 +83,7 @@ func generate_room_backbone(
 	for i in range(chosen.size()):
 		var mid_id: String = "room_mid_%d" % (i + 1)
 		var mid_center: Vector2i = chosen[i]
-		var mid_cells: Array[Vector2i] = _build_room_cells(mid_center, generation_bounds, ROOM_RADIUS)
+		var mid_cells: Array[Vector2i] = _build_room_cells(mid_center, generation_bounds, radius)
 		ordered_ids.append(mid_id)
 		ordered_centers.append(mid_center)
 		room_regions.append(_build_room_region(mid_id, "mid", mid_center, mid_cells))
@@ -120,7 +127,9 @@ func _jitter_one_mid(
 	start_cell: Vector2i,
 	exit_cell: Vector2i,
 	bounds: Rect2i,
-	rng: RandomNumberGenerator
+	rng: RandomNumberGenerator,
+	radius: int,
+	separation: int
 ) -> Array[Vector2i]:
 	var indices: Array[int] = []
 	for i in range(placed.size()):
@@ -140,9 +149,9 @@ func _jitter_one_mid(
 				if j == idx:
 					continue
 				others.append(placed[j])
-			if not _separated_from_all(candidate, others):
+			if not _separated_from_all(candidate, others, separation):
 				continue
-			if _build_room_cells(candidate, bounds, ROOM_RADIUS).size() < MIN_ROOM_CELLS:
+			if _build_room_cells(candidate, bounds, radius).size() < MIN_ROOM_CELLS:
 				continue
 			var result: Array[Vector2i] = placed.duplicate()
 			result[idx] = candidate
@@ -210,9 +219,9 @@ func _pick_extra_edge(
 
 	return []
 
-func _separated_from_all(cell: Vector2i, others: Array[Vector2i]) -> bool:
+func _separated_from_all(cell: Vector2i, others: Array[Vector2i], separation: int) -> bool:
 	for other in others:
-		if DungeonGrid.chebyshev(cell, other) < MIN_SEPARATION:
+		if DungeonGrid.chebyshev(cell, other) < separation:
 			return false
 	return true
 

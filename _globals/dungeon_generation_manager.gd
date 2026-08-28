@@ -258,7 +258,9 @@ func _build_layout_candidate(request: DungeonGenerationRequest, generation_seed:
 		entrance_cell,
 		exit_cell,
 		request.generation_bounds,
-		generation_seed
+		generation_seed,
+		request.room_radius(),
+		request.mid_room_count()
 	)
 	if not room_result.get("ok", false):
 		return _error_response(
@@ -313,7 +315,7 @@ func _build_layout_candidate(request: DungeonGenerationRequest, generation_seed:
 		return _error_response(request.request_id, DungeonGenerationTypes.FAILURE_LAYOUT_INFEASIBLE, "Layout missing hallway regions")
 	if not _roles_present(room_regions, ["start", "mid", "exit"]):
 		return _error_response(request.request_id, DungeonGenerationTypes.FAILURE_LAYOUT_INFEASIBLE, "Layout missing required room roles")
-	if not _rooms_meet_size_and_separation(room_regions):
+	if not _rooms_meet_size_and_separation(room_regions, request.center_separation()):
 		return _error_response(request.request_id, DungeonGenerationTypes.FAILURE_LAYOUT_INFEASIBLE, "Room size or separation failed")
 
 	var walkable_set: Dictionary = DungeonGrid.set_from(walkable_cells)
@@ -388,7 +390,7 @@ func _roles_present(room_regions: Array[Dictionary], required: Array) -> bool:
 			return false
 	return true
 
-func _rooms_meet_size_and_separation(room_regions: Array[Dictionary]) -> bool:
+func _rooms_meet_size_and_separation(room_regions: Array[Dictionary], min_separation: int) -> bool:
 	var centers: Array[Vector2i] = []
 	for region in room_regions:
 		var role: String = str(region.get("role", ""))
@@ -397,12 +399,12 @@ func _rooms_meet_size_and_separation(room_regions: Array[Dictionary]) -> bool:
 			if cells.size() < 5:
 				return false
 			continue
-		if cells.size() < 9:
+		if cells.size() < DungeonConstants.MIN_ROOM_CELLS:
 			return false
 		centers.append(DungeonGrid.cell_from(region.get("center", {})))
 	for i in range(centers.size()):
 		for j in range(i + 1, centers.size()):
-			if DungeonGrid.chebyshev(centers[i], centers[j]) < 6:
+			if DungeonGrid.chebyshev(centers[i], centers[j]) < min_separation:
 				return false
 	return true
 
