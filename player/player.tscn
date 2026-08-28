@@ -1,4 +1,4 @@
-[gd_scene load_steps=26 format=3 uid="uid://cof1o04wsy0rc"]
+[gd_scene load_steps=27 format=3 uid="uid://cof1o04wsy0rc"]
 
 [ext_resource type="Script" uid="uid://t4prbjbidme4" path="res://player/player.gd" id="1_kwy1i"]
 [ext_resource type="Texture2D" uid="uid://dkc4x6ya465y1" path="res://player/sprites/PlayerSprite02.png" id="3_4tdu3"]
@@ -13,6 +13,7 @@
 [ext_resource type="PackedScene" uid="uid://c1c212xev4n6e" path="res://hitbox.tscn" id="11_2ieo8"]
 [ext_resource type="Script" path="res://player/scripts/player_attack_state.gd" id="12_attack"]
 [ext_resource type="PackedScene" uid="uid://cmhep8oix5sk6" path="res://hurtbox.tscn" id="13_hurt"]
+[ext_resource type="PackedScene" path="res://player/aim_cursor.tscn" id="14_aim"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_f7x0i"]
 
@@ -304,3 +305,5 @@ damage = 1
 [node name="CollisionShape2D" type="CollisionShape2D" parent="AttackHurtbox"]
 position = Vector2(0, -8)
 shape = SubResource("CircleShape2D_melee")
+
+[node name="AimCursor" parent="." instance=ExtResource("14_aim")]

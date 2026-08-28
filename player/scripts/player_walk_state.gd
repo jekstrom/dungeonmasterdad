@@ -27,9 +27,9 @@ func Physics(_delta: float) -> PlayerState:
 	return null
 	
 func HandleInput(_event: InputEvent) -> PlayerState:
-	if !is_multiplayer_authority(): return
-	
-	if _event.is_action_pressed("attack"):
+	if !is_multiplayer_authority():
+		return null
+	if player.wants_melee_attack(_event):
 		return attack
 	if _event.is_action_pressed("interact"):
 		PlayerManager.interact_pressed.emit()

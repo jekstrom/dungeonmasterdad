@@ -152,6 +152,38 @@ func _physics_process(_delta: float) -> void:
 	velocity = direction * 300
 	move_and_slide()
 
+func wants_melee_attack(event: InputEvent) -> bool:
+	if not event.is_action_pressed("attack"):
+		return false
+	if current_building_data:
+		return false
+	return true
+
+static func cardinal_from_aim(aim: Vector2, current: Vector2 = Vector2.DOWN) -> Vector2:
+	if aim.length() < 8.0:
+		return current
+	var biased: Vector2 = aim.normalized() + current * 0.1
+	var direction_id: int = posmod(int(round(biased.angle() / TAU * float(DIR_4.size()))), DIR_4.size())
+	return DIR_4[direction_id]
+
+func apply_aim(aim: Vector2) -> bool:
+	var new_dir: Vector2 = cardinal_from_aim(aim, cardinal_direction)
+	if new_dir == cardinal_direction:
+		return false
+	cardinal_direction = new_dir
+	if sprite:
+		sprite.scale.x = -1 if cardinal_direction == Vector2.LEFT else 1
+	DirectionChanged.emit(new_dir)
+	return true
+
+func set_direction() -> bool:
+	if not is_inside_tree():
+		return false
+	return apply_aim(get_global_mouse_position() - global_position)
+
+func set_direction_from_vector(vec: Vector2) -> bool:
+	return apply_aim(vec)
+
 func start_melee_attack() -> void:
 	var facing: Vector2 = cardinal_direction
 	if multiplayer.is_server():
@@ -196,22 +228,7 @@ func anim_direction() -> String:
 		return "up"
 	return "side"
 
-func set_direction() -> bool:
-	if direction == Vector2.ZERO:
-		return false
-	
-	var direction_id: int = int(round((direction + cardinal_direction * 0.1).angle() / TAU * DIR_4.size()))
-	var new_dir = DIR_4[direction_id]
-	
-	if new_dir == cardinal_direction:
-		return false
-	
-	cardinal_direction = new_dir
-	sprite.scale.x = -1 if cardinal_direction == Vector2.LEFT else 1
-	
-	DirectionChanged.emit(new_dir)
-	
-	return true
+
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("primary_click"):
