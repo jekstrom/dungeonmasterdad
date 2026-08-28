@@ -1,4 +1,4 @@
-[gd_scene load_steps=23 format=3 uid="uid://cof1o04wsy0rc"]
+[gd_scene load_steps=26 format=3 uid="uid://cof1o04wsy0rc"]
 
 [ext_resource type="Script" uid="uid://t4prbjbidme4" path="res://player/player.gd" id="1_kwy1i"]
 [ext_resource type="Texture2D" uid="uid://dkc4x6ya465y1" path="res://player/sprites/PlayerSprite02.png" id="3_4tdu3"]
@@ -11,6 +11,8 @@
 [ext_resource type="PackedScene" uid="uid://be52gho0i3dak" path="res://player/shadow_scene.tscn" id="8_hg6s5"]
 [ext_resource type="Script" uid="uid://hd8soioq8iyn" path="res://player/scripts/player_respawn_wait_state.gd" id="9_respawn"]
 [ext_resource type="PackedScene" uid="uid://c1c212xev4n6e" path="res://hitbox.tscn" id="11_2ieo8"]
+[ext_resource type="Script" path="res://player/scripts/player_attack_state.gd" id="12_attack"]
+[ext_resource type="PackedScene" uid="uid://cmhep8oix5sk6" path="res://hurtbox.tscn" id="13_hurt"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_f7x0i"]
 
@@ -131,9 +133,60 @@ tracks/0/keys = {
 "values": [13, 16]
 }
 
+[sub_resource type="Animation" id="Animation_atk_down"]
+resource_name = "attack_down"
+length = 0.28
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Sprite2D:frame")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.14),
+"transitions": PackedFloat32Array(1, 1),
+"update": 1,
+"values": [21, 22]
+}
+
+[sub_resource type="Animation" id="Animation_atk_side"]
+resource_name = "attack_side"
+length = 0.28
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Sprite2D:frame")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.14),
+"transitions": PackedFloat32Array(1, 1),
+"update": 1,
+"values": [23, 24]
+}
+
+[sub_resource type="Animation" id="Animation_atk_up"]
+resource_name = "attack_up"
+length = 0.28
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Sprite2D:frame")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.14),
+"transitions": PackedFloat32Array(1, 1),
+"update": 1,
+"values": [27, 27]
+}
+
 [sub_resource type="AnimationLibrary" id="AnimationLibrary_5uq1k"]
 _data = {
 &"RESET": SubResource("Animation_wdqou"),
+&"attack_down": SubResource("Animation_atk_down"),
+&"attack_side": SubResource("Animation_atk_side"),
+&"attack_up": SubResource("Animation_atk_up"),
 &"idle_down": SubResource("Animation_1yv43"),
 &"idle_side": SubResource("Animation_5uq1k"),
 &"idle_up": SubResource("Animation_s1sn4"),
@@ -141,6 +194,9 @@ _data = {
 &"walk_side": SubResource("Animation_6hcig"),
 &"walk_up": SubResource("Animation_ma1ak")
 }
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_melee"]
+radius = 16.0
 
 [sub_resource type="SceneReplicationConfig" id="SceneReplicationConfig_boad6"]
 properties/0/path = NodePath(".:position")
@@ -165,7 +221,7 @@ properties/5/replication_mode = 1
 [sub_resource type="CapsuleShape2D" id="CapsuleShape2D_ebec5"]
 
 [node name="Player" type="CharacterBody2D"]
-collision_mask = 16
+collision_mask = 272
 motion_mode = 1
 script = ExtResource("1_kwy1i")
 shadow_scene = ExtResource("8_hg6s5")
@@ -200,6 +256,9 @@ script = ExtResource("8_death")
 
 [node name="respawn_wait" type="Node" parent="PlayerStateMachine"]
 script = ExtResource("9_respawn")
+
+[node name="attack" type="Node" parent="PlayerStateMachine"]
+script = ExtResource("12_attack")
 
 [node name="AnimationPlayer" type="AnimationPlayer" parent="."]
 libraries = {
@@ -236,3 +295,12 @@ collision_layer = 2
 position = Vector2(0, -10)
 shape = SubResource("CapsuleShape2D_ebec5")
 debug_color = Color(0.75218695, 0.355202, 0.7434574, 0.41960785)
+
+[node name="AttackHurtbox" parent="." instance=ExtResource("13_hurt")]
+collision_mask = 8
+monitoring = false
+damage = 1
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="AttackHurtbox"]
+position = Vector2(0, -8)
+shape = SubResource("CircleShape2D_melee")

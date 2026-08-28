@@ -1,20 +1,19 @@
 [gd_scene format=3 uid="uid://dkgdpjfkuciox"]
 
-[ext_resource type="Script" uid="uid://lo0k5p132a1x" path="res://monsters/enemy.gd" id="1_ft8ge"]
+[ext_resource type="Script" uid="uid://2m8kik7k1vqe" path="res://monsters/skeleton/skeleton.gd" id="1_ft8ge"]
 [ext_resource type="Texture2D" uid="uid://3gtet3b0pxpx" path="res://monsters/skeleton/skeleton.png" id="2_dlkk0"]
 [ext_resource type="Texture2D" uid="uid://dnhaymu1d41d4" path="res://sprites/Shadow.png" id="3_78jds"]
 [ext_resource type="Script" uid="uid://bmnavawl3vkgc" path="res://monsters/enemy_state_machine.gd" id="4_kivpt"]
 [ext_resource type="Script" uid="uid://c7vcvctq0t7x8" path="res://monsters/states/enemy_state_idle.gd" id="5_knbat"]
 [ext_resource type="Script" uid="uid://dsgyho2x63okl" path="res://monsters/states/enemy_state_wander.gd" id="6_5rrww"]
-[ext_resource type="Script" uid="uid://bvudkh7mw7lbp" path="res://monsters/states/enemy_state_attack.gd" id="7_hmwiv"]
+[ext_resource type="Script" uid="uid://w7ukoihj82nw" path="res://monsters/states/enemy_state_aggro.gd" id="7_hmwiv"]
 [ext_resource type="Script" uid="uid://dfm3rswj3txub" path="res://monsters/states/enemy_state_stun.gd" id="8_q1rqx"]
 [ext_resource type="Texture2D" uid="uid://dt4icgcs5dbex" path="res://monsters/DestroySmoke.png" id="9_p58ql"]
 [ext_resource type="PackedScene" uid="uid://cmhep8oix5sk6" path="res://hurtbox.tscn" id="10_0us0v"]
+[ext_resource type="PackedScene" uid="uid://c1c212xev4n6e" path="res://hitbox.tscn" id="11_hit"]
 [ext_resource type="AudioStream" uid="uid://dyanohy44dnan" path="res://monsters/hit_00.wav" id="10_3m1ob"]
 
-[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_57eei"]
-radius = 6.0
-height = 18.0
+[sub_resource type="CircleShape2D" id="CircleShape2D_body"]
 
 [sub_resource type="Animation" id="Animation_klbxu"]
 length = 0.001
@@ -525,15 +524,20 @@ _data = {
 &"walk_up": SubResource("Animation_bkm6f")
 }
 
-[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_l1v6a"]
+[sub_resource type="CircleShape2D" id="CircleShape2D_melee"]
+radius = 96.0
 
 [node name="Skeleton" type="CharacterBody2D" unique_id=931192244]
 collision_layer = 256
-collision_mask = 16
+collision_mask = 273
+motion_mode = 1
 script = ExtResource("1_ft8ge")
+max_hp = 5
+hp = 5
 
 [node name="Sprite2D" type="Sprite2D" parent="." unique_id=233382869]
 position = Vector2(0, -16)
+scale = Vector2(1.5, 1.5)
 texture = ExtResource("2_dlkk0")
 
 [node name="shadow" type="Sprite2D" parent="." unique_id=1772631637]
@@ -544,27 +548,25 @@ texture = ExtResource("3_78jds")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=219829824]
 position = Vector2(0, -4)
-rotation = 1.5707964
-shape = SubResource("CapsuleShape2D_57eei")
+shape = SubResource("CircleShape2D_body")
 
 [node name="EnemyStateMachine" type="Node" parent="." unique_id=1620757953]
 script = ExtResource("4_kivpt")
 
-[node name="idle" type="Node" parent="EnemyStateMachine" unique_id=1348396290 node_paths=PackedStringArray("next_state")]
+[node name="idle" type="Node" parent="EnemyStateMachine" unique_id=1348396290 node_paths=PackedStringArray("next_state", "attack_state")]
 script = ExtResource("5_knbat")
 next_state = NodePath("../wander")
+attack_state = NodePath("../aggro")
 
 [node name="wander" type="Node" parent="EnemyStateMachine" unique_id=1355346704 node_paths=PackedStringArray("next_state", "attack_state", "enemy_node")]
 script = ExtResource("6_5rrww")
 next_state = NodePath("../idle")
-attack_state = NodePath("../attack")
+attack_state = NodePath("../aggro")
 enemy_node = NodePath("../..")
 
-[node name="attack" type="Node" parent="EnemyStateMachine" unique_id=1331300715 node_paths=PackedStringArray("next_state", "enemy_node")]
+[node name="aggro" type="Node" parent="EnemyStateMachine" unique_id=1331300715 node_paths=PackedStringArray("wander_state")]
 script = ExtResource("7_hmwiv")
-walk_speed = 40.0
-next_state = NodePath("../idle")
-enemy_node = NodePath("../..")
+wander_state = NodePath("../wander")
 
 [node name="stun" type="Node" parent="EnemyStateMachine" unique_id=237952945 node_paths=PackedStringArray("next_state")]
 script = ExtResource("8_q1rqx")
@@ -591,7 +593,16 @@ autoplay = &"idle_down"
 
 [node name="Hurtbox" parent="." unique_id=1417551245 instance=ExtResource("10_0us0v")]
 modulate = Color(1, 0.101960786, 0.12941177, 1)
+collision_mask = 4
+damage = 5
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Hurtbox" unique_id=299399878]
-position = Vector2(0, -15)
-shape = SubResource("CapsuleShape2D_l1v6a")
+position = Vector2(0, -8)
+shape = SubResource("CircleShape2D_melee")
+
+[node name="Hitbox" parent="." instance=ExtResource("11_hit")]
+collision_layer = 8
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Hitbox"]
+position = Vector2(0, -8)
+shape = SubResource("CircleShape2D_body")

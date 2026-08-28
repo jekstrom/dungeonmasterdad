@@ -64,6 +64,10 @@ static func to_world(cell: Vector2i) -> Vector2:
 	return Vector2(cell) * CELL_PX
 
 
+static func from_world(world: Vector2) -> Vector2i:
+	return Vector2i(int(floor(world.x / CELL_PX)), int(floor(world.y / CELL_PX)))
+
+
 static func to_world_from_dict(point: Dictionary) -> Vector2:
 	return to_world(cell_from(point))
 

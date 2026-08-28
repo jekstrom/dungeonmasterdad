@@ -38,7 +38,7 @@ func unparent_player(p: Node2D) -> void:
 
 func update_fantasy_level(level_inc: int) -> void:
 	if multiplayer.is_server():
-		fantasy_level += level_inc
+		fantasy_level = maxi(0, fantasy_level + level_inc)
 		request_fantasy_level_incrase.rpc(fantasy_level)
 		
 func unlock(unlock_name: String) -> void:

@@ -2,8 +2,7 @@ class_name PlayerWalkState extends PlayerState
 
 @export var move_speed: float = 100.0
 @onready var idle: PlayerState = $"../idle"
-#@onready var snake: PlayerState = $"../snake"
-#@onready var attack: StateAttack = $"../attack"
+@onready var attack: PlayerState = $"../attack"
 
 func Enter() -> void:
 	player.update_animation("walk")
@@ -31,8 +30,7 @@ func HandleInput(_event: InputEvent) -> PlayerState:
 	if !is_multiplayer_authority(): return
 	
 	if _event.is_action_pressed("attack"):
-		return null
-		#return attack
+		return attack
 	if _event.is_action_pressed("interact"):
 		PlayerManager.interact_pressed.emit()
 	return null

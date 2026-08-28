@@ -104,7 +104,7 @@ func plan_spawns(
 		if chosen_hall == DungeonGrid.SENTINEL:
 			continue
 		occupied[chosen_hall] = true
-		var hall_spawn: Dictionary = _make_spawn(layout_id, spawn_index, "goblin", chosen_hall)
+		var hall_spawn: Dictionary = _make_spawn(layout_id, spawn_index, "skeleton", chosen_hall)
 		if hall_spawn.is_empty():
 			occupied.erase(chosen_hall)
 			continue
@@ -113,23 +113,17 @@ func plan_spawns(
 
 	return spawns
 
-func _roll_room_package(role: String, knight_placed: bool, rng: RandomNumberGenerator) -> Array[String]:
+func _roll_room_package(role: String, _knight_placed: bool, rng: RandomNumberGenerator) -> Array[String]:
 	var empty: Array[String] = []
 	if role == "start" or role == "deadend":
 		return empty
 	var roll: int = rng.randi_range(0, 99)
 	if role == "mid":
-		if roll <= 59:
-			return ["goblin", "goblin"]
-		if roll <= 89:
-			return ["skeleton", "goblin"]
-		if knight_placed:
-			return ["goblin", "goblin"]
-		return ["knight"]
-	if role == "exit":
 		if roll <= 69:
-			return ["skeleton"]
-		return empty
+			return ["skeleton", "skeleton"]
+		return ["skeleton"]
+	if role == "exit":
+		return ["skeleton"]
 	return empty
 
 func _pick_package_cell(

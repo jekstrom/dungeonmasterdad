@@ -24,6 +24,7 @@ Style, state machines, and RPC annotations: `AGENTS.md`. This skill is the engin
 - Node refs: `@onready`. Missing nodes: `get_node_or_null`.
 - Keep scene-tree changes in `_enter_tree` / `_ready` as the existing node already does. Do not add `_process` work that can be a signal.
 - Parent `y_sort_enabled` flattens nested y-sort. Put wall/player/monster sprites as y-sorted children whose node origin is the south foot.
+- Use signalling system when possible and Godot best practices.
 
 ## Multiplayer
 
