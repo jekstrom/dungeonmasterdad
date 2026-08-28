@@ -32,28 +32,30 @@ func _ready() -> void:
 			start_set[_as_cell(point)] = true
 
 	var pickups: Array = data.get("itemPickups", [])
-	if pickups.size() != Planner.START_ROOM_DEW_COUNT:
-		_fail("US-014 start-room Dew: expected %d item pickups, got %d" % [Planner.START_ROOM_DEW_COUNT, pickups.size()])
-		return
+	var dew_pickups: Array = []
+	for pickup in pickups:
+		if str(pickup.get("item_type", "")) == Planner.GREEN_DEW_PATH:
+			dew_pickups.append(pickup)
 	var used: Dictionary = {}
-	for dew in pickups:
-		if str(dew.get("item_type", "")) != Planner.GREEN_DEW_PATH:
-			_fail("US-014 start-room Dew: pickup must be green Dew")
-			return
+	var start_dew_count: int = 0
+	for dew in dew_pickups:
 		var dew_cell: Vector2i = _as_cell(dew.get("position", {}))
-		if not start_set.has(dew_cell):
-			_fail("US-014 start-room Dew: Dew cell %s is not in the start room" % dew_cell)
-			return
 		if dew_cell == entrance:
 			_fail("US-014 start-room Dew: Dew must not sit on the entrance cell")
 			return
 		if dew_cell == exit_cell:
 			_fail("US-014 start-room Dew: Dew must not sit on the exit cell")
 			return
+		if not start_set.has(dew_cell):
+			continue
 		if used.has(dew_cell):
 			_fail("US-014 start-room Dew: Dew cells must be distinct")
 			return
 		used[dew_cell] = true
+		start_dew_count += 1
+	if start_dew_count < Planner.START_ROOM_DEW_COUNT:
+		_fail("US-014 start-room Dew: expected at least %d start-room Dew, got %d" % [Planner.START_ROOM_DEW_COUNT, start_dew_count])
+		return
 
 	print("US-014 start-room Dew test passed")
 	get_tree().quit(0)

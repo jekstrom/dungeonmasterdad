@@ -16,8 +16,8 @@ func _ready() -> void:
 	if Catalog.cost(Catalog.KNIGHTLING) != 40:
 		_fail("US-014 T002: knightling cost must be 40")
 		return
-	if not Catalog.unlock_id(Catalog.KNIGHTLING).is_empty():
-		_fail("US-014 T002: knightling unlock must stay empty (US-016)")
+	if Catalog.unlock_id(Catalog.KNIGHTLING) != Catalog.UNLOCK_KNIGHTLING:
+		_fail("US-014 T002: knightling unlock_id must be knightling")
 		return
 
 	if Catalog.cost(Catalog.FIREBALL) != 15:

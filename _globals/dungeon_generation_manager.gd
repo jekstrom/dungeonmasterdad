@@ -398,10 +398,15 @@ func _build_layout_candidate(request: DungeonGenerationRequest, generation_seed:
 		layout_data.exit_cell,
 		layout_data.generation_seed
 	)
-	layout_data.item_pickups = _pickup_spawn_planner.plan_start_room_dew(
+	layout_data.item_pickups = _pickup_spawn_planner.plan_dungeon_pickups(
 		layout_data.room_regions,
+		layout_data.hallway_regions,
+		layout_data.walkable_cells,
 		layout_data.entrance_cell,
-		layout_data.exit_cell
+		layout_data.exit_cell,
+		layout_data.generation_seed,
+		layout_data.monster_spawns,
+		request.pickup_counts()
 	)
 
 	var spawn_set: DungeonSpawnSet = DungeonSpawnSet.new()

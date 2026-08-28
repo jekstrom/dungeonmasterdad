@@ -15,12 +15,13 @@ const COST_BEMIDJI_BLIZZARD: int = 30
 const COST_DAD_ALL_POWERFUL: int = 0
 
 const UNLOCK_FIREBALL: String = "fireball"
+const UNLOCK_KNIGHTLING: String = "knightling"
 const UNLOCK_BEMIDJI_BLIZZARD: String = "bemidji_blizzard"
 const UNLOCK_DAD_ALL_POWERFUL: String = "dad_all_powerful"
 
 const ABILITIES: Dictionary = {
 	GREMLIN: {"cost": COST_GREMLIN, "unlock_id": ""},
-	KNIGHTLING: {"cost": COST_KNIGHTLING, "unlock_id": ""},
+	KNIGHTLING: {"cost": COST_KNIGHTLING, "unlock_id": UNLOCK_KNIGHTLING},
 	FIREBALL: {"cost": COST_FIREBALL, "unlock_id": UNLOCK_FIREBALL},
 	BEMIDJI_BLIZZARD: {"cost": COST_BEMIDJI_BLIZZARD, "unlock_id": UNLOCK_BEMIDJI_BLIZZARD},
 	DAD_ALL_POWERFUL: {"cost": COST_DAD_ALL_POWERFUL, "unlock_id": UNLOCK_DAD_ALL_POWERFUL},

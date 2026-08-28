@@ -13,6 +13,12 @@ const MIN_ROOM_COUNT: int = 3
 const MAX_ROOM_COUNT: int = 8
 const MIN_ROOM_CELLS: int = 9
 
+const DEFAULT_START_ROOM_DEW_COUNT: int = 4
+const DEFAULT_EXTRA_DEW_COUNT: int = 0
+const DEFAULT_D6_COUNT: int = 1
+const DEFAULT_D20_COUNT: int = 1
+const MAX_PICKUP_COUNT: int = 16
+
 static func normalize_room_size(room_size: int) -> int:
 	var size: int = clampi(room_size, MIN_ROOM_SIZE, MAX_ROOM_SIZE)
 	if size % 2 == 0:

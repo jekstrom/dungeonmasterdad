@@ -52,6 +52,8 @@ start_cell = Vector2i(29, 16)
 exit_cell = Vector2i(2, 16)
 bounds_size = Vector2i(32, 32)
 room_count = 3
+extra_dew_count = 4
+d6_count = 6
 
 [node name="GameUI" parent="." unique_id=2001332704 instance=ExtResource("6_4bqqs")]
 
