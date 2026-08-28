@@ -7,6 +7,7 @@ var _finished: bool = false
 func Enter() -> void:
 	_finished = false
 	player.velocity = Vector2.ZERO
+	player.set_direction()
 	player.update_animation("attack")
 	player.start_melee_attack()
 	if not player.animation_player.animation_finished.is_connected(_on_animation_finished):

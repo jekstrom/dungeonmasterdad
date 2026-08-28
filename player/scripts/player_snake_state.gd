@@ -33,7 +33,7 @@ func Process(_delta: float) -> PlayerState:
 	
 	player.velocity = player.prev_direction * move_speed
 	
-	if player.set_direction():
+	if player.set_direction_from_vector(player.prev_direction):
 		player.update_animation("walk")
 	
 	player.move_and_slide()

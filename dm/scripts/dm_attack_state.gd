@@ -7,6 +7,7 @@ var _finished: bool = false
 func Enter() -> void:
 	_finished = false
 	dm.velocity = Vector2.ZERO
+	dm.set_direction()
 	dm.update_animation("attack")
 	dm.start_melee_attack()
 	if not dm.animation_player.animation_finished.is_connected(_on_animation_finished):
