@@ -1,7 +1,7 @@
 # T005: Commit dungeon flush to the east interior edge
 
 **Story**: US-024  
-**Status**: Todo  
+**Status**: Done  
 **Depends on**: T004  
 **Parallel**: no
 

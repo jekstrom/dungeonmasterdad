@@ -37,6 +37,7 @@ func Process(_delta: float) -> PlayerState:
 		player.update_animation("walk")
 	
 	player.move_and_slide()
+	player.enforce_map_interior()
 
 	return null
 	

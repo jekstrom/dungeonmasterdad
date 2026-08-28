@@ -11,13 +11,11 @@ var last_used_spawn_index: int = 0
 var next_spawn_point_id: int = 0
 
 func _ready() -> void:
-	super._ready()  # Call parent Zone._ready()
-	
-	# Initialize spawn point system
+	super._ready()
 	_initialize_spawn_points()
-	
-	# Connect to SignalBus for respawn coordination
-	SignalBus.respawn_location_selected.connect(_on_respawn_location_selected)
+	if not SignalBus.respawn_location_selected.is_connected(_on_respawn_location_selected):
+		SignalBus.respawn_location_selected.connect(_on_respawn_location_selected)
+	_rebuild_west_strip_spawns()
 
 func _initialize_spawn_points() -> void:
 	"""Set up spawn point data structures and generate default points if needed"""
@@ -172,6 +170,25 @@ func _get_current_time() -> float:
 # =============================================================================
 # SIGNAL HANDLERS
 # =============================================================================
+
+func _on_map_bounds_committed(interior: Rect2i) -> void:
+	super._on_map_bounds_committed(interior)
+	_rebuild_west_strip_spawns()
+
+func _rebuild_west_strip_spawns() -> void:
+	var level: Node = get_tree().get_first_node_in_group("level_manager") if get_tree() else null
+	if level == null or not level.has_method("west_spawn_cells"):
+		return
+	if not level.has_method("has_map_bounds") or not level.has_map_bounds():
+		return
+	var cells: Array[Vector2i] = level.west_spawn_cells()
+	if cells.is_empty():
+		return
+	spawn_points.clear()
+	for cell in cells:
+		var world: Vector2 = DungeonGrid.to_world(cell) + Vector2(DungeonGrid.CELL_PX * 0.5, DungeonGrid.CELL_PX * 0.5)
+		spawn_points.append(world - global_position)
+	_initialize_spawn_points()
 
 func _on_respawn_location_selected(player_id: int, pos: Vector2) -> void:
 	"""Handle respawn location selection events"""

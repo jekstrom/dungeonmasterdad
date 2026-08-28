@@ -1,7 +1,7 @@
 # T004: Interior size ≥ 4× dungeon AABB
 
 **Story**: US-024  
-**Status**: Todo  
+**Status**: Done  
 **Depends on**: T001  
 **Parallel**: no (blocks T005–T006)
 

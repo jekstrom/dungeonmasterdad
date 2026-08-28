@@ -1,7 +1,7 @@
 # T014: Host-authoritative map replication and late join
 
 **Story**: US-024  
-**Status**: Todo  
+**Status**: Done  
 **Depends on**: T006, T011, T012  
 **Parallel**: no
 

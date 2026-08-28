@@ -1,7 +1,7 @@
 # T010: DM spawns at the east dungeon entrance
 
 **Story**: US-024  
-**Status**: Todo  
+**Status**: Done  
 **Depends on**: T005  
 **Parallel**: with T009
 

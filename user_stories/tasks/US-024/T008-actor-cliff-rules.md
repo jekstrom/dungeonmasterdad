@@ -1,7 +1,7 @@
 # T008: Monsters, projectiles, and other actors vs cliffs
 
 **Story**: US-024  
-**Status**: Todo  
+**Status**: Done  
 **Depends on**: T007  
 **Parallel**: no
 
@@ -29,4 +29,11 @@ Nothing roams the void. Document and implement one rule per actor kind: block, d
 
 ## Notes
 
-Write the per-type rule in this task’s PR/description so later stories do not guess. Players remain “always blocked” from T007.
+Per-type rules:
+
+- Paper Pusher / DM: physics block + clamp (T007). Never kill for leaving the map.
+- Enemy (skeleton, goblin/gremlin, knight including blitz): collide with cliff layer 16; clamp after `move_and_slide`. Stay inside; do not despawn.
+- Gremlin loot carry: not implemented yet. When it exists, drop loot at the clamped interior position; the gremlin stays inside.
+- Fireball (and other projectiles): collide with cliff layer 16 or leave the interior → explode/despawn at the last interior point. Do not travel into the void.
+
+Players remain “always blocked” from T007.

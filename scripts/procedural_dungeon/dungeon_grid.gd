@@ -1,6 +1,9 @@
 class_name DungeonGrid extends RefCounted
 
 const CELL_PX := 128.0
+const SPRITE_HALF_X := 64.0
+const SPRITE_TOP := 127.0
+const CLIFF_GRASS_MARGIN := 56.0
 const SENTINEL := Vector2i(2147483647, 2147483647)
 
 static func cardinals() -> Array[Vector2i]:
@@ -62,6 +65,10 @@ static func chebyshev(a: Vector2i, b: Vector2i) -> int:
 
 static func to_world(cell: Vector2i) -> Vector2:
 	return Vector2(cell) * CELL_PX
+
+
+static func to_world_center(cell: Vector2i) -> Vector2:
+	return to_world(cell) + Vector2(CELL_PX, CELL_PX) * 0.5
 
 
 static func from_world(world: Vector2) -> Vector2i:

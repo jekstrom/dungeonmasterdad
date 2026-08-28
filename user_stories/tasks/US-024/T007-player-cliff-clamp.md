@@ -1,7 +1,7 @@
 # T007: Block Paper Pushers and DM at the cliff
 
 **Story**: US-024  
-**Status**: Todo  
+**Status**: Done  
 **Depends on**: T006  
 **Parallel**: no
 

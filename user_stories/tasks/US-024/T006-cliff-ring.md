@@ -1,7 +1,7 @@
 # T006: Place the cliff ring
 
 **Story**: US-024  
-**Status**: Todo  
+**Status**: Done  
 **Depends on**: T002, T004 (T003 for final art; T005 so dungeon origin is known)  
 **Parallel**: after interior rect exists
 

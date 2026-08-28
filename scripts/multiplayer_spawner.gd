@@ -84,11 +84,17 @@ func spawn_player(id: int, player_name: String) -> void:
 	rng.seed = name_hash
 	var hue = rng.randf() 
 	player.sync_color = Color.from_hsv(hue, 0.6, 0.9)
-	
+	player.position = _west_spawn_world()
 	get_node(spawn_path).add_child(player, true)
 	player.add_to_group("players")
 	PlayerManager.register_player(id, player_name)
 	sync_global_state.rpc_id(id, DmManager.fantasy_level)
+
+func _west_spawn_world() -> Vector2:
+	var level: Node = get_tree().get_first_node_in_group("level_manager")
+	if level and level.has_method("take_west_spawn_world"):
+		return level.take_west_spawn_world()
+	return Vector2(DungeonGrid.CELL_PX * 0.5, DungeonGrid.CELL_PX * 0.5)
 
 func spawn_gremlin() -> void:
 	if !multiplayer.is_server(): return
@@ -219,7 +225,19 @@ func _instantiate_generated_tile(scene_path: String, world_position: Vector2, va
 		parent.remove_child(existing)
 		existing.queue_free()
 	parent.add_child(tile, false)
+	_strip_outside_at_world(world_position)
 	return tile
+
+func _strip_outside_at_world(world_position: Vector2) -> void:
+	var tree := get_tree()
+	if tree == null:
+		return
+	var level: Node = tree.get_first_node_in_group("level_manager")
+	var cell: Vector2i = DungeonGrid.from_world(world_position)
+	if level and level.has_method("remove_outside_tile_at_cell"):
+		level.remove_outside_tile_at_cell(cell)
+	if level and level.has_method("remove_scattered_tree_at_cell"):
+		level.remove_scattered_tree_at_cell(cell)
 
 func _generated_tiles_payload() -> Array:
 	var payload: Array = []
@@ -286,6 +304,9 @@ func _on_dungeon_generation_succeeded(_request_id: String, _layout_id: String) -
 	_place_dm_at_entrance()
 
 
+func _on_dm_entered_tree() -> void:
+	_place_dm_at_entrance()
+
 func _place_dm_at_entrance() -> void:
 	var dm: Node = get_tree().get_first_node_in_group("dm")
 	_place_dm_node_at_entrance(dm)
@@ -308,7 +329,8 @@ func _entrance_world_position() -> Vector2:
 
 
 func spawn_host_player(player_name: String) -> void:
-	if !multiplayer.is_server(): return
+	if not Lobby.is_network_server():
+		return
 	
 	print("spawning dm player")
 	if !player_name or player_name.is_empty():
@@ -319,7 +341,9 @@ func spawn_host_player(player_name: String) -> void:
 	DmManager.dm_player_name = player_name
 	dm.add_to_group("dm")
 	_place_dm_node_at_entrance(dm)
-	get_node(spawn_path).call_deferred("add_child", dm)
+	if not dm.tree_entered.is_connected(_on_dm_entered_tree):
+		dm.tree_entered.connect(_on_dm_entered_tree, CONNECT_ONE_SHOT)
+	get_node(spawn_path).call_deferred("add_child", dm, true)
 	call_deferred("_place_dm_at_entrance")
 	PlayerManager.register_player(1, player_name)
 	

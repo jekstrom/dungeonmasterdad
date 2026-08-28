@@ -1,7 +1,7 @@
 # T002: Cliff tile scene, collision, and catalog
 
 **Story**: US-024  
-**Status**: Todo  
+**Status**: Done  
 **Depends on**: T001  
 **Parallel**: with T003 (wire frames when art lands)
 

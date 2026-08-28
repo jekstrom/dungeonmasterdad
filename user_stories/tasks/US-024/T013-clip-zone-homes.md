@@ -1,7 +1,7 @@
 # T013: Clip Reality and Fantasy homes to the interior
 
 **Story**: US-024  
-**Status**: Todo  
+**Status**: Done  
 **Depends on**: T004  
 **Parallel**: with T011
 

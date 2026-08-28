@@ -1,7 +1,7 @@
 # T001: Map interior and cliff ring API
 
 **Story**: US-024  
-**Status**: Todo  
+**Status**: Done  
 **Depends on**: none  
 **Parallel**: can run with T003
 

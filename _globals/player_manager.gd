@@ -195,8 +195,10 @@ func respawn_player(player_id: int) -> void:
 	
 	print("Respawning player ", player_id, " at ", respawn_position)
 	
-	# Reset player position
 	player_node.global_position = respawn_position
+	var level: Node = get_tree().get_first_node_in_group("level_manager")
+	if level and level.has_method("enforce_body_interior"):
+		level.enforce_body_interior(player_node)
 	
 	# Reset player health
 	player_node.hitpoints = player_node.max_hp
@@ -240,22 +242,19 @@ func get_player_node_by_id(pid: int) -> Node:
 	
 	return null
 
-# Get the respawn position (near Reality Zone)
 func get_respawn_position() -> Vector2:
+	var level: Node = get_tree().get_first_node_in_group("level_manager")
+	if level and level.has_method("has_map_bounds") and level.has_map_bounds() and level.has_method("take_west_spawn_world"):
+		return level.take_west_spawn_world()
+	var chosen := Vector2(183, 74)
 	var world_node = get_tree().current_scene
-	if not world_node:
-		return Vector2(183, 74)  # Fallback to Reality Zone center
-	
-	# Try to find Reality Zone
-	var reality_zone = world_node.get_node_or_null("RealityZone")
-	if reality_zone:
-		# Spawn at Reality Zone center with small random offset
-		var center_pos = reality_zone.global_position
-		var random_offset = Vector2(randf_range(-20, 20), randf_range(-20, 20))
-		return center_pos + random_offset
-	
-	# Fallback position near Reality Zone
-	return Vector2(183, 74)
+	if world_node:
+		var reality_zone = world_node.get_node_or_null("RealityZone")
+		if reality_zone:
+			chosen = reality_zone.global_position + Vector2(randf_range(-20, 20), randf_range(-20, 20))
+	if level and level.has_method("has_map_bounds") and level.has_map_bounds() and level.has_method("clamp_world_to_interior"):
+		return level.clamp_world_to_interior(chosen)
+	return chosen
 
 @rpc("authority", "call_local", "reliable")
 func notify_player_respawned(player_id: int, respawn_position: Vector2) -> void:

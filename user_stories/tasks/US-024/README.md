@@ -2,7 +2,7 @@
 
 **Story**: [US-024.md](../../US-024.md)  
 **Branch**: `024-bounded-map`  
-**Status**: Todo
+**Status**: Headless complete; play pass not run
 
 Play inside a finite map ringed by cliffs. Dungeon flush to the **east** interior edge. Paper Pushers on the **west** interior edge. Interior filled with outside grass/dirt and trees. Nothing walks into the void.
 

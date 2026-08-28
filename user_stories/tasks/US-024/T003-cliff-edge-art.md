@@ -1,7 +1,7 @@
 # T003: Cliff edge and corner sprites
 
 **Story**: US-024  
-**Status**: Todo  
+**Status**: Done  
 **Depends on**: none  
 **Parallel**: with T001–T002
 

@@ -1,7 +1,7 @@
 # T011: Fill interior with outside grass/dirt
 
 **Story**: US-024  
-**Status**: Todo  
+**Status**: Done  
 **Depends on**: T005; **US-023** for the real catalog  
 **Parallel**: with T013
 

@@ -95,6 +95,7 @@ func generate_dungeon_contract(payload: Dictionary, requester_peer_id: int) -> D
 	active_layout_id = layout_data.layout_id
 	_walkable_cell_set = DungeonGrid.set_from(layout_data.walkable_cells)
 	_dungeon_cell_bounds = _bounds_from_walkable(layout_data.walkable_cells)
+	_apply_map_interior_from_dungeon()
 	_log_generation_success(request.request_id, layout_data.layout_id)
 	_release_contract_session(true)
 
@@ -195,6 +196,22 @@ func _release_contract_session(success: bool) -> void:
 	else:
 		generation_state = DungeonGenerationTypes.GenerationLifecycleState.REJECTED
 
+func get_dungeon_cell_bounds() -> Rect2i:
+	return _dungeon_cell_bounds
+
+func _translate_layout_flush_east(layout_data: DungeonLayoutData) -> void:
+	var current: Rect2i = _bounds_from_walkable(layout_data.walkable_cells)
+	var delta: Vector2i = MapBounds.cell_translation_for_east_flush(current)
+	layout_data.translate_cells(delta)
+
+func _apply_map_interior_from_dungeon() -> void:
+	var interior: Rect2i = MapBounds.interior_from_dungeon_aabb(_dungeon_cell_bounds)
+	var level: Node = _get_level_manager()
+	if level and level.has_method("commit_map_interior"):
+		level.commit_map_interior(interior)
+	if level and level.has_method("strip_outside_tiles_from_dungeon_cells"):
+		level.strip_outside_tiles_from_dungeon_cells()
+
 func is_world_position_in_dungeon(world_position: Vector2) -> bool:
 	if _dungeon_cell_bounds.size.x <= 0 or _dungeon_cell_bounds.size.y <= 0:
 		return true
@@ -222,7 +239,15 @@ func get_entrance_world_position() -> Vector2:
 	var layout: DungeonLayoutData = layouts_by_id[active_layout_id]
 	if layout == null:
 		return Vector2.INF
-	return DungeonGrid.to_world(layout.entrance_cell)
+	return DungeonGrid.to_world_center(layout.entrance_cell)
+
+func get_exit_cell() -> Vector2i:
+	if active_layout_id.is_empty() or not layouts_by_id.has(active_layout_id):
+		return DungeonGrid.SENTINEL
+	var layout: DungeonLayoutData = layouts_by_id[active_layout_id]
+	if layout == null:
+		return DungeonGrid.SENTINEL
+	return layout.exit_cell
 
 
 func _get_level_manager() -> Node:
@@ -538,6 +563,7 @@ func _commit_layout_to_world(layout_data: DungeonLayoutData) -> Dictionary:
 		_print_region_dump(layout_data)
 		return {"ok": true}
 
+	_translate_layout_flush_east(layout_data)
 	level_manager.begin_generated_dungeon_stage()
 
 	var tile_result: Dictionary = _spawn_generated_tiles(layout_data, level_manager)

@@ -1,7 +1,7 @@
 # T012: Scatter trees on eligible interior cells
 
 **Story**: US-024  
-**Status**: Todo  
+**Status**: Done  
 **Depends on**: T011  
 **Parallel**: no
 

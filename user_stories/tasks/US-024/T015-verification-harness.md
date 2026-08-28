@@ -1,7 +1,7 @@
 # T015: Verification harness and independent test
 
 **Story**: US-024  
-**Status**: Todo  
+**Status**: Done  
 **Depends on**: T007–T014  
 **Parallel**: no
 
@@ -45,3 +45,7 @@ Prove the independent test in automation where possible, and list the play pass 
 ## Notes
 
 Do not claim the story done until this task’s headless suite passes and the play pass is run or explicitly called out as not run.
+
+Headless suite: `test_harness/procedural_dungeon/us024_independent_test.tscn` plus `us024_run_harness.sh`.
+
+Play pass **not run** this task: no host+client playground session for walking the cliff ring, projectile cliff hits, late-join client log, or in-game home fit.

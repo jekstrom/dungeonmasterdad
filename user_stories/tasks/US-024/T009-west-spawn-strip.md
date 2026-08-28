@@ -1,7 +1,7 @@
 # T009: Paper Pusher spawn on the west interior edge
 
 **Story**: US-024  
-**Status**: Todo  
+**Status**: Done  
 **Depends on**: T004  
 **Parallel**: with T010
 
