@@ -206,24 +206,42 @@ func die() -> void:
 		return
 	if not multiplayer.is_server():
 		return
+	play_death.rpc()
+	var tree := get_tree()
+	if tree:
+		tree.create_timer(0.65).timeout.connect(queue_free)
+	else:
+		queue_free()
+
+
+@rpc("authority", "call_local", "reliable")
+func play_death() -> void:
+	if _dying:
+		return
 	_dying = true
 	velocity = Vector2.ZERO
+	if enemy_state_machine:
+		enemy_state_machine.process_mode = Node.PROCESS_MODE_DISABLED
 	if _health_bar and is_instance_valid(_health_bar):
 		_health_bar.visible = false
+	if sprite:
+		sprite.visible = false
+	var shadow := get_node_or_null("shadow")
+	if shadow is CanvasItem:
+		(shadow as CanvasItem).visible = false
 	var collision := get_node_or_null("CollisionShape2D")
 	if collision is CollisionShape2D:
 		(collision as CollisionShape2D).set_deferred("disabled", true)
+	var hurtbox := get_node_or_null("Hurtbox")
+	if hurtbox is Area2D:
+		(hurtbox as Area2D).monitoring = false
+		(hurtbox as Area2D).monitorable = false
 	var effect := get_node_or_null("destroyEffectSprite")
 	if effect is CanvasItem:
 		(effect as CanvasItem).visible = true
 		var effect_player := effect.get_node_or_null("AnimationPlayer")
 		if effect_player is AnimationPlayer:
 			(effect_player as AnimationPlayer).play("destroy")
-	var tree := get_tree()
-	if tree:
-		tree.create_timer(0.55).timeout.connect(queue_free)
-	else:
-		queue_free()
 	
 func UpdateAnimation(state: String) -> void:
 	animation_player.play(state + "_" + AnimDirection())
