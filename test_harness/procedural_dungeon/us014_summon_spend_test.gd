@@ -37,6 +37,7 @@ func _ready() -> void:
 		_fail("US-014 T004: gremlin must not tax fantasy_level")
 		return
 
+	DmUnlocks.dm_unlocks[Catalog.KNIGHTLING] = true
 	DmManager.set_mana(40)
 	DmHud._on_knight_button_pressed()
 	if _spawn_knight_count != 1:

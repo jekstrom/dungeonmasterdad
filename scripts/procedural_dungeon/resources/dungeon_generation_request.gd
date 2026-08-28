@@ -7,6 +7,10 @@ class_name DungeonGenerationRequest extends Resource
 @export var profile_id: String = "standard"
 @export var room_size: int = 5
 @export var room_count: int = 0
+@export var start_room_dew_count: int = DungeonConstants.DEFAULT_START_ROOM_DEW_COUNT
+@export var extra_dew_count: int = DungeonConstants.DEFAULT_EXTRA_DEW_COUNT
+@export var d6_count: int = DungeonConstants.DEFAULT_D6_COUNT
+@export var d20_count: int = DungeonConstants.DEFAULT_D20_COUNT
 @export var request_time_unix: int = 0
 @export var requested_by_peer_id: int = 1
 
@@ -64,7 +68,29 @@ func from_payload(payload: Dictionary) -> void:
 		raw_room_size = DungeonConstants.DEFAULT_ROOM_SIZE
 	room_size = DungeonConstants.normalize_room_size(raw_room_size)
 	room_count = int(payload.get("roomCount", payload.get("room_count", 0)))
+	start_room_dew_count = _payload_pickup_count(
+		payload,
+		"startRoomDewCount",
+		"start_room_dew_count",
+		DungeonConstants.DEFAULT_START_ROOM_DEW_COUNT
+	)
+	extra_dew_count = _payload_pickup_count(
+		payload,
+		"extraDewCount",
+		"extra_dew_count",
+		DungeonConstants.DEFAULT_EXTRA_DEW_COUNT
+	)
+	d6_count = _payload_pickup_count(payload, "d6Count", "d6_count", DungeonConstants.DEFAULT_D6_COUNT)
+	d20_count = _payload_pickup_count(payload, "d20Count", "d20_count", DungeonConstants.DEFAULT_D20_COUNT)
 	request_time_unix = int(Time.get_unix_time_from_system())
+
+func pickup_counts() -> Dictionary:
+	return {
+		"start_room_dew": start_room_dew_count,
+		"extra_dew": extra_dew_count,
+		"d6": d6_count,
+		"d20": d20_count
+	}
 
 func mid_room_count() -> int:
 	if room_count >= DungeonConstants.MIN_ROOM_COUNT:
@@ -85,3 +111,11 @@ func _parse_bounds(raw_value: Variant) -> Rect2i:
 		var size: Vector2i = DungeonGrid.cell_from(raw_value.get("size", {}))
 		return Rect2i(origin, size)
 	return Rect2i(Vector2i.ZERO, DungeonConstants.STANDARD_MIN_BOUNDS)
+
+func _payload_pickup_count(payload: Dictionary, camel: String, snake: String, default_value: int) -> int:
+	var raw: int = default_value
+	if payload.has(camel):
+		raw = int(payload[camel])
+	elif payload.has(snake):
+		raw = int(payload[snake])
+	return clampi(raw, 0, DungeonConstants.MAX_PICKUP_COUNT)

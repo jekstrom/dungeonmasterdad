@@ -15,6 +15,7 @@ func _ready() -> void:
 		SignalBus.spell_cast.connect(_on_spell_cast)
 
 	DmUnlocks.dm_unlocks["fireball"] = false
+	DmUnlocks.dm_unlocks["knightling"] = false
 	DmUnlocks.dm_unlocks["bemidji_blizzard"] = false
 	DmUnlocks.dm_unlocks["dad_all_powerful"] = false
 	DmManager.set_mana(0)
@@ -48,6 +49,14 @@ func _ready() -> void:
 		return
 	if DmManager.current_mana != 10:
 		_fail("US-014 T003: short gremlin cast must leave mana unchanged")
+		return
+
+	DmManager.set_mana(40)
+	if DmManager.try_cast(Catalog.KNIGHTLING):
+		_fail("US-014 T003: locked knightling must fail with enough mana")
+		return
+	if DmManager.current_mana != 40:
+		_fail("US-014 T003: locked knightling must not spend mana")
 		return
 
 	DmManager.set_mana(25)

@@ -15,6 +15,7 @@ func _ready() -> void:
 		SignalBus.spell_cast.connect(_on_spell_cast)
 
 	DmUnlocks.dm_unlocks[Catalog.FIREBALL] = false
+	DmUnlocks.dm_unlocks[Catalog.KNIGHTLING] = false
 	DmUnlocks.dm_unlocks[Catalog.UNLOCK_BEMIDJI_BLIZZARD] = false
 	DmManager.set_mana(0)
 	DmHud.turn_on()

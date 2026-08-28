@@ -52,6 +52,7 @@ func _on_peer_connected_authority(id: int) -> void:
 	set_multiplayer_authority(1)
 	if multiplayer.is_server():
 		sync_generated_tiles_to_peer(id)
+		_sync_global_state_to_peer(id)
 
 func on_connected_ok():
 	var id = multiplayer.get_unique_id()
@@ -88,7 +89,7 @@ func spawn_player(id: int, player_name: String) -> void:
 	get_node(spawn_path).add_child(player, true)
 	player.add_to_group("players")
 	PlayerManager.register_player(id, player_name)
-	sync_global_state.rpc_id(id, DmManager.fantasy_level, DmManager.current_mana, DmManager.max_mana)
+	_sync_global_state_to_peer(id)
 
 func _west_spawn_world() -> Vector2:
 	var level: Node = get_tree().get_first_node_in_group("level_manager")
@@ -360,7 +361,13 @@ func spawn_host_player(player_name: String) -> void:
 	}
 	SignalBus.on_item_drop.emit(cloak_data)
 		
+func _sync_global_state_to_peer(id: int) -> void:
+	sync_global_state.rpc_id(id, DmManager.fantasy_level, DmManager.current_mana, DmManager.max_mana, DmUnlocks.snapshot())
+
 @rpc("authority", "call_local", "reliable")
-func sync_global_state(f: int, mana: int = 0, mana_max: int = 100) -> void:
+func sync_global_state(f: int, mana: int = 0, mana_max: int = 100, unlocks: Dictionary = {}) -> void:
 	DmManager.fantasy_level = f
+	DmManager.fantasy_level_changed.emit(f)
 	DmManager.apply_replicated_mana(mana, mana_max)
+	if not unlocks.is_empty():
+		DmUnlocks.apply_replicated_unlocks(unlocks)

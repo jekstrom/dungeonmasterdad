@@ -19,6 +19,12 @@ class_name DungeonGenerator extends Node2D
 @export_range(3, 11, 2) var room_size: int = 5
 @export_range(3, 8) var room_count: int = 4
 
+@export_group("Pickups")
+@export_range(0, 16) var start_room_dew_count: int = DungeonConstants.DEFAULT_START_ROOM_DEW_COUNT
+@export_range(0, 16) var extra_dew_count: int = DungeonConstants.DEFAULT_EXTRA_DEW_COUNT
+@export_range(0, 16) var d6_count: int = DungeonConstants.DEFAULT_D6_COUNT
+@export_range(0, 16) var d20_count: int = DungeonConstants.DEFAULT_D20_COUNT
+
 var _requested: bool = false
 
 func _ready() -> void:
@@ -59,7 +65,11 @@ func to_payload() -> Dictionary:
 		},
 		"profileId": profile_id,
 		"roomSize": room_size,
-		"roomCount": room_count
+		"roomCount": room_count,
+		"startRoomDewCount": start_room_dew_count,
+		"extraDewCount": extra_dew_count,
+		"d6Count": d6_count,
+		"d20Count": d20_count
 	}
 
 func _is_generation_authority() -> bool:

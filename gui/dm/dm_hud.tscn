@@ -103,6 +103,7 @@ texture_pressed = ExtResource("3_t4wv6")
 stretch_mode = 0
 
 [node name="SpawnKnight" type="ColorRect" parent="MarginContainer/HBoxContainer"]
+visible = false
 custom_minimum_size = Vector2(75, 75)
 layout_mode = 2
 size_flags_horizontal = 8
@@ -115,7 +116,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-tooltip_text = "Summon Gremlin"
+tooltip_text = "Summon Knightling"
 texture_normal = ExtResource("5_usulh")
 texture_pressed = ExtResource("5_usulh")
 stretch_mode = 0
