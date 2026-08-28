@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="ItemData" load_steps=7 format=3]
+
+[ext_resource type="Script" path="res://pickups/scripts/item_effect.gd" id="1_effect"]
+[ext_resource type="Script" path="res://pickups/effects/restore_mana.gd" id="2_restore"]
+[ext_resource type="Script" path="res://pickups/scripts/item_data.gd" id="3_data"]
+[ext_resource type="AudioStream" uid="uid://cc7ca0piwffml" path="res://pickups/powerUp.wav" id="4_sound"]
+[ext_resource type="Texture2D" uid="uid://d3wb1fbmfd5jv" path="res://pickups/mtdew/mtdew.png" id="5_tex"]
+
+[sub_resource type="Resource" id="Resource_mana"]
+script = ExtResource("2_restore")
+mana_amount = 25
+
+[resource]
+script = ExtResource("3_data")
+name = "Green Mt Dew"
+description = "Restores Dungeon Master mana"
+auto_use = true
+pickup_char = "dm_only"
+pickup_sound = ExtResource("4_sound")
+texture = ExtResource("5_tex")
+effects = Array[ExtResource("1_effect")]([SubResource("Resource_mana")])

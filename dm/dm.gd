@@ -190,16 +190,31 @@ func play_audio(_stream: AudioStream) -> void:
 	audio_stream_player_2d.stream = _stream
 	audio_stream_player_2d.play()
 	
-func _unhandled_input(event: InputEvent) -> void:
-	if multiplayer.is_server() and event.is_action_pressed("primary_click") and current_targeting:
-		var spell_data = {
-			"shooter_id" = multiplayer.get_unique_id(),
-			"position" = Vector2(global_position.x, global_position.y - 16),
-			"target" = current_targeting.global_position,
-			"radius_bonus" = 0,
-			"base_damage_bonus" = 0,
-			"speed_bonus" = 0,
-		}
-		SignalBus.spell_cast.emit("fireball", spell_data)
+func confirm_targeted_spell() -> void:
+	if current_targeting == null:
+		return
+	var spell_data := {
+		"shooter_id": multiplayer.get_unique_id(),
+		"position": Vector2(global_position.x, global_position.y - 16),
+		"target": current_targeting.global_position,
+		"radius_bonus": 0,
+		"base_damage_bonus": 0,
+		"speed_bonus": 0,
+	}
+	_clear_targeting()
+	if not multiplayer.is_server():
+		return
+	DmManager.launch_fireball(spell_data)
+
+func _clear_targeting() -> void:
+	if current_targeting == null:
+		return
+	if current_targeting.get_parent() == self:
 		remove_child(current_targeting)
-		current_targeting = null
+	current_targeting.queue_free()
+	current_targeting = null
+
+func _unhandled_input(event: InputEvent) -> void:
+	if event.is_action_pressed("primary_click") and current_targeting:
+		if is_multiplayer_authority() or multiplayer.is_server():
+			confirm_targeted_spell()

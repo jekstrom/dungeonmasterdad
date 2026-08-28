@@ -12,6 +12,7 @@ class_name DungeonLayoutData extends Resource
 @export var main_path_cells: Array[Vector2i] = []
 @export var tile_placements: Array[Dictionary] = []
 @export var monster_spawns: Array[Dictionary] = []
+@export var item_pickups: Array[Dictionary] = []
 @export var generation_seed: int = 100
 
 func translate_cells(delta: Vector2i) -> void:
@@ -26,6 +27,7 @@ func translate_cells(delta: Vector2i) -> void:
 	_shift_region_cells(hallway_regions, delta)
 	_shift_point_dicts(tile_placements, delta)
 	_shift_point_dicts(monster_spawns, delta)
+	_shift_point_dicts(item_pickups, delta)
 
 func _shifted_vector_cells(cells: Array[Vector2i], delta: Vector2i) -> Array[Vector2i]:
 	var shifted: Array[Vector2i] = []
@@ -86,5 +88,6 @@ func to_contract_dictionary() -> Dictionary:
 		"hallwayRegions": hallway_regions,
 		"mainPath": DungeonGrid.points_to_dicts(main_path_cells),
 		"tilePlacements": tile_placements,
-		"monsterSpawns": monster_spawns
+		"monsterSpawns": monster_spawns,
+		"itemPickups": item_pickups
 	}

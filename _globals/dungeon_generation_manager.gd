@@ -23,6 +23,7 @@ var _layout_composer: LayoutComposer = LayoutComposer.new()
 var _path_validator: PathValidator = PathValidator.new()
 var _tile_placement_builder: TilePlacementBuilder = TilePlacementBuilder.new()
 var _monster_spawn_planner: MonsterSpawnPlanner = MonsterSpawnPlanner.new()
+var _pickup_spawn_planner = preload("res://scripts/procedural_dungeon/pickup_spawn_planner.gd").new()
 var _dungeon_scene_builder: DungeonSceneBuilder = DungeonSceneBuilder.new()
 
 func _ready() -> void:
@@ -397,6 +398,11 @@ func _build_layout_candidate(request: DungeonGenerationRequest, generation_seed:
 		layout_data.exit_cell,
 		layout_data.generation_seed
 	)
+	layout_data.item_pickups = _pickup_spawn_planner.plan_start_room_dew(
+		layout_data.room_regions,
+		layout_data.entrance_cell,
+		layout_data.exit_cell
+	)
 
 	var spawn_set: DungeonSpawnSet = DungeonSpawnSet.new()
 	spawn_set.layout_id = layout_data.layout_id
@@ -577,6 +583,7 @@ func _commit_layout_to_world(layout_data: DungeonLayoutData) -> Dictionary:
 		return spawn_result
 
 	level_manager.commit_generated_dungeon_stage()
+	_spawn_generated_pickups(layout_data)
 	_print_region_dump(layout_data)
 	_smoke_check_generated_tiles(layout_data)
 	return {
@@ -630,6 +637,19 @@ func _spawn_generated_monsters(layout_data: DungeonLayoutData, level_manager: No
 	return {
 		"ok": true
 	}
+
+func _spawn_generated_pickups(layout_data: DungeonLayoutData) -> void:
+	if not multiplayer.is_server():
+		return
+	for pickup in layout_data.item_pickups:
+		var item_type: String = str(pickup.get("item_type", ""))
+		if item_type.is_empty():
+			continue
+		var world_position: Vector2 = DungeonGrid.to_world_center(DungeonGrid.cell_from(pickup.get("position", {})))
+		SignalBus.on_item_drop.emit({
+			"item_type": item_type,
+			"position": world_position
+		})
 
 func _smoke_check_generated_tiles(layout_data: DungeonLayoutData) -> void:
 	var walkable_set: Dictionary = DungeonGrid.set_from(layout_data.walkable_cells)
