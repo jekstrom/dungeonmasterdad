@@ -24,6 +24,7 @@ For Godot engine work, also follow `/godot`. For verification, also follow `/tes
 3. Keep the host authoritative for world state. Client-owned input is only for the local player's movement/camera.
 4. Verify in play: movement, y-sort, collision, then a host+client join if the change is networked or spawned.
 5. Do not leave debug prints, unused scenes, or half-wired inspector exports.
+6. No code comments.
 
 ## Feel checks (2D)
 

@@ -144,10 +144,7 @@ func HandleInput(_event: InputEvent) -> StateBase:
 - Handle multiplayer authority checks
 
 ### Comments
-- Use `#` for single-line comments
-- Document complex algorithms and multiplayer logic
-- Explain state machine transitions
-- Comment RPC functions and their purpose
+- Never use comments
 
 ### Resource Management
 - Use `class_name` for custom resource types
