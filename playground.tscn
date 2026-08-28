@@ -12,7 +12,7 @@
 [ext_resource type="PackedScene" uid="uid://dcevmqir2nyr6" path="res://gui/hud.tscn" id="8_v7dth"]
 [ext_resource type="PackedScene" uid="uid://f15sgptli5oi" path="res://gui/dm/dm_hud.tscn" id="9_pi42a"]
 [ext_resource type="PackedScene" uid="uid://bglfuu7ga823v" path="res://gui/player/player_hud.tscn" id="12_te8jg"]
-[ext_resource type="PackedScene" uid="uid://dkgdpjfkuciox" path="res://monsters/skeleton/skeleton.tscn" id="13_3i8ot"]
+
 [ext_resource type="PackedScene" uid="uid://si6i5r1yric1" path="res://spells/fireball/fireball_spell.tscn" id="13_ycdrs"]
 [ext_resource type="Script" uid="uid://b1w5sp8jtdo2y" path="res://_globals/building_manager.gd" id="13_yjl7g"]
 [ext_resource type="Script" uid="uid://7l00cqarwjaa" path="res://scripts/projectile_spawner.gd" id="18_ycdrs"]
@@ -53,8 +53,8 @@ knight = ExtResource("22_ymgag")
 
 [node name="PlayerHud" parent="." unique_id=975254691 instance=ExtResource("12_te8jg")]
 
-[node name="Skeleton" parent="." unique_id=1139584314 instance=ExtResource("13_3i8ot")]
-position = Vector2(118, -9)
+[node name="GeneratedTiles" type="Node2D" parent="."]
+y_sort_enabled = true
 
 [node name="Buildings" type="Node2D" parent="." unique_id=53214145 groups=["building_root"]]
 y_sort_enabled = true

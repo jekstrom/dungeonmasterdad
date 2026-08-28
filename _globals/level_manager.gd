@@ -36,9 +36,7 @@ func _on_host_started_generate_canonical_dungeon(_player_name: String = "") -> v
 func _try_generate_canonical_dungeon() -> void:
 	if _canonical_dungeon_requested:
 		return
-	if not multiplayer.has_multiplayer_peer():
-		return
-	if not multiplayer.is_server():
+	if not Lobby.is_network_server():
 		return
 
 	var manager: Node = get_node_or_null("/root/DungeonGenerationManager")

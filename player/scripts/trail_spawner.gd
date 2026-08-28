@@ -3,11 +3,11 @@ class_name TrailSpawner extends MultiplayerSpawner
 @export var trail_scene: PackedScene
 
 func _enter_tree():
-	if multiplayer.has_multiplayer_peer():
-		set_multiplayer_authority(1)
+	set_multiplayer_authority(1)
 
 func _ready() -> void:
 	spawn_function = _custom_spawn
+	set_multiplayer_authority(1)
 	if multiplayer.is_server():
 		SignalBus.shadow_increased.connect(on_trail_added)
 	

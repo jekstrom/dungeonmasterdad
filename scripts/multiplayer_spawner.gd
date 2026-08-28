@@ -15,6 +15,7 @@ const WALL_Z_INDEX := DungeonConstants.WALL_Z_INDEX
 
 var _monster_catalog: MonsterCatalog = MonsterCatalog.new()
 var _tile_catalog: TileCatalog = TileCatalog.new()
+var _manual_spawn_seq: int = 0
 
 func _enter_tree() -> void:
 	# Server is always peer 1. Set on every peer in _enter_tree (not only
@@ -32,13 +33,16 @@ func _ready() -> void:
 	if not multiplayer.peer_connected.is_connected(_on_peer_connected_authority):
 		multiplayer.peer_connected.connect(_on_peer_connected_authority)
 
-	# Only server should handle hosting and spawning
-	if multiplayer.is_server():
+	# Connect regardless of the default OfflineMultiplayerPeer. Handlers
+	# still no-op unless this peer is the real network server.
+	if not Lobby.host_started.is_connected(spawn_host_player):
 		Lobby.host_started.connect(spawn_host_player)
+	if not DmManager.spawn_gremlin_cast.is_connected(spawn_gremlin):
 		DmManager.spawn_gremlin_cast.connect(spawn_gremlin)
+	if not DmManager.spawn_knight_cast.is_connected(spawn_knight):
 		DmManager.spawn_knight_cast.connect(spawn_knight)
-		if not SignalBus.dungeon_generation_succeeded.is_connected(_on_dungeon_generation_succeeded):
-			SignalBus.dungeon_generation_succeeded.connect(_on_dungeon_generation_succeeded)
+	if not SignalBus.dungeon_generation_succeeded.is_connected(_on_dungeon_generation_succeeded):
+		SignalBus.dungeon_generation_succeeded.connect(_on_dungeon_generation_succeeded)
 
 func _on_connected_to_server() -> void:
 	set_multiplayer_authority(1)
@@ -92,6 +96,8 @@ func spawn_gremlin() -> void:
 	print("spawning gremlin")
 	
 	var new_gremlin: Node = gremlin.instantiate()
+	_manual_spawn_seq += 1
+	new_gremlin.name = ("gremlin_%d" % _manual_spawn_seq).validate_node_name()
 
 	get_node(spawn_path).call_deferred("add_child", new_gremlin, true)
 
@@ -101,6 +107,8 @@ func spawn_knight() -> void:
 	print("spawning knight")
 	
 	var new_knight: Node = knight.instantiate()
+	_manual_spawn_seq += 1
+	new_knight.name = ("knight_%d" % _manual_spawn_seq).validate_node_name()
 
 	get_node(spawn_path).call_deferred("add_child", new_knight, true)
 	
@@ -134,6 +142,7 @@ func spawn_monster_from_scene_path(scene_path: String, world_position: Vector2, 
 	monster.position = world_position
 	if not spawn_id.is_empty():
 		monster.set_meta("generated_spawn_id", spawn_id)
+		monster.name = spawn_id.validate_node_name()
 	monster.add_to_group("generated_dungeon_monsters")
 
 	# Synchronous add_child so swap-on-success commit/rollback is not racing a deferred spawn.
@@ -149,6 +158,18 @@ func spawn_tile_from_scene_path(scene_path: String, world_position: Vector2, var
 	# replace RPC at commit / peer connect.
 	return _instantiate_generated_tile(scene_path, world_position, variant_id, wall_frame)
 
+func _generated_tiles_parent() -> Node:
+	var root: Node = get_node(spawn_path)
+	var tiles: Node = root.get_node_or_null("GeneratedTiles")
+	if tiles:
+		return tiles
+	var created := Node2D.new()
+	created.name = "GeneratedTiles"
+	created.y_sort_enabled = true
+	root.add_child(created)
+	return created
+
+
 func _generated_tile_name(scene_path: String, world_position: Vector2) -> String:
 	var gx := int(round(world_position.x / 128.0))
 	var gy := int(round(world_position.y / 128.0))
@@ -158,7 +179,8 @@ func _generated_tile_name(scene_path: String, world_position: Vector2) -> String
 func _disable_generated_tile_sync(tile: Node) -> void:
 	var sync := tile.get_node_or_null("MultiplayerSynchronizer")
 	if sync:
-		sync.public_visibility = false
+		tile.remove_child(sync)
+		sync.free()
 
 func _instantiate_generated_tile(scene_path: String, world_position: Vector2, variant_id: int, wall_frame: int) -> Node2D:
 	if scene_path.is_empty() or not _tile_catalog.is_approved_scene_path(scene_path):
@@ -190,7 +212,7 @@ func _instantiate_generated_tile(scene_path: String, world_position: Vector2, va
 			tile.floor_type = clampi(variant_id, 0, 1)
 		tile.z_index = FLOOR_Z_INDEX
 
-	var parent: Node = get_node(spawn_path)
+	var parent: Node = _generated_tiles_parent()
 	var existing: Node = parent.get_node_or_null(NodePath(str(tile.name)))
 	if existing:
 		existing.remove_from_group("generated_dungeon_tiles")
