@@ -28,6 +28,7 @@ signal DirectionChanged(new_direction: Vector2)
 @export var melee_damage: int = 1
 
 func _ready() -> void:
+	collision_mask = collision_mask | 16
 	if is_multiplayer_authority():
 		camera_2d.make_current()
 	else:
@@ -65,6 +66,7 @@ func _physics_process(_delta: float) -> void:
 	if state_machine.current_state and state_machine.current_state.name == "attack":
 		velocity = Vector2.ZERO
 		move_and_slide()
+		enforce_map_interior()
 		return
 	
 	direction = Vector2(
@@ -73,6 +75,22 @@ func _physics_process(_delta: float) -> void:
 	).normalized()
 	velocity = direction * 300
 	move_and_slide()
+	enforce_map_interior()
+
+func enforce_map_interior() -> void:
+	var level: Node = get_tree().get_first_node_in_group("level_manager") if get_tree() else null
+	if level and level.has_method("enforce_body_interior"):
+		level.enforce_body_interior(self)
+
+@rpc("any_peer", "reliable")
+func apply_interior_clamp(pos: Vector2) -> void:
+	var sender: int = multiplayer.get_remote_sender_id()
+	if sender != 0 and sender != 1:
+		return
+	if not is_multiplayer_authority():
+		return
+	global_position = pos
+	velocity = Vector2.ZERO
 
 func wants_melee_attack(event: InputEvent) -> bool:
 	if not event.is_action_pressed("attack"):

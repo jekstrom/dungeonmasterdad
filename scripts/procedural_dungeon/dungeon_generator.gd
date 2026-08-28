@@ -9,8 +9,8 @@ class_name DungeonGenerator extends Node2D
 
 @export_group("Layout")
 @export var request_id: String = "dungeon"
-@export var start_cell: Vector2i = Vector2i(2, 2)
-@export var exit_cell: Vector2i = Vector2i(16, 16)
+@export var start_cell: Vector2i = Vector2i(21, 12)
+@export var exit_cell: Vector2i = Vector2i(2, 12)
 @export var bounds_origin: Vector2i = Vector2i.ZERO
 @export var bounds_size: Vector2i = Vector2i(24, 24)
 @export var profile_id: String = "standard"

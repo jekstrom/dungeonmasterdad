@@ -63,3 +63,7 @@ signal dungeon_generation_requested(request_id: String, requester_peer_id: int)
 signal dungeon_generation_succeeded(request_id: String, layout_id: String)
 @warning_ignore("unused_signal")
 signal dungeon_generation_failed(request_id: String, error_code: String, message: String)
+@warning_ignore("unused_signal")
+signal map_bounds_committed(interior: Rect2i)
+@warning_ignore("unused_signal")
+signal map_bounds_cleared

@@ -1,0 +1,50 @@
+[gd_scene format=3 uid="uid://dn4731v78i45y"]
+
+[ext_resource type="Script" uid="uid://drcmlbsdn3ywx" path="res://level/cliff.gd" id="1_script"]
+[ext_resource type="Texture2D" uid="uid://dw1ln8wxfdv5d" path="res://sprites/cliff_edge.png" id="2_tex"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_whair"]
+resource_local_to_scene = true
+atlas = ExtResource("2_tex")
+region = Rect2(0, 0, 128, 72)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_grass"]
+resource_local_to_scene = true
+atlas = ExtResource("2_tex")
+region = Rect2(0, 72, 128, 56)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_stone_b"]
+resource_local_to_scene = true
+atlas = ExtResource("2_tex")
+region = Rect2(0, 0, 128, 128)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_1hxlg"]
+size = Vector2(128, 72)
+
+[node name="Cliff" type="Node2D" unique_id=1832312330]
+script = ExtResource("1_script")
+
+[node name="Grass" type="Sprite2D" parent="."]
+z_index = -1
+z_as_relative = false
+texture = SubResource("AtlasTexture_grass")
+offset = Vector2(0, -27)
+
+[node name="Sprite2D" type="Sprite2D" parent="." unique_id=22092715]
+texture = SubResource("AtlasTexture_whair")
+offset = Vector2(0, -91)
+
+[node name="Sprite2DStoneB" type="Sprite2D" parent="."]
+visible = false
+texture = SubResource("AtlasTexture_stone_b")
+
+[node name="StaticBody" type="StaticBody2D" parent="." unique_id=774775676]
+collision_layer = 16
+collision_mask = 0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="StaticBody" unique_id=1220738840]
+position = Vector2(0, -91)
+shape = SubResource("RectangleShape2D_1hxlg")
+
+[node name="CollisionShape2D2" type="CollisionShape2D" parent="StaticBody" unique_id=2118952749]
+disabled = true

@@ -47,6 +47,7 @@ func _enter_tree() -> void:
 	# Only set authority if multiplayer is ready and we have a valid ID
 	if multiplayer.has_multiplayer_peer() and id > 0:
 		set_multiplayer_authority(id)
+	collision_mask = collision_mask | 16
 
 func _ready() -> void:
 	if is_multiplayer_authority():
@@ -135,7 +136,9 @@ func _physics_process(_delta: float) -> void:
 	if !is_multiplayer_authority(): return
 	if state_machine.current_state == null: return
 	var state_name: String = state_machine.current_state.name
-	if state_name == "death": return
+	if state_name == "death":
+		enforce_map_interior()
+		return
 	
 	if direction != Vector2.ZERO:
 		prev_direction = direction
@@ -144,13 +147,32 @@ func _physics_process(_delta: float) -> void:
 		Input.get_axis("up", "down")
 	).normalized()
 	
-	if state_name == "snake": return
+	if state_name == "snake":
+		enforce_map_interior()
+		return
 	if state_name == "attack":
 		velocity = Vector2.ZERO
 		move_and_slide()
+		enforce_map_interior()
 		return
 	velocity = direction * 300
 	move_and_slide()
+	enforce_map_interior()
+
+func enforce_map_interior() -> void:
+	var level: Node = get_tree().get_first_node_in_group("level_manager") if get_tree() else null
+	if level and level.has_method("enforce_body_interior"):
+		level.enforce_body_interior(self)
+
+@rpc("any_peer", "reliable")
+func apply_interior_clamp(pos: Vector2) -> void:
+	var sender: int = multiplayer.get_remote_sender_id()
+	if sender != 0 and sender != 1:
+		return
+	if not is_multiplayer_authority():
+		return
+	global_position = pos
+	velocity = Vector2.ZERO
 
 func wants_melee_attack(event: InputEvent) -> bool:
 	if not event.is_action_pressed("attack"):
@@ -249,8 +271,8 @@ func _on_player_respawn_completed(player_id: int, respawn_position: Vector2) -> 
 	
 	print("Player ", player_id, " respawning at ", respawn_position)
 	
-	# Move to respawn position
 	global_position = respawn_position
+	enforce_map_interior()
 	
 	# Reset player state
 	velocity = Vector2.ZERO

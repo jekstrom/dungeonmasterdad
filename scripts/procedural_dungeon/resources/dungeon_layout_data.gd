@@ -14,6 +14,45 @@ class_name DungeonLayoutData extends Resource
 @export var monster_spawns: Array[Dictionary] = []
 @export var generation_seed: int = 100
 
+func translate_cells(delta: Vector2i) -> void:
+	if delta == Vector2i.ZERO:
+		return
+	entrance_cell += delta
+	exit_cell += delta
+	walkable_cells = _shifted_vector_cells(walkable_cells, delta)
+	blocked_cells = _shifted_vector_cells(blocked_cells, delta)
+	main_path_cells = _shifted_vector_cells(main_path_cells, delta)
+	_shift_region_cells(room_regions, delta)
+	_shift_region_cells(hallway_regions, delta)
+	_shift_point_dicts(tile_placements, delta)
+	_shift_point_dicts(monster_spawns, delta)
+
+func _shifted_vector_cells(cells: Array[Vector2i], delta: Vector2i) -> Array[Vector2i]:
+	var shifted: Array[Vector2i] = []
+	for cell in cells:
+		shifted.append(cell + delta)
+	return shifted
+
+func _shift_region_cells(regions: Array[Dictionary], delta: Vector2i) -> void:
+	for region in regions:
+		var raw: Variant = region.get("cells", [])
+		if not raw is Array:
+			continue
+		var shifted: Array = []
+		for point in raw:
+			var cell: Vector2i = DungeonGrid.cell_from(point) + delta
+			if point is Vector2i:
+				shifted.append(cell)
+			else:
+				shifted.append({"x": cell.x, "y": cell.y})
+		region["cells"] = shifted
+
+func _shift_point_dicts(items: Array[Dictionary], delta: Vector2i) -> void:
+	for item in items:
+		var point: Variant = item.get("position", {})
+		var cell: Vector2i = DungeonGrid.cell_from(point) + delta
+		item["position"] = {"x": cell.x, "y": cell.y}
+
 func validate() -> Dictionary:
 	if layout_id.strip_edges().is_empty():
 		return DungeonGrid.fail("INVALID_REQUEST", "Layout ID is required")

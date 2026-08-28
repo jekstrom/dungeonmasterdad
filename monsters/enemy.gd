@@ -46,6 +46,7 @@ func _ready() -> void:
 	var hitbox := get_node_or_null("Hitbox")
 	if hitbox and hitbox.has_signal("Damaged"):
 		hitbox.Damaged.connect(_take_damage)
+	collision_mask = collision_mask | 16
 
 func _process(_delta: float) -> void:
 	pass
@@ -155,6 +156,15 @@ func _physics_process(_delta: float) -> void:
 		velocity = Vector2.ZERO
 		return
 	move_and_slide()
+	_enforce_map_interior()
+
+func _enforce_map_interior() -> void:
+	var tree := get_tree()
+	if tree == null:
+		return
+	var level: Node = tree.get_first_node_in_group("level_manager")
+	if level and level.has_method("enforce_body_interior"):
+		level.enforce_body_interior(self)
 
 
 func health_ratio() -> float:

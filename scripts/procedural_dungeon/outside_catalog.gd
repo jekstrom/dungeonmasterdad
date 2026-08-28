@@ -1,0 +1,26 @@
+class_name OutsideCatalog extends RefCounted
+
+const OUTSIDE_SCENE_PATH: String = "res://level/outside_tile.tscn"
+const VARIETY_COUNT: int = 3
+
+func get_outside_scene_path() -> String:
+	return OUTSIDE_SCENE_PATH
+
+func get_approved_scene_paths() -> PackedStringArray:
+	return PackedStringArray([OUTSIDE_SCENE_PATH])
+
+func is_approved_scene_path(scene_path: String) -> bool:
+	return scene_path == OUTSIDE_SCENE_PATH
+
+func is_dungeon_tile_path(scene_path: String) -> bool:
+	return scene_path == TileCatalog.FLOOR_SCENE_PATH or scene_path == TileCatalog.WALL_SCENE_PATH
+
+func apply_random_neutral(tile: Node, rng: RandomNumberGenerator) -> void:
+	if tile == null or rng == null:
+		return
+	if "ground_kind" in tile:
+		tile.ground_kind = (
+			OutsideTile.GroundKind.GRASS if rng.randi_range(0, 1) == 0 else OutsideTile.GroundKind.DIRT
+		)
+	if "variety" in tile:
+		tile.variety = rng.randi_range(0, VARIETY_COUNT - 1)
