@@ -9,6 +9,7 @@ func paper_produced(_animation: String) -> void:
 func _process(delta: float) -> void:
 	if !multiplayer.is_server(): return
 	if is_ghost: return
+	sync_blizzard_interval()
 	timer += delta
 	
 	if timer >= interval:

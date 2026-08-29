@@ -1,0 +1,482 @@
+[gd_scene format=3 uid="uid://mnhk1pivvlq2"]
+
+[ext_resource type="Script" uid="uid://0twrtfaicoou" path="res://monsters/baja_boss.gd" id="1_script"]
+[ext_resource type="Texture2D" uid="uid://suenlvmbyg3f" path="res://monsters/baja_boss.png" id="2_tex"]
+[ext_resource type="Texture2D" uid="uid://dnhaymu1d41d4" path="res://sprites/Shadow.png" id="3_shadow"]
+[ext_resource type="Script" uid="uid://bmnavawl3vkgc" path="res://monsters/enemy_state_machine.gd" id="4_sm"]
+[ext_resource type="Script" uid="uid://c7vcvctq0t7x8" path="res://monsters/states/enemy_state_idle.gd" id="5_idle"]
+[ext_resource type="Script" uid="uid://dsgyho2x63okl" path="res://monsters/states/enemy_state_wander.gd" id="6_wander"]
+[ext_resource type="Script" uid="uid://dfm3rswj3txub" path="res://monsters/states/enemy_state_stun.gd" id="7_stun"]
+[ext_resource type="Texture2D" uid="uid://dt4icgcs5dbex" path="res://monsters/DestroySmoke.png" id="8_smoke"]
+[ext_resource type="PackedScene" uid="uid://c1c212xev4n6e" path="res://hitbox.tscn" id="9_hit"]
+[ext_resource type="PackedScene" uid="uid://cmhep8oix5sk6" path="res://hurtbox.tscn" id="10_hurt"]
+[ext_resource type="Script" uid="uid://cp7hkuwqemn3l" path="res://monsters/baja_boss_aggro.gd" id="11_aggro"]
+[ext_resource type="Script" uid="uid://c4q376gxm83pg" path="res://monsters/baja_boss_attack.gd" id="12_attack"]
+[ext_resource type="Script" uid="uid://coo14dsaqqbjh" path="res://monsters/baja_boss_jet.gd" id="14_jet"]
+
+[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_body"]
+radius = 20.0
+height = 40.0
+
+[sub_resource type="Animation" id="Animation_reset"]
+length = 0.001
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Sprite2D:frame")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": [0]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("Sprite2D:modulate")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Color(1, 1, 1, 1)]
+}
+
+[sub_resource type="Animation" id="Animation_attack_down"]
+resource_name = "attack_down"
+length = 0.6
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Sprite2D:frame")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.2, 0.4),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 1,
+"values": [18, 19, 20]
+}
+
+[sub_resource type="Animation" id="Animation_attack_side"]
+resource_name = "attack_side"
+length = 0.6
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Sprite2D:frame")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.2, 0.4),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 1,
+"values": [24, 25, 26]
+}
+
+[sub_resource type="Animation" id="Animation_attack_up"]
+resource_name = "attack_up"
+length = 0.6
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Sprite2D:frame")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.2, 0.4),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 1,
+"values": [21, 22, 23]
+}
+
+[sub_resource type="Animation" id="Animation_die_down"]
+resource_name = "die_down"
+length = 0.6
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Sprite2D:frame")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.2, 0.4),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 1,
+"values": [27, 28, 29]
+}
+
+[sub_resource type="Animation" id="Animation_die_side"]
+resource_name = "die_side"
+length = 0.6
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Sprite2D:frame")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.2, 0.4),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 1,
+"values": [33, 34, 35]
+}
+
+[sub_resource type="Animation" id="Animation_die_up"]
+resource_name = "die_up"
+length = 0.6
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Sprite2D:frame")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.2, 0.4),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 1,
+"values": [30, 31, 32]
+}
+
+[sub_resource type="Animation" id="Animation_idle_down"]
+resource_name = "idle_down"
+length = 0.6
+loop_mode = 1
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Sprite2D:frame")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.4),
+"transitions": PackedFloat32Array(1, 1),
+"update": 1,
+"values": [0, 2]
+}
+
+[sub_resource type="Animation" id="Animation_idle_side"]
+resource_name = "idle_side"
+length = 0.6
+loop_mode = 1
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Sprite2D:frame")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.4),
+"transitions": PackedFloat32Array(1, 1),
+"update": 1,
+"values": [6, 8]
+}
+
+[sub_resource type="Animation" id="Animation_idle_up"]
+resource_name = "idle_up"
+length = 0.6
+loop_mode = 1
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Sprite2D:frame")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.4),
+"transitions": PackedFloat32Array(1, 1),
+"update": 1,
+"values": [3, 5]
+}
+
+[sub_resource type="Animation" id="Animation_jet_tell_down"]
+resource_name = "jet_tell_down"
+length = 0.6
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Sprite2D:frame")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.2, 0.4),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 1,
+"values": [36, 37, 38]
+}
+
+[sub_resource type="Animation" id="Animation_jet_tell_side"]
+resource_name = "jet_tell_side"
+length = 0.6
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Sprite2D:frame")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.2, 0.4),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 1,
+"values": [42, 43, 44]
+}
+
+[sub_resource type="Animation" id="Animation_jet_tell_up"]
+resource_name = "jet_tell_up"
+length = 0.6
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Sprite2D:frame")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.2, 0.4),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 1,
+"values": [39, 40, 41]
+}
+
+[sub_resource type="Animation" id="Animation_walk_down"]
+resource_name = "walk_down"
+length = 0.6
+loop_mode = 1
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Sprite2D:frame")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.2, 0.4),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 1,
+"values": [9, 10, 11]
+}
+
+[sub_resource type="Animation" id="Animation_walk_side"]
+resource_name = "walk_side"
+length = 0.6
+loop_mode = 1
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Sprite2D:frame")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.2, 0.4),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 1,
+"values": [15, 16, 17]
+}
+
+[sub_resource type="Animation" id="Animation_walk_up"]
+resource_name = "walk_up"
+length = 0.6
+loop_mode = 1
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Sprite2D:frame")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.2, 0.4),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 1,
+"values": [12, 13, 14]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_boss"]
+_data = {
+&"RESET": SubResource("Animation_reset"),
+&"attack_down": SubResource("Animation_attack_down"),
+&"attack_side": SubResource("Animation_attack_side"),
+&"attack_up": SubResource("Animation_attack_up"),
+&"die_down": SubResource("Animation_die_down"),
+&"die_side": SubResource("Animation_die_side"),
+&"die_up": SubResource("Animation_die_up"),
+&"idle_down": SubResource("Animation_idle_down"),
+&"idle_side": SubResource("Animation_idle_side"),
+&"idle_up": SubResource("Animation_idle_up"),
+&"jet_tell_down": SubResource("Animation_jet_tell_down"),
+&"jet_tell_side": SubResource("Animation_jet_tell_side"),
+&"jet_tell_up": SubResource("Animation_jet_tell_up"),
+&"walk_down": SubResource("Animation_walk_down"),
+&"walk_side": SubResource("Animation_walk_side"),
+&"walk_up": SubResource("Animation_walk_up")
+}
+
+[sub_resource type="Animation" id="Animation_fx_reset"]
+length = 0.001
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath(".:frame")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": [0]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath(".:visible")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": [false]
+}
+
+[sub_resource type="Animation" id="Animation_fx_destroy"]
+resource_name = "destroy"
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath(".:frame")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.099999994, 0.2, 0.3, 0.4, 0.5),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1),
+"update": 1,
+"values": [0, 1, 2, 3, 4, 5]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath(".:visible")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0, 0.6),
+"transitions": PackedFloat32Array(1, 1),
+"update": 1,
+"values": [true, false]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_fx"]
+_data = {
+&"RESET": SubResource("Animation_fx_reset"),
+&"destroy": SubResource("Animation_fx_destroy")
+}
+
+[sub_resource type="SceneReplicationConfig" id="SceneReplicationConfig_boss"]
+properties/0/path = NodePath(".:position")
+properties/0/spawn = true
+properties/0/replication_mode = 1
+properties/1/path = NodePath(".:rotation")
+properties/1/spawn = true
+properties/1/replication_mode = 1
+properties/2/path = NodePath("AnimationPlayer:current_animation")
+properties/2/spawn = true
+properties/2/replication_mode = 2
+
+[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_hurt"]
+radius = 48.0
+height = 96.0
+
+[node name="BajaBoss" type="CharacterBody2D" unique_id=2062442207]
+collision_layer = 257
+collision_mask = 16
+script = ExtResource("1_script")
+max_hp = 12
+hp = 12
+
+[node name="Sprite2D" type="Sprite2D" parent="." unique_id=1495139033]
+texture_filter = 1
+position = Vector2(0, -64)
+texture = ExtResource("2_tex")
+hframes = 9
+vframes = 6
+
+[node name="shadow" type="Sprite2D" parent="." unique_id=1813459683]
+modulate = Color(0, 0, 0, 0.5294118)
+show_behind_parent = true
+scale = Vector2(1.25, 1.25)
+texture = ExtResource("3_shadow")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=2037647810]
+position = Vector2(0, -20)
+shape = SubResource("CapsuleShape2D_body")
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=250747228]
+libraries/ = SubResource("AnimationLibrary_boss")
+autoplay = &"idle_down"
+
+[node name="EnemyStateMachine" type="Node" parent="." unique_id=944525674]
+script = ExtResource("4_sm")
+
+[node name="idle" type="Node" parent="EnemyStateMachine" unique_id=900761469 node_paths=PackedStringArray("next_state", "attack_state")]
+script = ExtResource("5_idle")
+next_state = NodePath("../wander")
+attack_state = NodePath("../aggro")
+
+[node name="wander" type="Node" parent="EnemyStateMachine" unique_id=1752129208 node_paths=PackedStringArray("next_state", "attack_state")]
+script = ExtResource("6_wander")
+next_state = NodePath("../idle")
+attack_state = NodePath("../aggro")
+
+[node name="aggro" type="Node" parent="EnemyStateMachine" unique_id=26538138 node_paths=PackedStringArray("attack_state", "jet_state", "wander_state", "idle_state")]
+script = ExtResource("11_aggro")
+attack_state = NodePath("../attack")
+jet_state = NodePath("../jet")
+wander_state = NodePath("../wander")
+idle_state = NodePath("../idle")
+
+[node name="attack" type="Node" parent="EnemyStateMachine" unique_id=870331135 node_paths=PackedStringArray("idle_state", "wander_state", "chase_state")]
+script = ExtResource("12_attack")
+idle_state = NodePath("../idle")
+wander_state = NodePath("../wander")
+chase_state = NodePath("../aggro")
+
+[node name="jet" type="Node" parent="EnemyStateMachine" unique_id=1184938718 node_paths=PackedStringArray("idle_state", "wander_state", "chase_state")]
+script = ExtResource("14_jet")
+idle_state = NodePath("../idle")
+wander_state = NodePath("../wander")
+chase_state = NodePath("../aggro")
+
+[node name="stun" type="Node" parent="EnemyStateMachine" unique_id=1923444380 node_paths=PackedStringArray("next_state")]
+script = ExtResource("7_stun")
+next_state = NodePath("../idle")
+
+[node name="AudioStreamPlayer2D" type="AudioStreamPlayer2D" parent="." unique_id=1197232971]
+max_polyphony = 4
+
+[node name="destroyEffectSprite" type="Sprite2D" parent="." unique_id=1149191803]
+visible = false
+position = Vector2(0, -32)
+texture = ExtResource("8_smoke")
+hframes = 6
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="destroyEffectSprite" unique_id=1476825657]
+libraries/ = SubResource("AnimationLibrary_fx")
+
+[node name="MultiplayerSynchronizer" type="MultiplayerSynchronizer" parent="." unique_id=376252472]
+replication_config = SubResource("SceneReplicationConfig_boss")
+
+[node name="Hitbox" parent="." unique_id=576015248 instance=ExtResource("9_hit")]
+collision_layer = 8
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Hitbox" unique_id=1018895847]
+position = Vector2(0, -20)
+shape = SubResource("CapsuleShape2D_body")
+
+[node name="Hurtbox" parent="." unique_id=298533576 instance=ExtResource("10_hurt")]
+collision_mask = 4
+monitoring = false
+damage = 6
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Hurtbox" unique_id=183180077]
+position = Vector2(0, -48)
+shape = SubResource("CapsuleShape2D_hurt")

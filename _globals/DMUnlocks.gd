@@ -18,6 +18,7 @@ func reset_unlocks() -> void:
 		"fireball": false,
 		"shadow_zone": false,
 		"knightling": false,
+		"bemidji_blizzard": false,
 	}
 	for unlock_name in dm_unlocks.keys():
 		SignalBus.on_dm_lock.emit(str(unlock_name))

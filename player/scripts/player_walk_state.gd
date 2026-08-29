@@ -16,7 +16,7 @@ func Process(_delta: float) -> PlayerState:
 	if player.direction == Vector2.ZERO:
 		return idle
 
-	player.velocity = player.direction * move_speed
+	player.velocity = player.direction * move_speed * player.blizzard_slow_factor()
 
 	if player.is_ranged_fire_playing():
 		return null

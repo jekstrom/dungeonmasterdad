@@ -4,9 +4,18 @@ const BAR_WIDTH: float = 50.0
 const BAR_HEIGHT: float = 10.0
 
 @onready var fill: ColorRect = $Fill
+@onready var title: Label = $Title
 
 func _ready() -> void:
 	set_health_ratio(1.0)
+
+func set_title(text: String) -> void:
+	if title == null:
+		title = get_node_or_null("Title") as Label
+	if title == null:
+		return
+	title.text = text
+	title.visible = not text.is_empty()
 
 func set_health_ratio(ratio: float) -> void:
 	var r: float = clampf(ratio, 0.0, 1.0)

@@ -1,0 +1,69 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://monsters/carbonated_jet.gd" id="1_script"]
+[ext_resource type="Texture2D" path="res://sprites/baja_jet.png" id="2_tex"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_hit"]
+radius = 10.0
+
+[sub_resource type="SceneReplicationConfig" id="SceneReplicationConfig_jet"]
+properties/0/path = NodePath(".:position")
+properties/0/spawn = true
+properties/0/replication_mode = 1
+properties/1/path = NodePath(".:rotation")
+properties/1/spawn = true
+properties/1/replication_mode = 1
+
+[node name="CarbonatedJet" type="Area2D"]
+z_index = 1
+collision_layer = 0
+collision_mask = 28
+monitorable = true
+script = ExtResource("1_script")
+damage = 20
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("CircleShape2D_hit")
+
+[node name="Head" type="Sprite2D" parent="."]
+texture_filter = 1
+scale = Vector2(1, 1)
+texture = ExtResource("2_tex")
+centered = true
+hframes = 4
+vframes = 1
+frame = 0
+
+[node name="Body" type="Sprite2D" parent="."]
+texture_filter = 1
+position = Vector2(-128, 0)
+scale = Vector2(1, 1)
+texture = ExtResource("2_tex")
+centered = true
+hframes = 4
+vframes = 1
+frame = 1
+
+[node name="Fizz" type="Sprite2D" parent="."]
+modulate = Color(1, 1, 1, 0.55)
+texture_filter = 1
+position = Vector2(-128, 0)
+scale = Vector2(1, 1)
+texture = ExtResource("2_tex")
+centered = true
+hframes = 4
+vframes = 1
+frame = 2
+
+[node name="Impact" type="Sprite2D" parent="."]
+visible = false
+texture_filter = 1
+scale = Vector2(1, 1)
+texture = ExtResource("2_tex")
+centered = true
+hframes = 4
+vframes = 1
+frame = 3
+
+[node name="MultiplayerSynchronizer" type="MultiplayerSynchronizer" parent="."]
+replication_config = SubResource("SceneReplicationConfig_jet")

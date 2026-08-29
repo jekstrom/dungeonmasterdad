@@ -2,10 +2,12 @@ class_name FantasyZone extends Zone
 
 const DEFAULT_POCKET_DURATION := 8.0
 const POCKET_OVERLAY_PATH := "res://sprites/fantasy_pocket_overlay.png"
+const BLIZZARD_OVERLAY_PATH := "res://sprites/blizzard_overlay.png"
 
 var claim: FantasyClaim = FantasyClaim.new()
 var _pocket_overlay_root: Node2D = null
 var _pocket_overlay_texture: Texture2D = null
+var _blizzard_overlay_texture: Texture2D = null
 
 func _ready() -> void:
 	super._ready()
@@ -71,13 +73,13 @@ func get_pocket(pocket_id: int) -> Dictionary:
 			return pocket
 	return {}
 
-func spawn_pocket(origin: Vector2i, size: Vector2i, duration: float = DEFAULT_POCKET_DURATION) -> int:
+func spawn_pocket(origin: Vector2i, size: Vector2i, duration: float = DEFAULT_POCKET_DURATION, overlay: String = "") -> int:
 	if not _is_claim_host():
 		_rpc_request_spawn_pocket.rpc_id(1, origin, size, duration)
 		return -1
 	_sync_claim_home()
 	var clipped: Rect2i = clip_pocket_rect(Rect2i(origin, size))
-	var pocket: Dictionary = claim.add_pocket(clipped, duration, _claim_now())
+	var pocket: Dictionary = claim.add_pocket(clipped, duration, _claim_now(), overlay)
 	if pocket.is_empty():
 		return -1
 	var pocket_id: int = int(pocket["id"])
@@ -102,6 +104,27 @@ func expire_pocket(pocket_id: int) -> bool:
 	_broadcast_claim()
 	return true
 
+func expire_due(now: float = -1.0) -> PackedInt32Array:
+	if not _is_claim_host():
+		return PackedInt32Array()
+	var t: float = claim_now() if now < 0.0 else now
+	var expired: PackedInt32Array = claim.expire_due(t)
+	if expired.is_empty():
+		return expired
+	for pocket_id in expired:
+		SignalBus.fantasy_pocket_expired.emit(int(pocket_id))
+	SignalBus.fantasy_claim_changed.emit()
+	_rebuild_home_overlay()
+	_broadcast_claim()
+	return expired
+
+func claim_now() -> float:
+	return _claim_now()
+
+func _process(_delta: float) -> void:
+	if _is_claim_host():
+		expire_due()
+
 func _on_pocket_timeout(pocket_id: int) -> void:
 	expire_pocket(pocket_id)
 
@@ -124,16 +147,26 @@ func _rebuild_home_overlay() -> void:
 		_home_overlay_texture = load(FANTASY_HOME_OVERLAY_PATH) as Texture2D
 	if _pocket_overlay_texture == null:
 		_pocket_overlay_texture = load(POCKET_OVERLAY_PATH) as Texture2D
+	if _blizzard_overlay_texture == null:
+		_blizzard_overlay_texture = load(BLIZZARD_OVERLAY_PATH) as Texture2D
 	if home_rect.size.x > 0 and home_rect.size.y > 0 and _home_overlay_texture:
 		for y in range(home_rect.position.y, home_rect.end.y):
 			for x in range(home_rect.position.x, home_rect.end.x):
 				var cell := Vector2i(x, y)
 				if claim.overlay_kind_for_cell(cell) == "home":
 					_place_overlay_sprite(_home_overlay_root, _home_overlay_texture, cell, 0)
-	if _pocket_overlay_texture:
-		for cell in claim.pocket_cells():
-			if claim.overlay_kind_for_cell(cell) == "pocket":
-				_place_overlay_sprite(_pocket_overlay_root, _pocket_overlay_texture, cell, 1)
+	for cell in claim.pocket_cells():
+		if claim.overlay_kind_for_cell(cell) != "pocket":
+			continue
+		var tex: Texture2D = _overlay_texture_for_pocket_cell(cell)
+		if tex:
+			_place_overlay_sprite(_pocket_overlay_root, tex, cell, 1)
+
+func _overlay_texture_for_pocket_cell(cell: Vector2i) -> Texture2D:
+	var pocket: Dictionary = get_pocket(claim.winning_pocket_id(cell))
+	if not pocket.is_empty() and str(pocket.get("overlay", "")) == "blizzard":
+		return _blizzard_overlay_texture
+	return _pocket_overlay_texture
 
 func _ensure_pocket_overlay_root() -> void:
 	if _pocket_overlay_root != null and is_instance_valid(_pocket_overlay_root):

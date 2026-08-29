@@ -47,7 +47,7 @@ func _floor_placement(
 	elif cell == layout_data.exit_cell:
 		role = "exit"
 		variant_id = 0
-		source_path = _tile_catalog.get_exit_scene_path()
+		source_path = _tile_catalog.get_floor_scene_path()
 	return {
 		"position": {"x": cell.x, "y": cell.y},
 		"tileRole": role,

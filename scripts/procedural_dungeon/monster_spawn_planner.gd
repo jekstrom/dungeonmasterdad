@@ -1,5 +1,7 @@
 class_name MonsterSpawnPlanner extends RefCounted
 
+const BAJA_BOSS_TYPE_ID := "baja_boss"
+
 var _monster_catalog: MonsterCatalog = MonsterCatalog.new()
 
 func plan_spawns(
@@ -8,7 +10,8 @@ func plan_spawns(
 	hallway_regions: Array[Dictionary],
 	entrance_cell: Vector2i,
 	exit_cell: Vector2i,
-	generation_seed: int
+	generation_seed: int,
+	skip_boss: bool = false
 ) -> Array[Dictionary]:
 	var rng: RandomNumberGenerator = RandomNumberGenerator.new()
 	rng.seed = generation_seed
@@ -65,7 +68,7 @@ func plan_spawns(
 
 	for region in room_regions:
 		var role: String = str(region.get("role", ""))
-		var package_types: Array[String] = _roll_room_package(role, knight_placed, rng)
+		var package_types: Array[String] = _roll_room_package(role, knight_placed, rng, skip_boss)
 		if package_types.has("knight"):
 			knight_placed = true
 		var cells: Array[Vector2i] = []
@@ -111,9 +114,25 @@ func plan_spawns(
 		spawns.append(hall_spawn)
 		spawn_index += 1
 
+	# US-017 T001: skip-boss tests keep skeletons; live matches force one boss in the exit room.
+	if skip_boss:
+		return _strip_baja_bosses(spawns)
+	if _baja_boss_count(spawns) == 0:
+		var forced: Dictionary = _force_exit_boss(
+			layout_id,
+			spawn_index,
+			room_regions,
+			entrance_cell,
+			exit_cell,
+			excluded,
+			occupied,
+			door_set
+		)
+		if not forced.is_empty():
+			spawns.append(forced)
 	return spawns
 
-func _roll_room_package(role: String, _knight_placed: bool, rng: RandomNumberGenerator) -> Array[String]:
+func _roll_room_package(role: String, _knight_placed: bool, rng: RandomNumberGenerator, skip_boss: bool) -> Array[String]:
 	var empty: Array[String] = []
 	if role == "start" or role == "deadend":
 		return empty
@@ -123,8 +142,81 @@ func _roll_room_package(role: String, _knight_placed: bool, rng: RandomNumberGen
 			return ["skeleton", "skeleton"]
 		return ["skeleton"]
 	if role == "exit":
-		return ["skeleton"]
+		# Exactly one Baja Blast boss in the exit package — not an extra skeleton.
+		if skip_boss:
+			return ["skeleton"]
+		return [BAJA_BOSS_TYPE_ID]
 	return empty
+
+func _force_exit_boss(
+	layout_id: String,
+	spawn_index: int,
+	room_regions: Array[Dictionary],
+	entrance_cell: Vector2i,
+	exit_cell: Vector2i,
+	excluded: Dictionary,
+	occupied: Dictionary,
+	door_set: Dictionary
+) -> Dictionary:
+	var exit_cells: Array[Vector2i] = _exit_room_cells(room_regions)
+	if exit_cells.is_empty():
+		return {}
+	var chosen: Vector2i = _pick_package_cell(exit_cells, excluded, occupied, door_set)
+	if chosen == DungeonGrid.SENTINEL:
+		# Default pick keeps exit_cell and its neighbors out so validate() passes.
+		# If that leaves nothing, neighbors of the exit cell are allowed.
+		var relaxed: Dictionary = excluded.duplicate()
+		for neighbor in DungeonGrid.neighbors(exit_cell):
+			relaxed.erase(neighbor)
+		chosen = _pick_package_cell(exit_cells, relaxed, occupied, door_set)
+	if chosen == DungeonGrid.SENTINEL:
+		chosen = _first_free_exit_cell(exit_cells, entrance_cell, exit_cell, occupied)
+	if chosen == DungeonGrid.SENTINEL:
+		return {}
+	occupied[chosen] = true
+	var spawn: Dictionary = _make_spawn(layout_id, spawn_index, BAJA_BOSS_TYPE_ID, chosen)
+	if spawn.is_empty():
+		occupied.erase(chosen)
+		return {}
+	return spawn
+
+func _exit_room_cells(room_regions: Array[Dictionary]) -> Array[Vector2i]:
+	var cells: Array[Vector2i] = []
+	for region in room_regions:
+		if str(region.get("role", "")) != "exit":
+			continue
+		for point in region.get("cells", []):
+			cells.append(DungeonGrid.cell_from(point))
+	return cells
+
+func _first_free_exit_cell(
+	exit_cells: Array[Vector2i],
+	entrance_cell: Vector2i,
+	exit_cell: Vector2i,
+	occupied: Dictionary
+) -> Vector2i:
+	for cell in exit_cells:
+		if cell == entrance_cell or cell == exit_cell:
+			continue
+		if occupied.has(cell):
+			continue
+		return cell
+	return DungeonGrid.SENTINEL
+
+func _baja_boss_count(spawns: Array[Dictionary]) -> int:
+	var count: int = 0
+	for spawn in spawns:
+		if str(spawn.get("monsterTypeId", "")) == BAJA_BOSS_TYPE_ID:
+			count += 1
+	return count
+
+func _strip_baja_bosses(spawns: Array[Dictionary]) -> Array[Dictionary]:
+	var kept: Array[Dictionary] = []
+	for spawn in spawns:
+		if str(spawn.get("monsterTypeId", "")) == BAJA_BOSS_TYPE_ID:
+			continue
+		kept.append(spawn)
+	return kept
 
 func _pick_package_cell(
 	cells: Array[Vector2i],

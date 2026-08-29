@@ -1,16 +1,21 @@
 class_name DM extends CharacterBody2D
 
+const AbilityCatalog = preload("res://dm/dm_ability_catalog.gd")
 const DIR_4 = [Vector2.RIGHT, Vector2.DOWN, Vector2.LEFT, Vector2.UP]
 var cardinal_direction: Vector2 = Vector2.DOWN
 var direction: Vector2 = Vector2.ZERO
 var invulnerable: bool = false
 
-var hitpoints: int = 6
-var max_hp: int = 6
+var hitpoints: int = 100
+var max_hp: int = 100
+const RESPAWN_DELAY_SEC: float = 10.0
+var _dead: bool = false
+var _respawn_remaining: float = 0.0
 
 @export var targeting_scene: PackedScene
 @export var fireball_spell: PackedScene
 var current_targeting: Node
+var _targeting_spell_id: String = ""
 
 @onready var camera_2d: DmCamera = $Camera2D
 
@@ -38,9 +43,14 @@ func _ready() -> void:
 	state_machine.Initialize(self)
 	label.text = DmManager.dm_player_name
 	SignalBus.start_spell_cast.connect(setup_targeting)
+	if multiplayer.is_server():
+		DmManager.broadcast_health(hitpoints, max_hp)
 
 func setup_targeting(spell_id: String):
+	if _dead:
+		return
 	print("targeting for ", spell_id)
+	_targeting_spell_id = spell_id
 	if current_targeting:
 		remove_child(current_targeting)
 		current_targeting = null
@@ -50,18 +60,47 @@ func setup_targeting(spell_id: String):
 	var collision = current_targeting.get_node_or_null("CollisionShape2D")
 	if collision:
 		collision.disabled = true
-	
+	if spell_id == AbilityCatalog.BEMIDJI_BLIZZARD:
+		_size_blizzard_reticle(current_targeting)
+		current_targeting.modulate = Color(0.45, 0.85, 1.0, 0.55)
 	add_child(current_targeting)
-	
-func update_target(pos):
-	current_targeting.global_position = pos
 
-func _process(_delta: float) -> void:
+func _size_blizzard_reticle(reticle: Node) -> void:
+	var world_size: Vector2 = Vector2(DmManager.BLIZZARD_POCKET_CELLS) * DungeonGrid.CELL_PX
+	var overlay := ColorRect.new()
+	overlay.name = "BlizzardRect"
+	overlay.size = world_size
+	overlay.position = -world_size * 0.5
+	overlay.color = Color(0.45, 0.85, 1.0, 0.35)
+	overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	reticle.add_child(overlay)
+	var reticle_sprite: Sprite2D = reticle.get_node_or_null("Sprite2D") as Sprite2D
+	if reticle_sprite and reticle_sprite.texture:
+		var tex_size: Vector2 = Vector2(reticle_sprite.texture.get_size())
+		if tex_size.x > 0.0 and tex_size.y > 0.0:
+			reticle_sprite.scale = world_size / tex_size
+
+func update_target(pos):
+	if current_targeting == null:
+		return
+	if _targeting_spell_id == AbilityCatalog.BEMIDJI_BLIZZARD:
+		var cell: Vector2i = DungeonGrid.from_world(pos)
+		current_targeting.global_position = DungeonGrid.to_world_center(cell)
+	else:
+		current_targeting.global_position = pos
+
+func _process(delta: float) -> void:
+	if _dead:
+		_tick_respawn(delta)
+		return
 	if !is_multiplayer_authority(): return
 	if current_targeting:
 		update_target(get_global_mouse_position())
 	
 func _physics_process(_delta: float) -> void:
+	if _dead:
+		velocity = Vector2.ZERO
+		return
 	if !is_multiplayer_authority(): return
 	if state_machine.current_state and state_machine.current_state.name == "attack":
 		velocity = Vector2.ZERO
@@ -93,11 +132,20 @@ func apply_interior_clamp(pos: Vector2) -> void:
 	velocity = Vector2.ZERO
 
 func wants_melee_attack(event: InputEvent) -> bool:
-	if not event.is_action_pressed("attack"):
+	if _dead:
 		return false
 	if current_targeting:
 		return false
-	return true
+	if event.is_action_pressed("primary_click"):
+		return true
+	if event.is_action_pressed("fire"):
+		return true
+	if event.is_action_pressed("attack"):
+		return true
+	return false
+
+func is_downed() -> bool:
+	return _dead
 
 static func cardinal_from_aim(aim: Vector2, current: Vector2 = Vector2.DOWN) -> Vector2:
 	if aim.length() < 8.0:
@@ -170,7 +218,7 @@ func anim_direction() -> String:
 func apply_fantasy_hit(amount: int) -> void:
 	if not multiplayer.is_server():
 		return
-	if invulnerable:
+	if _dead or invulnerable:
 		return
 	invulnerable = true
 	var tree := get_tree()
@@ -178,11 +226,92 @@ func apply_fantasy_hit(amount: int) -> void:
 		tree.create_timer(0.6).timeout.connect(_clear_invulnerable)
 	else:
 		_clear_invulnerable()
-	DmManager.update_fantasy_level(-maxi(1, amount))
+	var dmg: int = maxi(1, amount)
+	if int(DmManager.fantasy_level) > 0:
+		DmManager.update_fantasy_level(-dmg)
+		return
+	hitpoints = maxi(0, hitpoints - dmg)
+	DmManager.broadcast_health(hitpoints, max_hp)
+	if hitpoints <= 0:
+		_begin_death()
 
 
 func _clear_invulnerable() -> void:
+	if _dead:
+		invulnerable = true
+		return
 	invulnerable = false
+
+
+func _begin_death() -> void:
+	if _dead:
+		return
+	play_death.rpc()
+
+
+@rpc("authority", "call_local", "reliable")
+func play_death() -> void:
+	_dead = true
+	invulnerable = true
+	velocity = Vector2.ZERO
+	_respawn_remaining = RESPAWN_DELAY_SEC
+	_clear_targeting()
+	_set_body_present(false)
+	DmManager.notify_respawn_countdown(_respawn_remaining)
+
+
+func _tick_respawn(delta: float) -> void:
+	if _respawn_remaining <= 0.0:
+		return
+	_respawn_remaining = maxf(0.0, _respawn_remaining - delta)
+	DmManager.notify_respawn_countdown(_respawn_remaining)
+	if _respawn_remaining > 0.0:
+		return
+	if multiplayer.is_server():
+		finish_respawn.rpc(_entrance_spawn_position())
+
+
+func _entrance_spawn_position() -> Vector2:
+	var manager: Node = get_node_or_null("/root/DungeonGenerationManager")
+	if manager and manager.has_method("get_entrance_world_position"):
+		var from_layout: Vector2 = manager.call("get_entrance_world_position")
+		if from_layout.is_finite():
+			return from_layout
+	var tree := get_tree()
+	if tree:
+		var portal: Node = tree.get_first_node_in_group("entrance")
+		if portal is Node2D:
+			return (portal as Node2D).global_position
+	return global_position
+
+
+@rpc("authority", "call_local", "reliable")
+func finish_respawn(spawn_position: Vector2) -> void:
+	if spawn_position.is_finite():
+		global_position = spawn_position
+	hitpoints = max_hp
+	_dead = false
+	_respawn_remaining = 0.0
+	invulnerable = false
+	velocity = Vector2.ZERO
+	_set_body_present(true)
+	DmManager.broadcast_health(hitpoints, max_hp)
+	DmManager.notify_respawn_countdown(-1.0)
+
+
+func _set_body_present(present: bool) -> void:
+	if sprite:
+		sprite.visible = present
+	if label:
+		label.visible = present
+	var collision := get_node_or_null("CollisionShape2D")
+	if collision is CollisionShape2D:
+		(collision as CollisionShape2D).set_deferred("disabled", not present)
+	if hitbox:
+		hitbox.set_deferred("monitorable", present)
+		hitbox.set_deferred("monitoring", present)
+	if attack_hurtbox:
+		attack_hurtbox.monitoring = false
 
 
 func play_audio(_stream: AudioStream) -> void:
@@ -191,17 +320,32 @@ func play_audio(_stream: AudioStream) -> void:
 	audio_stream_player_2d.play()
 	
 func confirm_targeted_spell() -> void:
+	if _dead:
+		return
 	if current_targeting == null:
 		return
+	var spell_id: String = _targeting_spell_id
+	var target: Vector2 = current_targeting.global_position
 	var spell_data := {
 		"shooter_id": multiplayer.get_unique_id(),
 		"position": Vector2(global_position.x, global_position.y - 16),
-		"target": current_targeting.global_position,
+		"target": target,
 		"radius_bonus": 0,
 		"base_damage_bonus": 0,
 		"speed_bonus": 0,
 	}
+	if spell_id == AbilityCatalog.BEMIDJI_BLIZZARD:
+		var size: Vector2i = DmManager.BLIZZARD_POCKET_CELLS
+		var cell: Vector2i = DungeonGrid.from_world(target)
+		spell_data["origin"] = cell - Vector2i(int(size.x / 2), int(size.y / 2))
+		spell_data["size"] = size
+		spell_data["duration"] = DmManager.BLIZZARD_DURATION
+		spell_data["slow_factor"] = DmManager.BLIZZARD_SLOW_FACTOR
 	_clear_targeting()
+	_targeting_spell_id = ""
+	if spell_id == AbilityCatalog.BEMIDJI_BLIZZARD:
+		DmManager.request_launch_blizzard(spell_data)
+		return
 	if not multiplayer.is_server():
 		return
 	DmManager.launch_fireball(spell_data)
@@ -213,8 +357,12 @@ func _clear_targeting() -> void:
 		remove_child(current_targeting)
 	current_targeting.queue_free()
 	current_targeting = null
+	_targeting_spell_id = ""
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("primary_click") and current_targeting:
 		if is_multiplayer_authority() or multiplayer.is_server():
 			confirm_targeted_spell()
+		var viewport := get_viewport()
+		if viewport:
+			viewport.set_input_as_handled()

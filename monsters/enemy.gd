@@ -22,6 +22,7 @@ var aggro_target: Node2D = null
 		_refresh_health_bar()
 @export var aggro_faction: AggroFaction = AggroFaction.DM
 @export var melee_range_px: float = 128.0
+@export var health_bar_title: String = ""
 var _dying: bool = false
 var _health_bar: Node2D
 
@@ -181,6 +182,8 @@ func _spawn_health_bar() -> void:
 		bar_y = sprite.position.y - 32.0
 	_health_bar.position = Vector2(0.0, bar_y)
 	add_child(_health_bar)
+	if not health_bar_title.is_empty() and _health_bar.has_method("set_title"):
+		_health_bar.call("set_title", health_bar_title)
 	_refresh_health_bar()
 
 
