@@ -46,6 +46,10 @@ func _ready() -> void:
 		var fantasy_drift := FantasyTileDrift.new()
 		fantasy_drift.name = "FantasyTileDrift"
 		add_child(fantasy_drift)
+	if get_node_or_null("ZoneAmbientVfx") == null:
+		var ambience := ZoneAmbientVfx.new()
+		ambience.name = "ZoneAmbientVfx"
+		add_child(ambience)
 
 func on_explosion(proj_position: Vector2, explosion_data: Dictionary) -> void:
 	if !multiplayer.is_server(): return
