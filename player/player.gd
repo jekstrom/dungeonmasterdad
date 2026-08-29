@@ -528,10 +528,13 @@ func take_damage(_hurt_box: Hurtbox) -> void:
 
 func _ensure_combat_visuals() -> void:
 	if sprite:
+		# Same 64 cell as N/S. Do not region-crop or scale E/W down.
+		sprite.region_enabled = false
 		sprite.hframes = 16
 		sprite.vframes = 3
 		sprite.texture = TEX_STAPLE_GUN
 		sprite.scale = Vector2.ONE
+		sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	_ensure_ink_slash()
 	_rebuild_combat_animations()
 
