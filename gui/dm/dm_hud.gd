@@ -13,6 +13,8 @@ const MANA_BAR_WIDTH: float = 120.0
 @onready var fireball: ColorRect = $MarginContainer/HBoxContainer/Fireball
 @onready var mana_fill: ColorRect = $MarginContainer/HBoxContainer/ManaMeter/BarColumn/Bar/ManaFill
 @onready var mana_label: Label = $MarginContainer/HBoxContainer/ManaMeter/BarColumn/ManaLabel
+@onready var respawn_overlay: Control = $RespawnOverlay
+@onready var respawn_label: Label = $RespawnOverlay/DmRespawnCountdown
 
 func _ready() -> void:
 	turn_off()
@@ -22,12 +24,15 @@ func _ready() -> void:
 	cast_blizzard_button.connect("button_down", _on_blizzard_button_pressed)
 	if not DmManager.mana_changed.is_connected(_on_mana_changed):
 		DmManager.mana_changed.connect(_on_mana_changed)
+	if not DmManager.respawn_countdown_changed.is_connected(_on_respawn_countdown_changed):
+		DmManager.respawn_countdown_changed.connect(_on_respawn_countdown_changed)
 	if not SignalBus.on_dm_unlock.is_connected(on_dm_unlock):
 		SignalBus.on_dm_unlock.connect(on_dm_unlock)
 	if not SignalBus.on_dm_lock.is_connected(on_dm_lock):
 		SignalBus.on_dm_lock.connect(on_dm_lock)
 	_update_mana_meter(DmManager.current_mana, DmManager.max_mana)
 	_apply_unlock_visibility()
+	_on_respawn_countdown_changed(-1.0)
 
 func _on_gremlin_button_pressed() -> void:
 	DmManager.request_cast(AbilityCatalog.GREMLIN)
@@ -70,6 +75,16 @@ func turn_on() -> void:
 func turn_off() -> void:
 	self.visible = false
 	inventory_ui.hide()
+	_on_respawn_countdown_changed(-1.0)
+
+func _on_respawn_countdown_changed(remaining_sec: float) -> void:
+	if respawn_overlay == null or respawn_label == null:
+		return
+	if remaining_sec < 0.0:
+		respawn_overlay.visible = false
+		return
+	respawn_overlay.visible = true
+	respawn_label.text = "RESPAWN IN %d" % ceili(remaining_sec)
 
 func on_dm_unlock(_unlock_name: String) -> void:
 	_apply_unlock_visibility()

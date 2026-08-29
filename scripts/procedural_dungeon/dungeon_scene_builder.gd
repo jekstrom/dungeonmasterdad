@@ -19,8 +19,7 @@ func build_container(layout_data: DungeonLayoutData) -> Dictionary:
 	var floor_scene: PackedScene = load(_tile_catalog.get_floor_scene_path())
 	var wall_scene: PackedScene = load(_tile_catalog.get_wall_scene_path())
 	var entrance_scene: PackedScene = load(_tile_catalog.get_entrance_scene_path())
-	var exit_scene: PackedScene = load(_tile_catalog.get_exit_scene_path())
-	if not floor_scene or not wall_scene or not entrance_scene or not exit_scene:
+	if not floor_scene or not wall_scene or not entrance_scene:
 		container.queue_free()
 		return DungeonGrid.fail("LAYOUT_INFEASIBLE", "Required tile scenes are unavailable")
 
@@ -36,8 +35,6 @@ func build_container(layout_data: DungeonLayoutData) -> Dictionary:
 			tile_node = wall_scene.instantiate() as Node2D
 		elif tile_role == "entrance":
 			tile_node = entrance_scene.instantiate() as Node2D
-		elif tile_role == "exit":
-			tile_node = exit_scene.instantiate() as Node2D
 		else:
 			tile_node = floor_scene.instantiate() as Node2D
 
@@ -65,20 +62,20 @@ func build_container(layout_data: DungeonLayoutData) -> Dictionary:
 				if floor_type < 0:
 					floor_type = 0
 				tile_node.floor_type = clampi(floor_type, 0, 1)
-			if tile_role == "entrance" or tile_role == "exit":
-				tile_node.z_index = DungeonConstants.WALL_Z_INDEX
-			else:
-				tile_node.z_index = DungeonConstants.FLOOR_Z_INDEX
 			if tile_role == "entrance":
+				tile_node.z_index = DungeonConstants.WALL_Z_INDEX
 				tile_node.add_to_group("entrance")
 				tile_node.add_to_group("room")
 			elif tile_role == "exit":
+				tile_node.z_index = DungeonConstants.FLOOR_Z_INDEX
 				tile_node.add_to_group("exit")
 				tile_node.add_to_group("room")
-			elif variant_id == 1:
-				tile_node.add_to_group("hallway")
 			else:
-				tile_node.add_to_group("room")
+				tile_node.z_index = DungeonConstants.FLOOR_Z_INDEX
+				if variant_id == 1:
+					tile_node.add_to_group("hallway")
+				else:
+					tile_node.add_to_group("room")
 		tiles_root.add_child(tile_node)
 
 	return {

@@ -18,6 +18,8 @@ var dm: DM
 var current_mana: int = 0
 signal fantasy_level_changed(new_fantasy_level: int)
 signal mana_changed(new_current: int, new_max: int)
+signal health_changed(new_hp: int, new_max_hp: int)
+signal respawn_countdown_changed(remaining_sec: float)
 signal spawn_gremlin_cast
 signal spawn_knight_cast
 var player_spawned: bool = false
@@ -48,8 +50,26 @@ func set_player_pos(new_pos: Vector2) -> void:
 	dm.global_position = new_pos
 
 func set_player_health(hp: int, max_hp: int) -> void:
-	dm.max_hp = max_hp
-	dm.hitpoints = hp
+	if dm:
+		dm.max_hp = max_hp
+		dm.hitpoints = hp
+	health_changed.emit(hp, max_hp)
+
+func broadcast_health(hp: int, max_hp: int) -> void:
+	if not multiplayer.is_server():
+		return
+	request_health_sync.rpc(hp, max_hp)
+
+func notify_respawn_countdown(remaining_sec: float) -> void:
+	respawn_countdown_changed.emit(remaining_sec)
+
+func apply_replicated_health(hp: int, max_hp: int) -> void:
+	if dm:
+		dm.max_hp = maxi(1, max_hp)
+		dm.hitpoints = clampi(hp, 0, dm.max_hp)
+		health_changed.emit(dm.hitpoints, dm.max_hp)
+	else:
+		health_changed.emit(clampi(hp, 0, maxi(1, max_hp)), maxi(1, max_hp))
 
 func set_as_parent(p: Node2D) -> void:
 	if dm.get_parent():
@@ -71,6 +91,8 @@ func set_mana(value: int) -> void:
 
 func try_cast(ability_id: String) -> bool:
 	if not multiplayer.is_server():
+		return false
+	if dm and dm.has_method("is_downed") and bool(dm.call("is_downed")):
 		return false
 	if not AbilityCatalog.is_known(ability_id):
 		return false
@@ -484,6 +506,10 @@ func request_fantasy_level_incrase(new_fantasy_level: int):
 @rpc("authority", "call_local", "reliable")
 func request_mana_sync(new_current: int, new_max: int) -> void:
 	apply_replicated_mana(new_current, new_max)
+
+@rpc("authority", "call_local", "reliable")
+func request_health_sync(new_hp: int, new_max_hp: int) -> void:
+	apply_replicated_health(new_hp, new_max_hp)
 
 @rpc("any_peer", "reliable")
 func request_cast_rpc(ability_id: String) -> void:

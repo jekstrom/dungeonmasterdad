@@ -1,8 +1,8 @@
 extends Node
 
-## US-017 T003: host Baja Blast wander, attack, blast, and die.
+## US-017 T003: host Baja Blast wander, melee attack, jet, and die.
 ## user_stories/tasks/US-017/T003-host-boss-combat.md
-## Blast is Baja spit, not Bemidji Blizzard. Die does not unlock.
+## Jet is the special attack. Die does not unlock.
 
 const BOSS_SCENE := "res://monsters/baja_boss.tscn"
 const ENTRANCE := Vector2i(2, 2)
@@ -62,18 +62,21 @@ func _assert_boss_combat() -> bool:
 	if anim.find("blizzard") != -1 or anim.find("fireball") != -1:
 		_fail("US-017 T003: attack must not play blizzard/fireball, got %s" % anim)
 		return false
-	var blast: Node = sm.get_node_or_null("blast")
-	if blast == null:
-		_fail("US-017 T003: blast state node missing")
+	if sm.get_node_or_null("blast") != null:
+		_fail("US-017 T003: blast state must be gone; jet is the special attack")
 		return false
-	sm.call("change_state", blast)
+	var jet: Node = sm.get_node_or_null("jet")
+	if jet == null:
+		_fail("US-017 T003: jet state node missing")
+		return false
+	sm.call("change_state", jet)
 	await get_tree().process_frame
 	anim = str(player.current_animation)
-	if not anim.begins_with("blast_"):
-		_fail("US-017 T003: expected blast_* clip, got %s" % anim)
+	if not anim.begins_with("jet_tell_"):
+		_fail("US-017 T003: expected jet_tell_* clip for the special attack, got %s" % anim)
 		return false
 	if anim.find("blizzard") != -1 or anim.find("fireball") != -1:
-		_fail("US-017 T003: blast is Baja spit, not blizzard/fireball, got %s" % anim)
+		_fail("US-017 T003: jet must not play blizzard/fireball, got %s" % anim)
 		return false
 	if int(boss.get("hp")) != 12:
 		_fail("US-017 T003: host hp should still be 12 before die, got %s" % boss.get("hp"))
@@ -104,6 +107,9 @@ func _assert_boss_combat() -> bool:
 	var hurtbox: Node = boss.get_node_or_null("Hurtbox")
 	if hurtbox == null:
 		_fail("US-017 T003: Hurtbox missing")
+		return false
+	if int(hurtbox.get("damage")) != 6:
+		_fail("US-017 T003: boss melee must deal 6 damage, got %s" % hurtbox.get("damage"))
 		return false
 	return true
 

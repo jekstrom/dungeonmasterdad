@@ -1,23 +1,23 @@
 class_name BajaBossJet extends EnemyState
 
 ## US-027 T001/T002: Carbonated Jet telegraph then piercing neon stream.
-## Distinct from US-017 blast spit (`baja_boss_blast.gd`). KEEP blast.
 ## user_stories/tasks/US-027/T001-jet-telegraph.md
 ## user_stories/tasks/US-027/T002-piercing-stream.md
 ##
-## Pose: boss row 3 (frames 9/10/11 = blast_down/up/side) is the mace arm-point
-## telegraph with lime spark. That pose IS the T001 tell. Play blast_* from THIS
-## jet state only. Do not enter BajaBossBlast. Do not call apply_blast_hit or
-## pulse_blast_hurtbox.
+## This is the boss special attack: jet_tell_* once, then the beam, then idle recover.
+## Planted for telegraph_sec (charge) then recover_sec of idle so the DM can react.
 
-@export var anim_name: String = "blast"
+@export var anim_name: String = "jet_tell"
+@export var idle_anim_name: String = "idle"
 @export var idle_state: EnemyState
 @export var wander_state: EnemyState
 @export var chase_state: EnemyState
-@export var telegraph_sec: float = 0.6
+@export var telegraph_sec: float = 1.0
+@export var recover_sec: float = 1.0
 
 var _timer: float = 0.0
 var _fired: bool = false
+var _recovering: bool = false
 var _aim: Vector2 = Vector2.RIGHT
 
 func enter() -> void:
@@ -39,15 +39,15 @@ func enter() -> void:
 	enemy.UpdateAnimation(anim_name)
 	_timer = telegraph_sec
 	_fired = false
-	# Duck-type: do not `is BajaBoss` (class_name cache hole, US-017 T004).
-	if enemy.has_method("show_jet_tell"):
-		enemy.rpc("show_jet_tell", _aim)
+	_recovering = false
+	if enemy.has_method("begin_jet_tell"):
+		enemy.call("begin_jet_tell")
 
 func exit() -> void:
 	if enemy == null:
 		return
-	if enemy.has_method("hide_jet_tell"):
-		enemy.rpc("hide_jet_tell")
+	if enemy.has_method("end_jet_tell"):
+		enemy.call("end_jet_tell")
 	if _fired and enemy.has_method("mark_jet_cooldown"):
 		enemy.call("mark_jet_cooldown")
 
@@ -56,19 +56,24 @@ func process(_delta: float) -> EnemyState:
 		return null
 	if enemy._dying or bool(enemy.get("_jet_cancelled")):
 		return null
-	if (not _fired) and enemy.can_melee_current_target():
-		return chase_state if chase_state else _after_clip()
+	enemy.velocity = Vector2.ZERO
 	_timer -= _delta
 	if not _fired and _timer <= 0.0:
 		_fired = true
+		_recovering = true
 		if enemy.has_method("fire_carbonated_jet"):
 			enemy.call("fire_carbonated_jet", _aim)
-		return _after_clip()
+		if idle_anim_name:
+			enemy.UpdateAnimation(idle_anim_name)
+		_timer = recover_sec
+		return null
 	if _timer > 0.0:
 		return null
 	return _after_clip()
 
 func physics(_delta: float) -> EnemyState:
+	if enemy:
+		enemy.velocity = Vector2.ZERO
 	return null
 
 func _after_clip() -> EnemyState:

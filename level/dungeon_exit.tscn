@@ -1,14 +1,16 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene format=3 uid="uid://cgeqae3bcmm4t"]
 
-[ext_resource type="Script" path="res://level/dungeon_portal.gd" id="1_script"]
+[ext_resource type="Script" uid="uid://cm6h3p5f38xvn" path="res://level/dungeon_portal.gd" id="1_script"]
 [ext_resource type="Texture2D" uid="uid://ds8rgd3rploko" path="res://sprites/dungeon_exit.png" id="2_tex"]
 
-[node name="DungeonExit" type="Node2D"]
+[node name="DungeonExit" type="Node2D" unique_id=1926056634]
+z_index = -1
 y_sort_enabled = true
-z_index = 0
 script = ExtResource("1_script")
+y_sort_with_actors = null
 
-[node name="Sprite2D" type="Sprite2D" parent="."]
+[node name="Sprite2D" type="Sprite2D" parent="." unique_id=2141177909]
+visible = false
 y_sort_enabled = true
 position = Vector2(0, -63)
 texture = ExtResource("2_tex")

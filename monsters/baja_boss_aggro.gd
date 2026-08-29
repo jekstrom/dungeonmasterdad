@@ -1,16 +1,14 @@
 class_name BajaBossAggro extends EnemyState
 
 ## Host chase + combat dispatcher. Walk toward the DM until melee, then attack.
-## Priority: melee if in melee; else jet if ready + in jet range (~512-640px);
-## else existing blast if in blast range (256); else chase.
-## Jet cooldown ~3s so blast/melee still happen. After jet, chase_state=aggro.
+## Priority: melee if in melee; else jet if ready + in jet range (~512-640px); else chase.
+## Jet cooldown ~3s so melee still happens. After jet, chase_state=aggro.
 ## Do not wander-skip aggro.
 ## user_stories/tasks/US-017/T003-host-boss-combat.md
 ## user_stories/tasks/US-027/T001-jet-telegraph.md
 ## NOT Freeze Wave, NOT Sugar Rush, NOT US-018 fireball, NOT Bemidji Blizzard.
 
 @export var attack_state: EnemyState
-@export var blast_state: EnemyState
 @export var jet_state: EnemyState
 @export var wander_state: EnemyState
 @export var idle_state: EnemyState
@@ -50,14 +48,13 @@ func _pick_combat() -> EnemyState:
 			return wander_state
 		return idle_state
 	if enemy.can_melee_current_target():
+		enemy.velocity = Vector2.ZERO
 		if _ready_for_combat():
 			return attack_state
-		enemy.velocity = Vector2.ZERO
+		enemy.UpdateAnimation("idle")
 		return null
 	if _ready_for_jet() and _in_jet_range() and jet_state:
 		return jet_state
-	if _ready_for_combat() and _in_blast_range() and blast_state:
-		return blast_state
 	return null
 
 func _ready_for_combat() -> bool:
@@ -77,15 +74,6 @@ func _in_jet_range() -> bool:
 		return bool(enemy.call("in_jet_range_of", enemy.aggro_target))
 	return false
 
-func _in_blast_range() -> bool:
-	if enemy == null:
-		return false
-	if enemy.has_method("in_blast_range_of_target"):
-		return bool(enemy.call("in_blast_range_of_target"))
-	if enemy.has_method("in_blast_range_of"):
-		return bool(enemy.call("in_blast_range_of", enemy.aggro_target))
-	return false
-
 func _chase() -> void:
 	if enemy == null or enemy._dying:
 		return
@@ -95,6 +83,11 @@ func _chase() -> void:
 		enemy.velocity = Vector2.ZERO
 		return
 	var to_target: Vector2 = enemy.global_position.direction_to(target.global_position)
-	enemy.velocity = to_target * chase_speed
 	enemy.SetDirection(to_target)
+	# Stop at melee range instead of walking into the DM.
+	if enemy.global_position.distance_to(target.global_position) <= enemy.melee_range_px:
+		enemy.velocity = Vector2.ZERO
+		enemy.UpdateAnimation("idle")
+		return
+	enemy.velocity = to_target * chase_speed
 	enemy.UpdateAnimation(anim_name)

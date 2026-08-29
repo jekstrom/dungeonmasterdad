@@ -1,6 +1,6 @@
 extends Node
 
-## US-017 T001/T002: one Baja Blast boss at the exit room, skip-boss, 3x5 sheet, host die.
+## US-017 T001/T002: one Baja Blast boss at the exit room, skip-boss, 9x6 sheet, host die.
 
 const BOSS_SCENE := "res://monsters/baja_boss.tscn"
 const ENTRANCE := Vector2i(2, 2)
@@ -103,11 +103,11 @@ func _assert_boss_scene() -> bool:
 	if tex_path.find("mtdew") != -1 or tex_path.find("goblin") != -1 or tex_path.find("bajablast") != -1:
 		_fail("US-017 T002: must not use can or goblin art")
 		return false
-	if sprite.hframes != 3:
-		_fail("US-017 T002: hframes must be 3, got %d" % sprite.hframes)
+	if sprite.hframes != 9:
+		_fail("US-017 T002: hframes must be 9, got %d" % sprite.hframes)
 		return false
-	if sprite.vframes != 5:
-		_fail("US-017 T002: vframes must be 5, got %d" % sprite.vframes)
+	if sprite.vframes != 6:
+		_fail("US-017 T002: vframes must be 6, got %d" % sprite.vframes)
 		return false
 	if sprite.scale != Vector2.ONE:
 		_fail("US-017 T002: scale must be Vector2.ONE, got %s" % sprite.scale)

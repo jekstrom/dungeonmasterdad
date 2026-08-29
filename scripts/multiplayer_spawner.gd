@@ -190,8 +190,6 @@ func _generated_tile_name(scene_path: String, world_position: Vector2) -> String
 		prefix = "gw"
 	elif scene_path.ends_with("dungeon_entrance.tscn"):
 		prefix = "ge"
-	elif scene_path.ends_with("dungeon_exit.tscn"):
-		prefix = "gx"
 	return "%s_%d_%d" % [prefix, gx, gy]
 
 func _disable_generated_tile_sync(tile: Node) -> void:
@@ -232,10 +230,6 @@ func _instantiate_generated_tile(scene_path: String, world_position: Vector2, va
 	elif scene_path.ends_with("dungeon_entrance.tscn"):
 		tile.z_index = WALL_Z_INDEX
 		tile.add_to_group("entrance")
-		tile.add_to_group("room")
-	elif scene_path.ends_with("dungeon_exit.tscn"):
-		tile.z_index = WALL_Z_INDEX
-		tile.add_to_group("exit")
 		tile.add_to_group("room")
 	else:
 		tile.z_index = FLOOR_Z_INDEX
@@ -383,11 +377,16 @@ func spawn_host_player(player_name: String) -> void:
 	SignalBus.on_item_drop.emit(cloak_data)
 		
 func _sync_global_state_to_peer(id: int) -> void:
-	sync_global_state.rpc_id(id, DmManager.fantasy_level, DmManager.current_mana, DmManager.max_mana, DmUnlocks.snapshot(), int(PlayerManager.reality_level))
+	var dm_hp: int = 100
+	var dm_max: int = 100
+	if DmManager.dm:
+		dm_hp = int(DmManager.dm.hitpoints)
+		dm_max = int(DmManager.dm.max_hp)
+	sync_global_state.rpc_id(id, DmManager.fantasy_level, DmManager.current_mana, DmManager.max_mana, DmUnlocks.snapshot(), int(PlayerManager.reality_level), dm_hp, dm_max)
 	DmManager.sync_blizzard_to_peer(id)
 
 @rpc("authority", "call_local", "reliable")
-func sync_global_state(f: int, mana: int = 0, mana_max: int = 100, unlocks: Dictionary = {}, reality_lv: int = -1) -> void:
+func sync_global_state(f: int, mana: int = 0, mana_max: int = 100, unlocks: Dictionary = {}, reality_lv: int = -1, dm_hp: int = -1, dm_max_hp: int = -1) -> void:
 	DmManager.fantasy_level = f
 	DmManager.fantasy_level_changed.emit(f)
 	DmManager.apply_replicated_mana(mana, mana_max)
@@ -396,3 +395,5 @@ func sync_global_state(f: int, mana: int = 0, mana_max: int = 100, unlocks: Dict
 	if reality_lv >= 0:
 		PlayerManager.reality_level = reality_lv
 		PlayerManager.reality_level_changed.emit(reality_lv)
+	if dm_hp >= 0 and dm_max_hp >= 0:
+		DmManager.apply_replicated_health(dm_hp, dm_max_hp)

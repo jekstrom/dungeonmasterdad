@@ -11,7 +11,6 @@ extends Node
 const BOSS_SCENE := preload("res://monsters/baja_boss.tscn")
 const JET_SCENE := preload("res://monsters/carbonated_jet.tscn")
 const DM_SCENE := preload("res://dm/dm.tscn")
-const BLAST_SCRIPT := preload("res://monsters/baja_boss_blast.gd")
 const JET_STATE_SCRIPT := preload("res://monsters/baja_boss_jet.gd")
 const JET_PROJ_SCRIPT := preload("res://monsters/carbonated_jet.gd")
 const TICK := 1.0 / 60.0
@@ -39,7 +38,7 @@ func _run() -> bool:
 		return false
 	if not await _assert_death_cancels_tell():
 		return false
-	if not await _assert_blast_spit_untouched():
+	if not await _assert_blast_removed():
 		return false
 	if not _assert_isolation():
 		return false
@@ -108,12 +107,12 @@ func _disable_sm(boss: Node) -> Node:
 
 
 func _tell_visible(boss: Node) -> bool:
-	if boss.has_method("is_showing_jet_tell") and bool(boss.call("is_showing_jet_tell")):
-		return true
 	if bool(boss.get("jet_telling")):
 		return true
-	var tell: Node = boss.get_node_or_null("JetTell")
-	if tell is CanvasItem and (tell as CanvasItem).visible:
+	if boss.has_method("is_showing_jet_tell") and bool(boss.call("is_showing_jet_tell")):
+		return true
+	var player: AnimationPlayer = boss.get_node_or_null("AnimationPlayer") as AnimationPlayer
+	if player and str(player.current_animation).begins_with("jet_tell_"):
 		return true
 	return false
 
@@ -136,12 +135,6 @@ func _assert_scenes_distinct() -> bool:
 		return false
 	if not jet_path.ends_with("carbonated_jet.gd"):
 		_fail("US-027: jet projectile script should be carbonated_jet.gd, got %s" % jet_path)
-		return false
-	if JET_PROJ_SCRIPT == BLAST_SCRIPT:
-		_fail("US-027: carbonated_jet.gd must not be baja_boss_blast.gd")
-		return false
-	if JET_STATE_SCRIPT == BLAST_SCRIPT:
-		_fail("US-027: baja_boss_jet.gd must not be baja_boss_blast.gd")
 		return false
 	return true
 
@@ -211,16 +204,19 @@ func _assert_telegraph_then_stream_and_hit() -> bool:
 	var before: int = _jet_count()
 	sm.call("change_state", jet_state)
 	await get_tree().process_frame
+	if boss.get_node_or_null("JetTell") != null:
+		_fail("US-027 T001: jet telegraph must not spawn a Line2D laser")
+		return false
 	if not _tell_visible(boss):
-		_fail("US-027 T001: linear telegraph must be visible before any stream exists")
+		_fail("US-027 T001: jet_tell_* charge must play before any stream exists")
 		return false
 	var player: AnimationPlayer = boss.get_node_or_null("AnimationPlayer") as AnimationPlayer
 	if player == null:
 		_fail("US-027 T001: AnimationPlayer missing")
 		return false
 	var anim := str(player.current_animation)
-	if not anim.begins_with("blast_"):
-		_fail("US-027 T001: expected blast_* mace arm-point tell, got %s" % anim)
+	if not anim.begins_with("jet_tell_"):
+		_fail("US-027 T001: expected jet_tell_* charging tell, got %s" % anim)
 		return false
 	if _jet_count() != before:
 		_fail("US-027 T001: stream must not exist on the tell frame")
@@ -230,11 +226,18 @@ func _assert_telegraph_then_stream_and_hit() -> bool:
 		_fail("US-027 T001: stream must not exist ~0.2s into the tell")
 		return false
 	if not _tell_visible(boss):
-		_fail("US-027 T001: telegraph must stay readable during the tell")
+		_fail("US-027 T001: jet_tell_* must stay playing during the charge")
 		return false
 	var tell_sec: float = float(jet_state.get("telegraph_sec"))
-	if tell_sec < 0.4 or tell_sec > 0.8:
-		_fail("US-027 T001: telegraph_sec should be 0.4-0.8s, got %s" % tell_sec)
+	if tell_sec < 0.9 or tell_sec > 1.1:
+		_fail("US-027 T001: telegraph_sec should be 1s charge, got %s" % tell_sec)
+		return false
+	var recover_sec: float = float(jet_state.get("recover_sec"))
+	if recover_sec < 0.9 or recover_sec > 1.1:
+		_fail("US-027 T001: recover_sec should be 1s idle, got %s" % recover_sec)
+		return false
+	if (boss as CharacterBody2D).velocity != Vector2.ZERO:
+		_fail("US-027 T001: boss must stay planted during jet charge")
 		return false
 	if jet_state.has_method("process"):
 		jet_state.call("process", tell_sec)
@@ -244,6 +247,22 @@ func _assert_telegraph_then_stream_and_hit() -> bool:
 	if _jet_count() <= before:
 		_fail("US-027 T002: stream must exist after the telegraph completes")
 		return false
+	anim = str(player.current_animation)
+	if not anim.begins_with("idle_"):
+		_fail("US-027 T002: after the beam fires, boss must play idle_*, got %s" % anim)
+		return false
+	if sm.get("current_state") != jet_state:
+		_fail("US-027 T001: boss must stay in jet through idle recover")
+		return false
+	if (boss as CharacterBody2D).velocity != Vector2.ZERO:
+		_fail("US-027 T001: boss must stay planted during jet recover")
+		return false
+	if jet_state.has_method("process"):
+		jet_state.call("process", recover_sec * 0.5)
+	await get_tree().process_frame
+	if sm.get("current_state") != jet_state:
+		_fail("US-027 T001: recover must last the full 1s idle, not leave jet early")
+		return false
 	var stream: Node2D = null
 	for node in get_tree().get_nodes_in_group("carbonated_jets"):
 		if is_instance_valid(node) and node is Node2D:
@@ -251,6 +270,9 @@ func _assert_telegraph_then_stream_and_hit() -> bool:
 			break
 	if stream == null:
 		_fail("US-027 T002: carbonated_jets group empty after fire")
+		return false
+	if int(stream.get("damage")) != 20:
+		_fail("US-027 T002: jet damage must be 20, got %s" % stream.get("damage"))
 		return false
 	var spd: float = float(stream.get("speed"))
 	if spd < 600.0:
@@ -342,7 +364,7 @@ func _assert_death_cancels_tell() -> bool:
 	sm.call("change_state", jet_state)
 	await get_tree().process_frame
 	if not _tell_visible(boss):
-		_fail("US-027 T001: tell should be up before death cancel")
+		_fail("US-027 T001: jet_tell_* should be playing before death cancel")
 		return false
 	var before: int = _jet_count()
 	boss.set("grant_blizzard_on_death", false)
@@ -364,48 +386,25 @@ func _assert_death_cancels_tell() -> bool:
 	return true
 
 
-func _assert_blast_spit_untouched() -> bool:
+func _assert_blast_removed() -> bool:
 	var boss: Node2D = _make_boss()
-	var dm: Node2D = _make_stub_dm(boss.global_position + Vector2(80, 0))
 	await get_tree().process_frame
 	var sm: Node = _disable_sm(boss)
 	if sm == null:
-		_fail("US-027: SM missing for blast isolation")
+		_fail("US-027: SM missing")
 		return false
-	var blast: Node = sm.get_node_or_null("blast")
-	if blast == null:
-		_fail("US-027: blast state node must still exist")
+	if sm.get_node_or_null("blast") != null:
+		_fail("US-027: blast state must be removed; jet is the special attack")
 		return false
-	var blast_script: Script = blast.get_script()
-	if blast_script == null or not str(blast_script.resource_path).ends_with("baja_boss_blast.gd"):
-		_fail("US-027: blast state must still use baja_boss_blast.gd")
-		return false
-	var jet_state: Node = sm.get_node_or_null("jet")
-	if jet_state == null:
-		_fail("US-027: jet state node missing")
-		return false
-	if jet_state.get_script() == blast.get_script():
-		_fail("US-027: jet state must not reuse baja_boss_blast.gd")
-		return false
-	var before: int = _jet_count()
-	sm.call("change_state", blast)
-	await get_tree().process_frame
 	var player: AnimationPlayer = boss.get_node_or_null("AnimationPlayer") as AnimationPlayer
-	var anim := str(player.current_animation) if player else ""
-	if not anim.begins_with("blast_"):
-		_fail("US-027: forcing blast must still play blast_*, got %s" % anim)
+	if player:
+		for clip in ["blast_down", "blast_up", "blast_side"]:
+			if player.has_animation(clip):
+				_fail("US-027: leftover %s clip; use jet_* instead" % clip)
+				return false
+	if boss.has_method("apply_blast_hit"):
+		_fail("US-027: apply_blast_hit must be gone with the spit")
 		return false
-	if blast.has_method("process"):
-		blast.call("process", 0.6)
-	await get_tree().process_frame
-	await get_tree().physics_frame
-	if _jet_count() != before:
-		_fail("US-027: blast spit must not spawn a carbonated_jet")
-		return false
-	if not boss.has_method("apply_blast_hit"):
-		_fail("US-027: apply_blast_hit must remain on BajaBoss")
-		return false
-	dm.queue_free()
 	boss.queue_free()
 	await get_tree().process_frame
 	return true
@@ -430,9 +429,24 @@ func _assert_replicate_contract() -> bool:
 		_fail("US-027 T003: stream hits must be host-guarded")
 		return false
 	var boss_src := FileAccess.get_file_as_string("res://monsters/baja_boss.gd")
-	if boss_src.find("@rpc") == -1 or boss_src.find("show_jet_tell") == -1 or boss_src.find("hide_jet_tell") == -1:
-		_fail("US-027 T003: telegraph show/hide must be authority RPCs")
+	if boss_src.find("Line2D") != -1 or boss_src.find("JetTell") != -1:
+		_fail("US-027 T001: jet telegraph must not draw a Line2D laser")
 		return false
+	if boss_src.find("fire_carbonated_jet") == -1 or boss_src.find("multiplayer.is_server()") == -1:
+		_fail("US-027 T003: jet fire must be host-guarded")
+		return false
+	var boss_sample: Node = BOSS_SCENE.instantiate()
+	var boss_sync: MultiplayerSynchronizer = boss_sample.get_node_or_null("MultiplayerSynchronizer") as MultiplayerSynchronizer
+	if boss_sync == null or boss_sync.replication_config == null:
+		_fail("US-027 T003: baja_boss needs MultiplayerSynchronizer so peers see jet_tell_*")
+		boss_sample.free()
+		return false
+	var boss_cfg: SceneReplicationConfig = boss_sync.replication_config
+	if not boss_cfg.has_property(NodePath("AnimationPlayer:current_animation")):
+		_fail("US-027 T003: replicate AnimationPlayer:current_animation for the jet pose")
+		boss_sample.free()
+		return false
+	boss_sample.free()
 	var sample: Node = JET_SCENE.instantiate()
 	var sync: MultiplayerSynchronizer = sample.get_node_or_null("MultiplayerSynchronizer") as MultiplayerSynchronizer
 	if sync == null or sync.replication_config == null:

@@ -1,14 +1,47 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene format=3 uid="uid://bcqv68d0fdo1a"]
 
-[ext_resource type="Script" path="res://level/dungeon_portal.gd" id="1_script"]
+[ext_resource type="Script" uid="uid://cm6h3p5f38xvn" path="res://level/dungeon_portal.gd" id="1_script"]
 [ext_resource type="Texture2D" uid="uid://0c10ppoxub3c" path="res://sprites/dungeon_entrance.png" id="2_tex"]
 
-[node name="DungeonEntrance" type="Node2D"]
-y_sort_enabled = true
-z_index = 0
-script = ExtResource("1_script")
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_7xrwy"]
+size = Vector2(37, 52)
 
-[node name="Sprite2D" type="Sprite2D" parent="."]
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_rpb1b"]
+size = Vector2(38, 55)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_5m13b"]
+size = Vector2(62, 20)
+
+[node name="DungeonEntrance" type="Node2D" unique_id=1181971292]
+y_sort_enabled = true
+script = ExtResource("1_script")
+y_sort_with_actors = true
+
+[node name="Sprite2D" type="Sprite2D" parent="." unique_id=492427625]
 y_sort_enabled = true
 position = Vector2(0, -63)
 texture = ExtResource("2_tex")
+
+[node name="Area2D" type="StaticBody2D" parent="." unique_id=891282079]
+collision_layer = 257
+collision_mask = 17
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Area2D" unique_id=261568962]
+position = Vector2(-44.5, -65)
+shape = SubResource("RectangleShape2D_7xrwy")
+
+[node name="Area2D2" type="StaticBody2D" parent="." unique_id=1755354277]
+collision_layer = 257
+collision_mask = 17
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Area2D2" unique_id=1157731106]
+position = Vector2(43, -63.5)
+shape = SubResource("RectangleShape2D_rpb1b")
+
+[node name="Area2D3" type="StaticBody2D" parent="." unique_id=1065164885]
+collision_layer = 257
+collision_mask = 17
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Area2D3" unique_id=1630457952]
+position = Vector2(-1, -81)
+shape = SubResource("RectangleShape2D_5m13b")

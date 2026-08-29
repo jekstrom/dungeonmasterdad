@@ -39,7 +39,7 @@ func _ready() -> void:
 		_fail("US-014 T007: Paper Pusher HUD must not author DM mana")
 		return
 
-	var fantasy_label: Label = Hud.get_node_or_null("MarginContainer/HBoxContainer/FantasyBar/Label") as Label
+	var fantasy_label: Label = Hud.get_node_or_null("MarginContainer/HBoxContainer/FantasyColumn/FantasyBar/Label") as Label
 	if fantasy_label == null or fantasy_label.text.find("FANTASY") < 0:
 		_fail("US-014 T007: Fantasy Level bar must remain on the shared HUD")
 		return
