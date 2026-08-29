@@ -67,3 +67,14 @@ signal dungeon_generation_failed(request_id: String, error_code: String, message
 signal map_bounds_committed(interior: Rect2i)
 @warning_ignore("unused_signal")
 signal map_bounds_cleared
+
+@warning_ignore("unused_signal")
+signal reality_home_changed(home_rect: Rect2i)
+@warning_ignore("unused_signal")
+signal reality_pocket_created(pocket_id: int, rect: Rect2i, duration: float)
+@warning_ignore("unused_signal")
+signal reality_pocket_expired(pocket_id: int)
+@warning_ignore("unused_signal")
+signal reality_claim_changed
+@warning_ignore("unused_signal")
+signal reality_pocket_requested(origin: Vector2i, size: Vector2i, duration: float)

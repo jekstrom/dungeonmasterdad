@@ -173,23 +173,32 @@ func _rebuild_home_overlay() -> void:
 	if not is_reality:
 		return
 	_ensure_home_overlay_root()
+	_clear_overlay_children(_home_overlay_root)
 	if _home_overlay_texture == null:
 		_home_overlay_texture = load(HOME_OVERLAY_PATH) as Texture2D
-	for child in _home_overlay_root.get_children():
-		_home_overlay_root.remove_child(child)
-		child.queue_free()
 	if _home_overlay_texture == null:
 		return
 	for y in range(home_rect.position.y, home_rect.end.y):
 		for x in range(home_rect.position.x, home_rect.end.x):
-			var cell := Vector2i(x, y)
-			var sprite := Sprite2D.new()
-			sprite.texture = _home_overlay_texture
-			sprite.centered = true
-			sprite.z_as_relative = false
-			sprite.z_index = 0
-			sprite.position = DungeonGrid.to_world(cell) - global_position + Vector2(0.0, SPRITE_GRID_Y)
-			_home_overlay_root.add_child(sprite)
+			_place_overlay_sprite(_home_overlay_root, _home_overlay_texture, Vector2i(x, y), 0)
+
+func _place_overlay_sprite(parent: Node2D, texture: Texture2D, cell: Vector2i, z: int) -> void:
+	if parent == null or texture == null:
+		return
+	var sprite := Sprite2D.new()
+	sprite.texture = texture
+	sprite.centered = true
+	sprite.z_as_relative = false
+	sprite.z_index = z
+	sprite.position = DungeonGrid.to_world(cell) - global_position + Vector2(0.0, SPRITE_GRID_Y)
+	parent.add_child(sprite)
+
+func _clear_overlay_children(parent: Node2D) -> void:
+	if parent == null or not is_instance_valid(parent):
+		return
+	for child in parent.get_children():
+		parent.remove_child(child)
+		child.queue_free()
 
 func _ensure_home_overlay_root() -> void:
 	if _home_overlay_root != null and is_instance_valid(_home_overlay_root):
@@ -201,11 +210,7 @@ func _ensure_home_overlay_root() -> void:
 		add_child(_home_overlay_root)
 
 func _clear_home_overlay() -> void:
-	if _home_overlay_root == null or not is_instance_valid(_home_overlay_root):
-		return
-	for child in _home_overlay_root.get_children():
-		_home_overlay_root.remove_child(child)
-		child.queue_free()
+	_clear_overlay_children(_home_overlay_root)
 
 func _home_width_from_radius() -> int:
 	return maxi(1, int(ceil(base_radius / DungeonGrid.CELL_PX)))

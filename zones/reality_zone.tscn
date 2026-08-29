@@ -15,3 +15,5 @@ is_reality = true
 shape = SubResource("RectangleShape2D_home")
 
 [node name="HomeOverlay" type="Node2D" parent="."]
+
+[node name="PocketOverlay" type="Node2D" parent="."]
