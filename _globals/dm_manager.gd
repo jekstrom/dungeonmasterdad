@@ -133,7 +133,7 @@ func launch_blizzard(spell_data: Dictionary) -> bool:
 		return false
 	if not try_cast(AbilityCatalog.BEMIDJI_BLIZZARD):
 		return false
-	var pocket_id: int = fantasy.spawn_pocket(clipped.position, clipped.size, duration)
+	var pocket_id: int = fantasy.spawn_pocket(clipped.position, clipped.size, duration, "blizzard")
 	if pocket_id < 0:
 		return false
 	var pocket: Dictionary = fantasy.get_pocket(pocket_id)

@@ -1,4 +1,4 @@
-[gd_scene load_steps=9 format=3 uid="uid://f15sgptli5oi"]
+[gd_scene load_steps=11 format=3 uid="uid://f15sgptli5oi"]
 
 [ext_resource type="Script" uid="uid://bsgw0ccsyq6ll" path="res://gui/dm/dm_hud.gd" id="1_a1hl1"]
 [ext_resource type="Texture2D" uid="uid://b0hlsaoa55imm" path="res://sprites/gremlin_spawn_button.png" id="2_uyd11"]
@@ -8,6 +8,8 @@
 [ext_resource type="Texture2D" uid="uid://bsqq0iefdxyxf" path="res://monsters/knight/knight.png" id="5_usulh"]
 [ext_resource type="Texture2D" uid="uid://dl1fupl85iw7c" path="res://spells/fireball/fireball_pressed.png" id="6_usulh"]
 [ext_resource type="Texture2D" uid="uid://d3wb1fbmfd5jv" path="res://pickups/mtdew/mtdew.png" id="7_mtdew"]
+[ext_resource type="Texture2D" uid="uid://cl7y1vjtfyxrc" path="res://spells/blizzard/blizzard.png" id="8_blizzard"]
+[ext_resource type="Texture2D" uid="uid://dndgmw4onsi0w" path="res://spells/blizzard/blizzard_pressed.png" id="9_blizzard"]
 
 [node name="DmHud" type="CanvasLayer"]
 script = ExtResource("1_a1hl1")
@@ -138,4 +140,23 @@ grow_vertical = 2
 tooltip_text = "Summon Gremlin"
 texture_normal = ExtResource("5_cbx5e")
 texture_pressed = ExtResource("6_usulh")
+stretch_mode = 0
+
+[node name="Blizzard" type="ColorRect" parent="MarginContainer/HBoxContainer"]
+visible = false
+custom_minimum_size = Vector2(75, 75)
+layout_mode = 2
+size_flags_horizontal = 8
+color = Color(0.40832946, 0.40832946, 0.40832946, 1)
+
+[node name="TextureButton" type="TextureButton" parent="MarginContainer/HBoxContainer/Blizzard"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+tooltip_text = "Bemidji Blizzard"
+texture_normal = ExtResource("8_blizzard")
+texture_pressed = ExtResource("9_blizzard")
 stretch_mode = 0

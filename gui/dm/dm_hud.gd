@@ -7,6 +7,8 @@ const MANA_BAR_WIDTH: float = 120.0
 @onready var cast_fireball_button: TextureButton = $MarginContainer/HBoxContainer/Fireball/TextureButton
 @onready var spawn_knight_button: TextureButton = $MarginContainer/HBoxContainer/SpawnKnight/TextureButton
 @onready var spawn_knight: ColorRect = $MarginContainer/HBoxContainer/SpawnKnight
+@onready var cast_blizzard_button: TextureButton = $MarginContainer/HBoxContainer/Blizzard/TextureButton
+@onready var blizzard: ColorRect = $MarginContainer/HBoxContainer/Blizzard
 @onready var inventory_ui: Control = $MarginContainer/InventoryUi
 @onready var fireball: ColorRect = $MarginContainer/HBoxContainer/Fireball
 @onready var mana_fill: ColorRect = $MarginContainer/HBoxContainer/ManaMeter/BarColumn/Bar/ManaFill
@@ -17,6 +19,7 @@ func _ready() -> void:
 	spawn_gremlin_button.connect("button_down", _on_gremlin_button_pressed)
 	spawn_knight_button.connect("button_down", _on_knight_button_pressed)
 	cast_fireball_button.connect("button_down", _on_fireball_button_pressed)
+	cast_blizzard_button.connect("button_down", _on_blizzard_button_pressed)
 	if not DmManager.mana_changed.is_connected(_on_mana_changed):
 		DmManager.mana_changed.connect(_on_mana_changed)
 	if not SignalBus.on_dm_unlock.is_connected(on_dm_unlock):
@@ -36,6 +39,11 @@ func _on_fireball_button_pressed() -> void:
 	if not bool(DmUnlocks.dm_unlocks.get(AbilityCatalog.FIREBALL, false)):
 		return
 	SignalBus.start_spell_cast.emit(AbilityCatalog.FIREBALL)
+
+func _on_blizzard_button_pressed() -> void:
+	if not bool(DmUnlocks.dm_unlocks.get(AbilityCatalog.BEMIDJI_BLIZZARD, false)):
+		return
+	SignalBus.start_spell_cast.emit(AbilityCatalog.BEMIDJI_BLIZZARD)
 
 func _on_mana_changed(new_current: int, new_max: int) -> void:
 	_update_mana_meter(new_current, new_max)
@@ -74,3 +82,5 @@ func _apply_unlock_visibility() -> void:
 		fireball.visible = bool(DmUnlocks.dm_unlocks.get(AbilityCatalog.FIREBALL, false))
 	if spawn_knight:
 		spawn_knight.visible = bool(DmUnlocks.dm_unlocks.get(AbilityCatalog.KNIGHTLING, false))
+	if blizzard:
+		blizzard.visible = bool(DmUnlocks.dm_unlocks.get(AbilityCatalog.BEMIDJI_BLIZZARD, false))

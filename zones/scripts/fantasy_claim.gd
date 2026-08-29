@@ -39,7 +39,7 @@ func winning_pocket_id(cell: Vector2i) -> int:
 			best_id = int(pocket["id"])
 	return best_id
 
-func add_pocket(rect: Rect2i, duration: float, now: float) -> Dictionary:
+func add_pocket(rect: Rect2i, duration: float, now: float, overlay: String = "") -> Dictionary:
 	if rect.size.x <= 0 or rect.size.y <= 0:
 		return {}
 	if duration <= 0.0:
@@ -50,6 +50,7 @@ func add_pocket(rect: Rect2i, duration: float, now: float) -> Dictionary:
 		"duration": duration,
 		"expires_at": now + duration,
 		"seq": _next_seq,
+		"overlay": overlay,
 	}
 	_next_id += 1
 	_next_seq += 1
@@ -113,6 +114,7 @@ func to_sync_dict(now: float) -> Dictionary:
 			"remaining": remaining,
 			"duration": float(pocket["duration"]),
 			"seq": int(pocket["seq"]),
+			"overlay": str(pocket.get("overlay", "")),
 		})
 	return {
 		"home_x": home_rect.position.x,
@@ -152,6 +154,7 @@ func apply_sync_dict(payload: Dictionary, now: float) -> void:
 			"duration": float(item.get("duration", remaining)),
 			"expires_at": now + remaining,
 			"seq": int(item.get("seq", 0)),
+			"overlay": str(item.get("overlay", "")),
 		})
 	_next_id = int(payload.get("next_id", _next_id))
 	_next_seq = int(payload.get("next_seq", _next_seq))
