@@ -23,6 +23,14 @@ var ghost_building: Node2D
 @onready var attack_hurtbox: Hurtbox = $AttackHurtbox
 
 @export var melee_damage: int = 1
+@export var staple_magazine_max: int = 20
+@export var staple_damage: int = 1
+@export var staple_speed: float = 520.0
+@export var staple_max_range: float = 360.0
+var staple_count: int = 20
+var empty_click_played: bool = false
+
+signal staple_count_changed(count: int)
 
 @export var sync_name: String:
 	set(val):
@@ -57,6 +65,8 @@ func _ready() -> void:
 		camera_2d.enabled = false
 		
 	state_machine.Initialize(self)
+	staple_count = staple_magazine_max
+	_refresh_staple_hud()
 	SignalBus.build_smoke_building_pressed.connect(setup_building)
 	SignalBus.build_paper_building_pressed.connect(setup_building)
 	SignalBus.on_dm_unlock.connect(dm_unlock_listener)
@@ -250,6 +260,149 @@ func anim_direction() -> String:
 	return "side"
 
 
+
+func is_combat_locked() -> bool:
+	if current_building_data:
+		return true
+	if state_machine == null or state_machine.current_state == null:
+		return true
+	var state_name: String = state_machine.current_state.name
+	if state_name == "death" or state_name == "respawn_wait" or state_name == "snake":
+		return true
+	return false
+
+func wants_fire_staple(event: InputEvent) -> bool:
+	if current_building_data:
+		return false
+	if event.is_action_pressed("fire"):
+		return true
+	if event.is_action_pressed("primary_click"):
+		return true
+	return false
+
+func try_fire_staple_from_input() -> void:
+	if not is_multiplayer_authority():
+		return
+	# Same-frame melee wins; do not spend a staple if melee takes the frame.
+	if Input.is_action_pressed("attack"):
+		return
+	var aim: Vector2 = cardinal_direction
+	if is_inside_tree():
+		var mouse_aim: Vector2 = get_global_mouse_position() - global_position
+		if mouse_aim.length() >= 0.01:
+			aim = mouse_aim
+	if multiplayer.is_server():
+		request_fire_staple(aim)
+	else:
+		request_fire_staple.rpc_id(1, aim)
+
+# Fire mapping: LMB is `fire` (and `primary_click` when not placing a building).
+# Melee is `attack` (Space only). Building placement keeps primary_click.
+# Owning client requests; host validates ammo, lockouts, and aim dir.
+@rpc("any_peer", "reliable")
+func request_fire_staple(aim: Vector2) -> void:
+	if not multiplayer.is_server():
+		return
+	var sender: int = multiplayer.get_remote_sender_id()
+	if sender != 0 and sender != get_multiplayer_authority():
+		return
+	_host_fire_staple(aim)
+
+func _host_fire_staple(aim: Vector2) -> void:
+	if is_combat_locked():
+		return
+	if state_machine and state_machine.current_state and state_machine.current_state.name == "attack":
+		return
+	if staple_count <= 0:
+		staple_count = 0
+		_replicate_staple_count()
+		_notify_empty_click()
+		return
+	var dir: Vector2 = aim
+	if dir.length() < 0.01:
+		dir = cardinal_direction
+	else:
+		dir = dir.normalized()
+	staple_count -= 1
+	if staple_count < 0:
+		staple_count = 0
+	_replicate_staple_count()
+	var spawner: Node = _find_projectile_spawner()
+	if spawner == null or not spawner.has_method("spawn_staple"):
+		return
+	var muzzle: Vector2 = global_position + dir * 18.0
+	spawner.spawn_staple({
+		"kind": "staple",
+		"shooter_id": get_multiplayer_authority(),
+		"position": muzzle,
+		"direction": dir,
+		"damage": staple_damage,
+		"speed": staple_speed,
+		"max_range": staple_max_range,
+	})
+
+func _find_projectile_spawner() -> Node:
+	var tree := get_tree()
+	if tree == null:
+		return null
+	var nodes: Array = tree.get_nodes_in_group("projectile_spawner")
+	if nodes.size() > 0:
+		return nodes[0]
+	return null
+
+func _replicate_staple_count() -> void:
+	_refresh_staple_hud()
+	if not multiplayer.is_server():
+		return
+	var owner_id: int = get_multiplayer_authority()
+	if owner_id <= 0 or owner_id == multiplayer.get_unique_id():
+		return
+	receive_staple_count.rpc_id(owner_id, staple_count)
+
+@rpc("any_peer", "reliable")
+func receive_staple_count(count: int) -> void:
+	var sender: int = multiplayer.get_remote_sender_id()
+	if sender != 0 and sender != 1:
+		return
+	staple_count = maxi(0, count)
+	_refresh_staple_hud()
+
+func _refresh_staple_hud() -> void:
+	staple_count_changed.emit(staple_count)
+	if not is_multiplayer_authority():
+		return
+	if PlayerHud and PlayerHud.has_method("update_staple_magazine"):
+		PlayerHud.update_staple_magazine(staple_count, staple_magazine_max)
+
+func _notify_empty_click() -> void:
+	var owner_id: int = get_multiplayer_authority()
+	if owner_id == multiplayer.get_unique_id() or owner_id <= 0:
+		play_empty_magazine_click()
+		return
+	play_empty_magazine_click.rpc_id(owner_id)
+
+@rpc("any_peer", "reliable")
+func play_empty_magazine_click() -> void:
+	var sender: int = multiplayer.get_remote_sender_id()
+	if sender != 0 and sender != 1 and sender != get_multiplayer_authority():
+		return
+	empty_click_played = true
+	var player_audio := AudioStreamPlayer.new()
+	var stream := AudioStreamWAV.new()
+	stream.format = AudioStreamWAV.FORMAT_8_BITS
+	stream.mix_rate = 11025
+	stream.stereo = false
+	var frames: int = 110
+	var data := PackedByteArray()
+	data.resize(frames)
+	for i in frames:
+		var t: float = 1.0 - float(i) / float(frames)
+		data[i] = 128 + int(sin(float(i) * 1.4) * 36.0 * t)
+	stream.data = data
+	player_audio.stream = stream
+	add_child(player_audio)
+	player_audio.play()
+	player_audio.finished.connect(player_audio.queue_free)
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("primary_click"):

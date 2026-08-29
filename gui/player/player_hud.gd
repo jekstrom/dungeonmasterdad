@@ -13,6 +13,7 @@ func _ready() -> void:
 	PlayerManager.smoke_amt_changed.connect(update_smoke_count)
 	build_smoke_factory_button.connect("button_down", on_build_smoke_factory_button_pressed)
 	build_paper_factory_button.connect("button_down", on_build_paper_factory_button_pressed)
+	update_staple_magazine(20, 20)
 
 func turn_on() -> void:
 	self.visible = true
@@ -33,4 +34,14 @@ func update_smoke_count(smoke_amt: int) -> void:
 func update_paper_count(paper_amt: int) -> void:
 	paper_count.visible = true
 	paper_count.text = "Paper: " + str(paper_amt) + "/" + str(PlayerManager.paper_amt)
-	
+
+func update_staple_magazine(count: int, mag_max: int) -> void:
+	var label: Label = get_node_or_null("%StapleCount") as Label
+	var icon: TextureRect = get_node_or_null("%StapleIcon") as TextureRect
+	if label:
+		label.text = "%d/%d" % [count, mag_max]
+		label.visible = true
+	if icon:
+		icon.visible = true
+		if icon.texture == null:
+			icon.texture = load("res://sprites/staple_hud_icon.png")

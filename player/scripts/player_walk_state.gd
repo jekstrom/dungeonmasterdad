@@ -31,6 +31,9 @@ func HandleInput(_event: InputEvent) -> PlayerState:
 		return null
 	if player.wants_melee_attack(_event):
 		return attack
+	if player.wants_fire_staple(_event):
+		player.try_fire_staple_from_input()
+		return null
 	if _event.is_action_pressed("interact"):
 		PlayerManager.interact_pressed.emit()
 	return null
