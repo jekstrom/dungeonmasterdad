@@ -1,6 +1,7 @@
 class_name Player extends CharacterBody2D
 
 const DIR_4 = [Vector2.RIGHT, Vector2.DOWN, Vector2.LEFT, Vector2.UP]
+const BASE_MOVE_SPEED: float = 300.0
 var cardinal_direction: Vector2 = Vector2.DOWN
 var direction: Vector2 = Vector2.ZERO
 var prev_direction: Vector2 = Vector2.ZERO
@@ -178,11 +179,17 @@ func _physics_process(_delta: float) -> void:
 		_flush_queued_staple_fire()
 		_melee_swing_active = false
 		return
-	velocity = direction * 300
+	velocity = direction * get_move_speed()
 	move_and_slide()
 	enforce_map_interior()
 	_flush_queued_staple_fire()
 	_melee_swing_active = false
+
+func blizzard_slow_factor() -> float:
+	return DmManager.blizzard_slow_factor_at(global_position)
+
+func get_move_speed() -> float:
+	return BASE_MOVE_SPEED * blizzard_slow_factor()
 
 func enforce_map_interior() -> void:
 	var level: Node = get_tree().get_first_node_in_group("level_manager") if get_tree() else null

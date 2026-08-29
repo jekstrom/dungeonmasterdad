@@ -1,5 +1,6 @@
 class_name DM extends CharacterBody2D
 
+const AbilityCatalog = preload("res://dm/dm_ability_catalog.gd")
 const DIR_4 = [Vector2.RIGHT, Vector2.DOWN, Vector2.LEFT, Vector2.UP]
 var cardinal_direction: Vector2 = Vector2.DOWN
 var direction: Vector2 = Vector2.ZERO
@@ -11,6 +12,7 @@ var max_hp: int = 6
 @export var targeting_scene: PackedScene
 @export var fireball_spell: PackedScene
 var current_targeting: Node
+var _targeting_spell_id: String = ""
 
 @onready var camera_2d: DmCamera = $Camera2D
 
@@ -41,6 +43,7 @@ func _ready() -> void:
 
 func setup_targeting(spell_id: String):
 	print("targeting for ", spell_id)
+	_targeting_spell_id = spell_id
 	if current_targeting:
 		remove_child(current_targeting)
 		current_targeting = null
@@ -50,11 +53,34 @@ func setup_targeting(spell_id: String):
 	var collision = current_targeting.get_node_or_null("CollisionShape2D")
 	if collision:
 		collision.disabled = true
-	
+	if spell_id == AbilityCatalog.BEMIDJI_BLIZZARD:
+		_size_blizzard_reticle(current_targeting)
+		current_targeting.modulate = Color(0.45, 0.85, 1.0, 0.55)
 	add_child(current_targeting)
-	
+
+func _size_blizzard_reticle(reticle: Node) -> void:
+	var world_size: Vector2 = Vector2(DmManager.BLIZZARD_POCKET_CELLS) * DungeonGrid.CELL_PX
+	var overlay := ColorRect.new()
+	overlay.name = "BlizzardRect"
+	overlay.size = world_size
+	overlay.position = -world_size * 0.5
+	overlay.color = Color(0.45, 0.85, 1.0, 0.35)
+	overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	reticle.add_child(overlay)
+	var reticle_sprite: Sprite2D = reticle.get_node_or_null("Sprite2D") as Sprite2D
+	if reticle_sprite and reticle_sprite.texture:
+		var tex_size: Vector2 = Vector2(reticle_sprite.texture.get_size())
+		if tex_size.x > 0.0 and tex_size.y > 0.0:
+			reticle_sprite.scale = world_size / tex_size
+
 func update_target(pos):
-	current_targeting.global_position = pos
+	if current_targeting == null:
+		return
+	if _targeting_spell_id == AbilityCatalog.BEMIDJI_BLIZZARD:
+		var cell: Vector2i = DungeonGrid.from_world(pos)
+		current_targeting.global_position = DungeonGrid.to_world_center(cell)
+	else:
+		current_targeting.global_position = pos
 
 func _process(_delta: float) -> void:
 	if !is_multiplayer_authority(): return
@@ -193,15 +219,28 @@ func play_audio(_stream: AudioStream) -> void:
 func confirm_targeted_spell() -> void:
 	if current_targeting == null:
 		return
+	var spell_id: String = _targeting_spell_id
+	var target: Vector2 = current_targeting.global_position
 	var spell_data := {
 		"shooter_id": multiplayer.get_unique_id(),
 		"position": Vector2(global_position.x, global_position.y - 16),
-		"target": current_targeting.global_position,
+		"target": target,
 		"radius_bonus": 0,
 		"base_damage_bonus": 0,
 		"speed_bonus": 0,
 	}
+	if spell_id == AbilityCatalog.BEMIDJI_BLIZZARD:
+		var size: Vector2i = DmManager.BLIZZARD_POCKET_CELLS
+		var cell: Vector2i = DungeonGrid.from_world(target)
+		spell_data["origin"] = cell - Vector2i(int(size.x / 2), int(size.y / 2))
+		spell_data["size"] = size
+		spell_data["duration"] = DmManager.BLIZZARD_DURATION
+		spell_data["slow_factor"] = DmManager.BLIZZARD_SLOW_FACTOR
 	_clear_targeting()
+	_targeting_spell_id = ""
+	if spell_id == AbilityCatalog.BEMIDJI_BLIZZARD:
+		DmManager.request_launch_blizzard(spell_data)
+		return
 	if not multiplayer.is_server():
 		return
 	DmManager.launch_fireball(spell_data)
@@ -213,6 +252,7 @@ func _clear_targeting() -> void:
 		remove_child(current_targeting)
 	current_targeting.queue_free()
 	current_targeting = null
+	_targeting_spell_id = ""
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("primary_click") and current_targeting:

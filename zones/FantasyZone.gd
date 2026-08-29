@@ -102,6 +102,27 @@ func expire_pocket(pocket_id: int) -> bool:
 	_broadcast_claim()
 	return true
 
+func expire_due(now: float = -1.0) -> PackedInt32Array:
+	if not _is_claim_host():
+		return PackedInt32Array()
+	var t: float = claim_now() if now < 0.0 else now
+	var expired: PackedInt32Array = claim.expire_due(t)
+	if expired.is_empty():
+		return expired
+	for pocket_id in expired:
+		SignalBus.fantasy_pocket_expired.emit(int(pocket_id))
+	SignalBus.fantasy_claim_changed.emit()
+	_rebuild_home_overlay()
+	_broadcast_claim()
+	return expired
+
+func claim_now() -> float:
+	return _claim_now()
+
+func _process(_delta: float) -> void:
+	if _is_claim_host():
+		expire_due()
+
 func _on_pocket_timeout(pocket_id: int) -> void:
 	expire_pocket(pocket_id)
 
