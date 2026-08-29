@@ -13,6 +13,8 @@ var radius
 var home_rect: Rect2i = Rect2i()
 var _home_overlay_root: Node2D = null
 var _home_overlay_texture: Texture2D = null
+var _queued_rect_collision: Vector2 = Vector2.ZERO
+var _rect_collision_queued: bool = false
 
 func _ready() -> void:
 	if is_reality:
@@ -113,8 +115,20 @@ func _apply_clipped_home_presentation() -> void:
 	queue_redraw()
 
 func _apply_rect_collision(world_size: Vector2) -> void:
+	_queued_rect_collision = world_size
+	if not is_inside_tree():
+		_apply_rect_collision_now()
+		return
+	if _rect_collision_queued:
+		return
+	_rect_collision_queued = true
+	call_deferred("_apply_rect_collision_now")
+
+func _apply_rect_collision_now() -> void:
+	_rect_collision_queued = false
 	if not _resolve_collision_shape():
 		return
+	var world_size: Vector2 = _queued_rect_collision
 	collision_shape_2d.scale = Vector2.ONE
 	collision_shape_2d.position = Vector2.ZERO
 	collision_shape_2d.disabled = false

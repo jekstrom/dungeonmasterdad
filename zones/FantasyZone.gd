@@ -9,6 +9,7 @@ var claim: FantasyClaim = FantasyClaim.new()
 var _pocket_overlay_root: Node2D = null
 var _pocket_overlay_texture: Texture2D = null
 var _exclusion_body: StaticBody2D = null
+var _exclusion_rebuild_queued: bool = false
 
 func _ready() -> void:
 	super._ready()
@@ -258,6 +259,21 @@ func _reality_spawn_world(reserved: Dictionary) -> Vector2:
 	return DungeonGrid.to_world_center(Vector2i(0, 0))
 
 func _rebuild_exclusion() -> void:
+	# Pickup Area2D body_entered (knightling unlock) emits fantasy_level_changed
+	# during a physics query flush. Mutating Exclusion shapes in that stack
+	# crashes the host. Coalesce onto the idle frame.
+	if not is_inside_tree():
+		_rebuild_exclusion_now()
+		return
+	if _exclusion_rebuild_queued:
+		return
+	_exclusion_rebuild_queued = true
+	call_deferred("_rebuild_exclusion_now")
+
+func _rebuild_exclusion_now() -> void:
+	_exclusion_rebuild_queued = false
+	if not is_inside_tree():
+		return
 	_ensure_exclusion_body()
 	for child in _exclusion_body.get_children():
 		_exclusion_body.remove_child(child)

@@ -8,6 +8,7 @@ SCENES=(
 	test_harness/procedural_dungeon/us003_fantasy_home_test.tscn
 	test_harness/procedural_dungeon/us003_pocket_contract_test.tscn
 	test_harness/procedural_dungeon/us003_exclusion_test.tscn
+	test_harness/procedural_dungeon/us003_exclusion_flush_test.tscn
 	test_harness/procedural_dungeon/us003_dm_occupancy_test.tscn
 	test_harness/procedural_dungeon/us003_building_reject_test.tscn
 	test_harness/procedural_dungeon/us003_skeleton_allow_test.tscn
