@@ -23,6 +23,7 @@ func _ready() -> void:
 	await get_tree().process_frame
 	await get_tree().physics_frame
 
+	var home_world: Vector2 = DungeonGrid.to_world_center(host.home_rect.position)
 	var paper := CharacterBody2D.new()
 	paper.name = "LateJoinPaper"
 	paper.add_to_group("players")
@@ -32,17 +33,21 @@ func _ready() -> void:
 	shape_node.shape = shape
 	paper.add_child(shape_node)
 	paper.collision_layer = 1
-	paper.collision_mask = 16 | 32
+	paper.collision_mask = 16
 	add_child(paper)
-	paper.global_position = DungeonGrid.to_world_center(host.home_rect.position)
+	paper.global_position = home_world
 	await get_tree().physics_frame
 	await get_tree().physics_frame
 	if not is_instance_valid(paper):
-		push_error("US-003 T009: displacement must not kill the Paper Pusher")
+		push_error("US-003 T009: Paper Pusher must remain alive inside Fantasy")
 		get_tree().quit(1)
 		return
-	if host.is_claimed_world(paper.global_position):
-		push_error("US-003 T009: host must push the Paper Pusher outside Fantasy before snapshot")
+	if not host.is_claimed_world(paper.global_position):
+		push_error("US-003 T009: host must not push the Paper Pusher out of Fantasy")
+		get_tree().quit(1)
+		return
+	if not paper.global_position.is_equal_approx(home_world):
+		push_error("US-003 T009: Paper Pusher must keep the Fantasy home cell")
 		get_tree().quit(1)
 		return
 
@@ -73,19 +78,14 @@ func _ready() -> void:
 		push_error("US-003 T009: snapshot missing home rect")
 		get_tree().quit(1)
 		return
-	var packed_players: Array = payload.get("players", [])
-	if packed_players.is_empty():
-		push_error("US-003 T009: snapshot missing Paper Pusher positions")
-		get_tree().quit(1)
-		return
-	var packed_pos := Vector2(float(packed_players[0].get("x", 0.0)), float(packed_players[0].get("y", 0.0)))
-	if host.is_claimed_world(packed_pos):
-		push_error("US-003 T009: packed Paper Pusher position must be outside Fantasy")
+	if payload.has("players") and not payload.get("players", []).is_empty():
+		push_error("US-003 T009: claim snapshot must not pack Paper Pusher displacement")
 		get_tree().quit(1)
 		return
 
 	peer.apply_claim_sync_payload(payload)
 	await get_tree().process_frame
+	await get_tree().physics_frame
 
 	if peer.home_rect != host.home_rect:
 		push_error("US-003 T009: peer home_rect %s != host %s" % [peer.home_rect, host.home_rect])
@@ -111,8 +111,12 @@ func _ready() -> void:
 		push_error("US-003 T009: peer pocket id %s != host %s" % [peer.winning_pocket_id(outside_home), pocket_id])
 		get_tree().quit(1)
 		return
-	if peer.is_claimed_world(packed_pos):
-		push_error("US-003 T009: late join must not resurrect a Paper Pusher inside Fantasy")
+	if not is_instance_valid(paper) or not host.is_claimed_world(paper.global_position):
+		push_error("US-003 T009: late join must not shove a Paper Pusher out of Fantasy")
+		get_tree().quit(1)
+		return
+	if not paper.global_position.is_equal_approx(home_world):
+		push_error("US-003 T009: late-join snapshot must not teleport the Paper Pusher")
 		get_tree().quit(1)
 		return
 
@@ -136,9 +140,8 @@ func _ready() -> void:
 		push_error("US-003 T009: peer PocketOverlay empty after apply")
 		get_tree().quit(1)
 		return
-	var peer_exclusion: Node = peer.get_node_or_null("Exclusion")
-	if peer_exclusion == null or peer_exclusion.get_child_count() <= 0:
-		push_error("US-003 T009: peer Exclusion must rebuild from snapshot")
+	if peer.get_node_or_null("Exclusion") != null or host.get_node_or_null("Exclusion") != null:
+		push_error("US-003 T009: Exclusion wall must not rebuild from snapshot")
 		get_tree().quit(1)
 		return
 
@@ -165,8 +168,8 @@ func _ready() -> void:
 		push_error("US-003 T009: peer home must survive expire snapshot")
 		get_tree().quit(1)
 		return
-	if not is_instance_valid(paper) or host.is_claimed_world(paper.global_position):
-		push_error("US-003 T009: Paper Pusher must stay alive outside Fantasy after expire snapshot")
+	if not is_instance_valid(paper) or not host.is_claimed_world(paper.global_position):
+		push_error("US-003 T009: Paper Pusher must stay alive inside Fantasy after expire snapshot")
 		get_tree().quit(1)
 		return
 

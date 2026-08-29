@@ -1,7 +1,8 @@
 extends Node
 
 # Knightling unlock pickup fires Area2D.body_entered during a physics query flush
-# and re-emits fantasy_level_changed. Exclusion shape rebuild must not crash.
+# and re-emits fantasy_level_changed. Deferred home-rect collision must not crash.
+# T005 Exclusion rebuild is gone; Paper Pushers may stand in Fantasy.
 
 func _ready() -> void:
 	DmManager.fantasy_level = 0
@@ -21,6 +22,19 @@ func _ready() -> void:
 	await get_tree().process_frame
 	await get_tree().physics_frame
 
+	var home_world: Vector2 = DungeonGrid.to_world_center(fantasy.home_rect.position)
+	var paper := CharacterBody2D.new()
+	paper.add_to_group("players")
+	var paper_shape := CollisionShape2D.new()
+	var paper_rect := RectangleShape2D.new()
+	paper_rect.size = Vector2(16, 16)
+	paper_shape.shape = paper_rect
+	paper.add_child(paper_shape)
+	paper.collision_layer = 1
+	paper.collision_mask = 16
+	add_child(paper)
+	paper.global_position = home_world
+
 	var pickup := Area2D.new()
 	pickup.monitoring = true
 	pickup.monitorable = true
@@ -32,13 +46,12 @@ func _ready() -> void:
 	pickup_shape.shape = pickup_rect
 	pickup.add_child(pickup_shape)
 	add_child(pickup)
-	pickup.global_position = DungeonGrid.to_world_center(fantasy.home_rect.position)
+	pickup.global_position = home_world
 
 	var triggered := {"count": 0}
 	pickup.body_entered.connect(func(_body: Node) -> void:
 		triggered["count"] = int(triggered["count"]) + 1
 		DmManager.unlock("knightling")
-		fantasy._rebuild_exclusion()
 	)
 
 	var body := CharacterBody2D.new()
@@ -59,9 +72,16 @@ func _ready() -> void:
 		push_error("US-003 exclusion flush: body_entered did not fire")
 		get_tree().quit(1)
 		return
-	var exclusion: Node = fantasy.get_node_or_null("Exclusion")
-	if exclusion == null or exclusion.get_child_count() <= 0:
-		push_error("US-003 exclusion flush: Exclusion must still exist after deferred rebuild")
+	if fantasy.get_node_or_null("Exclusion") != null:
+		push_error("US-003 exclusion flush: Exclusion wall must not exist after unlock rebuild")
+		get_tree().quit(1)
+		return
+	if not is_instance_valid(paper) or not fantasy.is_claimed_world(paper.global_position):
+		push_error("US-003 exclusion flush: Paper Pusher must still stand in Fantasy after unlock")
+		get_tree().quit(1)
+		return
+	if not paper.global_position.is_equal_approx(home_world):
+		push_error("US-003 exclusion flush: Paper Pusher must not be snapped out during deferred collision")
 		get_tree().quit(1)
 		return
 

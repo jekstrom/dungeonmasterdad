@@ -70,7 +70,7 @@ func _west_unclaimed(fantasy: FantasyZone, interior: Rect2i) -> Vector2i:
 		cell = Vector2i(interior.position.x, interior.position.y)
 	return cell
 
-func _make_body(blocked_by_fantasy: bool) -> CharacterBody2D:
+func _make_body(_blocked_by_fantasy: bool) -> CharacterBody2D:
 	var body := CharacterBody2D.new()
 	var shape_node := CollisionShape2D.new()
 	var shape := RectangleShape2D.new()
@@ -79,8 +79,6 @@ func _make_body(blocked_by_fantasy: bool) -> CharacterBody2D:
 	body.add_child(shape_node)
 	body.collision_layer = 1
 	body.collision_mask = 16
-	if blocked_by_fantasy:
-		body.collision_mask = body.collision_mask | 32
 	return body
 
 func _check_home(fantasy: FantasyZone, level: Node, interior: Rect2i, dungeon: Rect2i) -> bool:
@@ -188,8 +186,8 @@ func _check_occupancy(fantasy: FantasyZone, interior: Rect2i) -> bool:
 	add_child(paper)
 	paper.global_position = outside_world
 	await get_tree().physics_frame
-	if not paper.test_move(paper.transform, home_world - paper.global_position):
-		return _fail("Paper Pusher must stop at the Fantasy boundary")
+	if paper.test_move(paper.transform, home_world - paper.global_position):
+		return _fail("Paper Pusher must not be blocked by a Fantasy wall")
 	var dm := _make_body(false)
 	dm.add_to_group("dm")
 	add_child(dm)
@@ -205,9 +203,15 @@ func _check_occupancy(fantasy: FantasyZone, interior: Rect2i) -> bool:
 	await get_tree().physics_frame
 	await get_tree().physics_frame
 	if not is_instance_valid(paper):
-		return _fail("displacement must not kill the Paper Pusher")
+		return _fail("Paper Pusher must remain alive inside Fantasy")
+	if not fantasy.is_claimed_world(paper.global_position):
+		return _fail("Paper Pusher inside Fantasy must not be pushed out")
+	if not paper.global_position.is_equal_approx(home_world):
+		return _fail("Paper Pusher must stay at the Fantasy home cell")
+	paper.global_position = outside_world
+	await get_tree().physics_frame
 	if fantasy.is_claimed_world(paper.global_position):
-		return _fail("Paper Pusher inside Fantasy must be pushed out")
+		return _fail("Paper Pusher must be able to leave Fantasy")
 	return true
 
 func _check_buildings(reality: RealityZone, fantasy: FantasyZone, _level: Node) -> bool:
@@ -282,11 +286,15 @@ func _check_skeletons(reality: RealityZone, fantasy: FantasyZone, dungeon: Rect2
 	DmManager.fantasy_level = 10000
 	reality.on_level_changed(10000)
 	fantasy.on_level_changed(10000)
-	var overlap: Vector2 = DungeonGrid.to_world_center(Vector2i(8, 5))
-	if not reality.is_claimed_world(overlap) or not fantasy.is_claimed_world(overlap):
-		return _fail("grown homes should overlap")
-	if not RealityClaim.should_despawn_skeleton(get_tree(), overlap):
-		return _fail("home overlap with no pocket must still ban skeletons")
+	var probe_cell := Vector2i(8, 5)
+	if reality.is_claimed_cell(probe_cell) and fantasy.is_claimed_cell(probe_cell):
+		return _fail("US-025: grown homes must not overlap")
+	var grown_reality: Vector2 = DungeonGrid.to_world_center(reality.home_rect.position)
+	if not RealityClaim.should_despawn_skeleton(get_tree(), grown_reality):
+		return _fail("Reality-claimed home must still ban skeletons")
+	var grown_fantasy: Vector2 = DungeonGrid.to_world_center(fantasy.home_rect.position)
+	if RealityClaim.should_despawn_skeleton(get_tree(), grown_fantasy):
+		return _fail("Fantasy-only home must still allow skeletons")
 	PlayerManager.reality_level = 0
 	DmManager.fantasy_level = 0
 	reality.on_level_changed(0)

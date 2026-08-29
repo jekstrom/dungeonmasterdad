@@ -97,22 +97,28 @@ func _ready() -> void:
 	DmManager.fantasy_level = 10000
 	reality.on_level_changed(10000)
 	fantasy.on_level_changed(10000)
-	var overlap: Vector2 = DungeonGrid.to_world_center(Vector2i(8, 5))
-	if not reality.is_claimed_world(overlap) or not fantasy.is_claimed_world(overlap):
-		push_error("US-003 T008: grown homes should overlap")
+	var probe_cell := Vector2i(8, 5)
+	if reality.is_claimed_cell(probe_cell) and fantasy.is_claimed_cell(probe_cell):
+		push_error("US-003 T008: US-025 grown homes must not overlap")
 		get_tree().quit(1)
 		return
-	if not RealityClaim.should_despawn_skeleton(get_tree(), overlap):
-		push_error("US-003 T008: home overlap with no pocket must still ban skeletons")
+	var grown_reality: Vector2 = DungeonGrid.to_world_center(reality.home_rect.position)
+	if not RealityClaim.should_despawn_skeleton(get_tree(), grown_reality):
+		push_error("US-003 T008: Reality-claimed home must still ban skeletons")
 		get_tree().quit(1)
 		return
-	var overlap_skel: Skeleton = load("res://monsters/skeleton/skeleton.tscn").instantiate()
-	add_child(overlap_skel)
-	overlap_skel.global_position = overlap
+	var reality_skel: Skeleton = load("res://monsters/skeleton/skeleton.tscn").instantiate()
+	add_child(reality_skel)
+	reality_skel.global_position = grown_reality
 	await get_tree().physics_frame
 	await get_tree().physics_frame
-	if not is_instance_valid(overlap_skel) or not overlap_skel._dying:
-		push_error("US-003 T008: skeleton in home overlap must despawn")
+	if not is_instance_valid(reality_skel) or not reality_skel._dying:
+		push_error("US-003 T008: skeleton in Reality home must despawn")
+		get_tree().quit(1)
+		return
+	var fantasy_home: Vector2 = DungeonGrid.to_world_center(fantasy.home_rect.position)
+	if RealityClaim.should_despawn_skeleton(get_tree(), fantasy_home):
+		push_error("US-003 T008: Fantasy-only home must still allow skeletons")
 		get_tree().quit(1)
 		return
 

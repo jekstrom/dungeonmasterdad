@@ -47,8 +47,8 @@ func _enter_tree() -> void:
 	# Only set authority if multiplayer is ready and we have a valid ID
 	if multiplayer.has_multiplayer_peer() and id > 0:
 		set_multiplayer_authority(id)
-	# 16 = walls/cliffs; 32 = Fantasy exclusion (Paper Pushers only; DM stays off this bit).
-	collision_mask = collision_mask | 16 | 32
+	# 16 = walls/cliffs. Clear bit 32 so a leftover Fantasy exclusion shape cannot block Paper Pushers (US-003 T011).
+	collision_mask = (collision_mask | 16) & ~32
 
 func _ready() -> void:
 	if is_multiplayer_authority():
