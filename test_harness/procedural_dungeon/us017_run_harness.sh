@@ -7,6 +7,7 @@ cd "$ROOT"
 SCENES=(
 	test_harness/procedural_dungeon/us017_boss_spawn_test.tscn
 	test_harness/procedural_dungeon/us017_boss_combat_test.tscn
+	test_harness/procedural_dungeon/us017_boss_unlock_test.tscn
 	test_harness/procedural_dungeon/skeleton_only_spawns_test.tscn
 )
 
@@ -22,4 +23,4 @@ done
 if [[ "$failed" -ne 0 ]]; then
 	exit 1
 fi
-echo "US-017 T001/T002/T003 headless harness passed"
+echo "US-017 T001/T002/T003/T004 headless harness passed"

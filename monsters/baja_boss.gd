@@ -1,8 +1,9 @@
 class_name BajaBoss extends Enemy
 
-## US-017 T001/T002/T003: Baja Blast boss at dungeon exit.
+## US-017 T001/T002/T003/T004: Baja Blast boss at dungeon exit.
 ## Host HP, wander, attack, blast, and die. See user_stories/tasks/US-017/T003-host-boss-combat.md
-## T004 unlock/can/blizzard is NOT implemented here.
+## Host death unlocks bemidji_blizzard and drops the can. See user_stories/tasks/US-017/T004-death-unlock-can.md
+## Cast pocket + slow is T005 — do not plant a pocket here.
 ## Sheet: monsters/baja_boss.png 384x640, 128x128 cells, hframes=3 vframes=5 (SHA 1ff8b3b).
 ## Col 0 South, col 1 North, col 2 East. Flip E for West via Enemy.SetDirection.
 ## Row 0 idle, 1 wander, 2 attack, 3 blast, 4 die. Frame index = row*3 + col.
@@ -16,10 +17,12 @@ const BLAST_RANGE_PX := 256.0
 const COMBAT_COOLDOWN := 0.8
 const DIE_CLIP_SEC := 0.6
 const PUFF_SEC := 0.65
+const BAJA_CAN_ITEM := "res://pickups/bajablast/bajablast.tres"
 
 var home_cell: Vector2i = Vector2i.ZERO
 var combat_cooldown: float = 0.0
 var _home_cell_captured: bool = false
+var _blizzard_rewards_granted: bool = false
 
 func _init() -> void:
 	max_hp = 12
@@ -135,13 +138,32 @@ func _set_hurtbox_size(large: bool) -> void:
 		cap.height = 96.0
 
 
+
+func _grant_blizzard_unlock_and_can() -> void:
+	# Host-authored unlock + can drop. Do not call from play_death (clients).
+	# user_stories/tasks/US-017/T004-death-unlock-can.md
+	if _blizzard_rewards_granted:
+		return
+	if not multiplayer.is_server():
+		return
+	_blizzard_rewards_granted = true
+	DmManager.unlock("bemidji_blizzard")
+	SignalBus.on_item_drop.emit({
+		"item_type": BAJA_CAN_ITEM,
+		"position": global_position,
+	})
+
+
 func die() -> void:
-	# Host owns the kill (same is_server guard as enemy.gd). Do not unlock (T004).
+	# Host owns the kill (same is_server guard as enemy.gd).
+	# Unlock + drop run once on the server before play_death.rpc.
 	# user_stories/tasks/US-017/T003-host-boss-combat.md
+	# user_stories/tasks/US-017/T004-death-unlock-can.md
 	if _dying:
 		return
 	if not multiplayer.is_server():
 		return
+	_grant_blizzard_unlock_and_can()
 	play_death.rpc()
 	var tree := get_tree()
 	if tree:
@@ -153,8 +175,9 @@ func die() -> void:
 @rpc("authority", "call_local", "reliable")
 func play_death() -> void:
 	# Play die_* from the 3x5 sheet, then puff. Do not keep attacking after _dying.
-	# MUST NOT unlock bemidji_blizzard here (T004).
+	# MUST NOT unlock/drop here — clients run this RPC. Host die() grants T004 rewards.
 	# user_stories/tasks/US-017/T003-host-boss-combat.md
+	# user_stories/tasks/US-017/T004-death-unlock-can.md
 	if _dying:
 		return
 	_dying = true

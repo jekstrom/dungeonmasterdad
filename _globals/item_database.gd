@@ -22,4 +22,9 @@ func load_items_from_folder(path: String):
 func get_item(id: String) -> ItemData:
 	if items.has(id):
 		return items[id]
+	if id.ends_with(".tres") and ResourceLoader.exists(id):
+		var item = load(id)
+		if item is ItemData:
+			items[id] = item
+			return item
 	return null
