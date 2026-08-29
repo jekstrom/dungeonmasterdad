@@ -53,10 +53,16 @@ func atlas_frame() -> int:
 	return clampi(variety, 0, OutsideCatalog.VARIETY_COUNT - 1)
 
 func strip_texture() -> Texture2D:
-	var pres: int = clampi(int(element_presentation), 0, 2)
+	return strip_for(element_presentation)
+
+func strip_for(presentation: ElementPresentation) -> Texture2D:
+	var pres: int = clampi(int(presentation), 0, 2)
 	if ground_kind == GroundKind.DIRT:
 		return _DIRT_STRIPS[pres]
 	return _GRASS_STRIPS[pres]
+
+func has_presentation_strip(presentation: ElementPresentation) -> bool:
+	return strip_for(presentation) != null
 
 func _update_visual() -> void:
 	if not _resolve_sprite():

@@ -21,6 +21,7 @@ func _ready() -> void:
 		push_error("US-002: RealityTileDrift missing")
 		get_tree().quit(1)
 		return
+	drift.set_physics_process(false)
 	drift.delay_min = 0.0
 	drift.delay_max = 0.0
 	drift.clear_schedules()
@@ -53,6 +54,19 @@ func _ready() -> void:
 		return
 	var east_pres: int = int(east_tile.element_presentation)
 
+	if not drift.is_reality_drift_eligible(home_cell):
+		push_error("US-002 T001: Reality-claimed outside tile must be eligible")
+		get_tree().quit(1)
+		return
+	if drift.is_reality_drift_eligible(dungeon.position):
+		push_error("US-002 T001: dungeon cell must not be eligible")
+		get_tree().quit(1)
+		return
+	if drift.is_reality_drift_eligible(east_cell):
+		push_error("US-002 T001: unclaimed outside tile must not be eligible")
+		get_tree().quit(1)
+		return
+
 	var dungeon_floor: Node2D = load("res://level/floor.tscn").instantiate() as Node2D
 	dungeon_floor.position = DungeonGrid.to_world(dungeon.position)
 	dungeon_floor.add_to_group("generated_dungeon_tiles")
@@ -68,6 +82,7 @@ func _ready() -> void:
 		get_tree().quit(1)
 		return
 
+	drift.set_physics_process(true)
 	await get_tree().physics_frame
 	await get_tree().physics_frame
 	var converted_after_two: int = _count_reality()

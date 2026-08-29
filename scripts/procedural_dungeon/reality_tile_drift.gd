@@ -51,7 +51,7 @@ func _sync_schedules() -> void:
 		var tile: OutsideTile = node
 		var cell: Vector2i = DungeonGrid.from_world(tile.position)
 		seen[cell] = true
-		if not _is_eligible(tile, cell):
+		if not is_reality_drift_eligible(cell):
 			_pending.erase(cell)
 			continue
 		if tile.element_presentation == OutsideTile.ElementPresentation.REALITY:
@@ -68,17 +68,27 @@ func _sync_schedules() -> void:
 	for cell in stale:
 		_pending.erase(cell)
 
-func _is_eligible(tile: OutsideTile, cell: Vector2i) -> bool:
+func is_reality_drift_eligible(cell: Vector2i) -> bool:
+	var center: Vector2 = DungeonGrid.to_world_center(cell)
+	if _is_dungeon_center(center, cell):
+		return false
+	var tile: OutsideTile = _tile_at(cell)
+	if tile == null:
+		return false
+	return RealityClaim.is_world_claimed(get_tree(), center)
+
+func _is_dungeon_center(_center: Vector2, cell: Vector2i) -> bool:
 	var level: Node = _level()
-	if level and level.has_method("is_outside_build_cell"):
-		if not bool(level.is_outside_build_cell(cell)):
-			return false
 	if level and level.has_method("dungeon_cell_bounds"):
 		var dungeon: Rect2i = level.dungeon_cell_bounds()
-		if dungeon.size.x > 0 and dungeon.size.y > 0 and dungeon.has_point(cell):
-			return false
-	var center: Vector2 = DungeonGrid.to_world_center(cell)
-	return RealityClaim.is_world_claimed(get_tree(), center)
+		if dungeon.size.x > 0 and dungeon.size.y > 0:
+			return dungeon.has_point(cell)
+	var manager: Node = get_node_or_null("/root/DungeonGenerationManager")
+	if manager and manager.has_method("get_dungeon_cell_bounds"):
+		var dgm: Rect2i = manager.get_dungeon_cell_bounds()
+		if dgm.size.x > 0 and dgm.size.y > 0:
+			return dgm.has_point(cell)
+	return false
 
 func _fire_due() -> void:
 	var now: float = _now()
@@ -103,9 +113,12 @@ func _convert_cell(cell: Vector2i) -> bool:
 	var tile: OutsideTile = _tile_at(cell)
 	if tile == null:
 		return false
-	if not _is_eligible(tile, cell):
+	if not is_reality_drift_eligible(cell):
 		return false
 	if tile.element_presentation == OutsideTile.ElementPresentation.REALITY:
+		return false
+	if not tile.has_presentation_strip(OutsideTile.ElementPresentation.REALITY):
+		push_error("US-002: missing Reality strip for kind %s variety %s; leaving current presentation" % [tile.ground_kind, tile.variety])
 		return false
 	var kind: int = int(tile.ground_kind)
 	var variety: int = int(tile.variety)
