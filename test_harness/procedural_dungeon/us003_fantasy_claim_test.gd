@@ -52,6 +52,11 @@ func _fail(msg: String) -> bool:
 	get_tree().quit(1)
 	return false
 
+func _fail_t011(msg: String) -> bool:
+	push_error("US-003 T011: " + msg)
+	get_tree().quit(1)
+	return false
+
 func _rect_inside_interior(rect: Rect2i, bounds: MapBounds) -> bool:
 	if rect.size.x <= 0 or rect.size.y <= 0:
 		return false
@@ -70,7 +75,7 @@ func _west_unclaimed(fantasy: FantasyZone, interior: Rect2i) -> Vector2i:
 		cell = Vector2i(interior.position.x, interior.position.y)
 	return cell
 
-func _make_body(_blocked_by_fantasy: bool) -> CharacterBody2D:
+func _make_body() -> CharacterBody2D:
 	var body := CharacterBody2D.new()
 	var shape_node := CollisionShape2D.new()
 	var shape := RectangleShape2D.new()
@@ -178,17 +183,19 @@ func _check_pockets(fantasy: FantasyZone, interior: Rect2i) -> bool:
 	return true
 
 func _check_occupancy(fantasy: FantasyZone, interior: Rect2i) -> bool:
+	if fantasy.get_node_or_null("Exclusion") != null:
+		return _fail_t011("Fantasy Exclusion wall must not exist")
 	var home_world: Vector2 = DungeonGrid.to_world_center(fantasy.home_rect.position)
 	var outside_cell: Vector2i = _west_unclaimed(fantasy, interior)
 	var outside_world: Vector2 = DungeonGrid.to_world_center(outside_cell)
-	var paper := _make_body(true)
+	var paper := _make_body()
 	paper.add_to_group("players")
 	add_child(paper)
 	paper.global_position = outside_world
 	await get_tree().physics_frame
 	if paper.test_move(paper.transform, home_world - paper.global_position):
-		return _fail("Paper Pusher must not be blocked by a Fantasy wall")
-	var dm := _make_body(false)
+		return _fail_t011("Paper Pusher must not be blocked by a Fantasy wall")
+	var dm := _make_body()
 	dm.add_to_group("dm")
 	add_child(dm)
 	dm.global_position = outside_world
@@ -203,15 +210,15 @@ func _check_occupancy(fantasy: FantasyZone, interior: Rect2i) -> bool:
 	await get_tree().physics_frame
 	await get_tree().physics_frame
 	if not is_instance_valid(paper):
-		return _fail("Paper Pusher must remain alive inside Fantasy")
+		return _fail_t011("Paper Pusher must remain alive inside Fantasy")
 	if not fantasy.is_claimed_world(paper.global_position):
-		return _fail("Paper Pusher inside Fantasy must not be pushed out")
+		return _fail_t011("Paper Pusher inside Fantasy must not be pushed out")
 	if not paper.global_position.is_equal_approx(home_world):
-		return _fail("Paper Pusher must stay at the Fantasy home cell")
+		return _fail_t011("Paper Pusher must stay at the Fantasy home cell")
 	paper.global_position = outside_world
 	await get_tree().physics_frame
 	if fantasy.is_claimed_world(paper.global_position):
-		return _fail("Paper Pusher must be able to leave Fantasy")
+		return _fail_t011("Paper Pusher must be able to leave Fantasy")
 	return true
 
 func _check_buildings(reality: RealityZone, fantasy: FantasyZone, _level: Node) -> bool:

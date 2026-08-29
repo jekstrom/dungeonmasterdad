@@ -69,19 +69,19 @@ func _ready() -> void:
 	await get_tree().process_frame
 
 	if int(triggered["count"]) <= 0:
-		push_error("US-003 exclusion flush: body_entered did not fire")
+		push_error("US-003 T011 exclusion flush: body_entered did not fire")
 		get_tree().quit(1)
 		return
 	if fantasy.get_node_or_null("Exclusion") != null:
-		push_error("US-003 exclusion flush: Exclusion wall must not exist after unlock rebuild")
+		push_error("US-003 T011 exclusion flush: Exclusion wall must not exist after unlock rebuild")
 		get_tree().quit(1)
 		return
 	if not is_instance_valid(paper) or not fantasy.is_claimed_world(paper.global_position):
-		push_error("US-003 exclusion flush: Paper Pusher must still stand in Fantasy after unlock")
+		push_error("US-003 T011 exclusion flush: Paper Pusher must still stand in Fantasy after unlock")
 		get_tree().quit(1)
 		return
 	if not paper.global_position.is_equal_approx(home_world):
-		push_error("US-003 exclusion flush: Paper Pusher must not be snapped out during deferred collision")
+		push_error("US-003 T011 exclusion flush: Paper Pusher must not be snapped out during deferred collision")
 		get_tree().quit(1)
 		return
 
