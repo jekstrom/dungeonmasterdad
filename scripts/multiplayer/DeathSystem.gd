@@ -234,14 +234,13 @@ func _select_respawn_location(player_id: int) -> Vector2:
 		spawn_position = reality_zone.global_position + Vector2(randf_range(-20, 20), randf_range(-20, 20))
 	
 	# Validate spawn position if zone supports validation
-	if reality_zone.has_method("is_position_within_zone"):
+	if reality_zone.has_method("is_claimed_world"):
+		if not reality_zone.is_claimed_world(spawn_position):
+			print("DeathSystem: WARNING - Spawn position outside Reality claim, using zone center")
+			spawn_position = reality_zone.global_position
+	elif reality_zone.has_method("is_position_within_zone"):
 		if not reality_zone.is_position_within_zone(spawn_position):
 			print("DeathSystem: WARNING - Spawn position outside reality zone, using zone center")
-			spawn_position = reality_zone.global_position
-	else:
-		# Ensure spawn is within radius for basic Zone
-		var distance_to_center = reality_zone.global_position.distance_to(spawn_position)
-		if distance_to_center > reality_zone.radius:
 			spawn_position = reality_zone.global_position
 	return spawn_position
 

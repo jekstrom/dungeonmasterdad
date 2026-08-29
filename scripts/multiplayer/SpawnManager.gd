@@ -155,12 +155,11 @@ func get_reality_zone_for_position(position: Vector2) -> Zone:
 	_update_reality_zone_cache()
 	
 	for zone in reality_zones:
-		if zone.has_method("is_position_within_zone"):
-			if zone.is_position_within_zone(position):
+		if zone.has_method("is_claimed_world"):
+			if zone.is_claimed_world(position):
 				return zone
-		else:
-			# Fallback for basic Zone class
-			if zone.global_position.distance_to(position) <= zone.radius:
+		elif zone.has_method("is_position_within_zone"):
+			if zone.is_position_within_zone(position):
 				return zone
 	
 	return null

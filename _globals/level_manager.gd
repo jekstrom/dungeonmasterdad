@@ -104,6 +104,20 @@ func _is_dungeon_cell_for_overworld(cell: Vector2i, occupied: Dictionary, dungeo
 		return true
 	return false
 
+func is_outside_build_cell(cell: Vector2i) -> bool:
+	if _is_dungeon_cell_for_overworld(cell, _dungeon_occupied_cells(), dungeon_cell_bounds()):
+		return false
+	var tree := get_tree()
+	if tree == null:
+		return false
+	for node in tree.get_nodes_in_group("outside_tiles"):
+		if not (node is Node2D) or not is_instance_valid(node):
+			continue
+		if DungeonGrid.from_world((node as Node2D).position) == cell:
+			return true
+	return false
+
+
 func dungeon_cell_bounds() -> Rect2i:
 	if _overworld_dungeon_aabb.size.x > 0 and _overworld_dungeon_aabb.size.y > 0:
 		return _overworld_dungeon_aabb
