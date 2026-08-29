@@ -78,3 +78,14 @@ signal reality_pocket_expired(pocket_id: int)
 signal reality_claim_changed
 @warning_ignore("unused_signal")
 signal reality_pocket_requested(origin: Vector2i, size: Vector2i, duration: float)
+
+@warning_ignore("unused_signal")
+signal fantasy_home_changed(home_rect: Rect2i)
+@warning_ignore("unused_signal")
+signal fantasy_pocket_created(pocket_id: int, rect: Rect2i, duration: float)
+@warning_ignore("unused_signal")
+signal fantasy_pocket_expired(pocket_id: int)
+@warning_ignore("unused_signal")
+signal fantasy_claim_changed
+@warning_ignore("unused_signal")
+signal fantasy_pocket_requested(origin: Vector2i, size: Vector2i, duration: float)

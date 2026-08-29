@@ -1,6 +1,6 @@
 [gd_scene load_steps=3 format=3 uid="uid://diumvk6jwwd5v"]
 
-[ext_resource type="Script" uid="uid://f4aftun4u1fp" path="res://zones/scripts/zone.gd" id="1_lfnct"]
+[ext_resource type="Script" path="res://zones/FantasyZone.gd" id="1_lfnct"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_home"]
 size = Vector2(128, 128)
@@ -13,3 +13,5 @@ script = ExtResource("1_lfnct")
 shape = SubResource("RectangleShape2D_home")
 
 [node name="HomeOverlay" type="Node2D" parent="."]
+
+[node name="PocketOverlay" type="Node2D" parent="."]
