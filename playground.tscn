@@ -29,6 +29,7 @@ y_sort_enabled = true
 script = ExtResource("1_x6kx1")
 
 [node name="FantasyZone" parent="." unique_id=1273427358 groups=["FantasyZone"] instance=ExtResource("1_jgc46")]
+visible = false
 position = Vector2(2048, 1024)
 base_radius = 256.0
 
