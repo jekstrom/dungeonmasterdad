@@ -3,7 +3,8 @@ class_name MonsterCatalog extends RefCounted
 const MONSTER_SCENES: Dictionary = {
 	"goblin": "res://monsters/goblin.tscn",
 	"skeleton": "res://monsters/skeleton/skeleton.tscn",
-	"knight": "res://monsters/knight/knight.tscn"
+	"knight": "res://monsters/knight/knight.tscn",
+	"baja_boss": "res://monsters/baja_boss.tscn"
 }
 
 func get_approved_scene_paths() -> PackedStringArray:

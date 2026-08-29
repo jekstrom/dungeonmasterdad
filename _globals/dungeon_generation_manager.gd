@@ -407,7 +407,8 @@ func _build_layout_candidate(request: DungeonGenerationRequest, generation_seed:
 		layout_data.hallway_regions,
 		layout_data.entrance_cell,
 		layout_data.exit_cell,
-		layout_data.generation_seed
+		layout_data.generation_seed,
+		request.skip_boss
 	)
 	layout_data.item_pickups = _pickup_spawn_planner.plan_dungeon_pickups(
 		layout_data.room_regions,

@@ -27,6 +27,8 @@ func _enter_tree() -> void:
 func _ready() -> void:
 	add_to_group("multiplayer_spawner")
 	set_multiplayer_authority(1)
+	# US-017 T001: register in code so playground.tscn does not have to list the boss.
+	add_spawnable_scene("res://monsters/baja_boss.tscn")
 
 	if not multiplayer.connected_to_server.is_connected(_on_connected_to_server):
 		multiplayer.connected_to_server.connect(_on_connected_to_server)

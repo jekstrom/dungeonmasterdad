@@ -13,6 +13,7 @@ class_name DungeonGenerationRequest extends Resource
 @export var d20_count: int = DungeonConstants.DEFAULT_D20_COUNT
 @export var request_time_unix: int = 0
 @export var requested_by_peer_id: int = 1
+@export var skip_boss: bool = false
 
 func validate() -> Dictionary:
 	if request_id.strip_edges().is_empty():
@@ -83,6 +84,7 @@ func from_payload(payload: Dictionary) -> void:
 	d6_count = _payload_pickup_count(payload, "d6Count", "d6_count", DungeonConstants.DEFAULT_D6_COUNT)
 	d20_count = _payload_pickup_count(payload, "d20Count", "d20_count", DungeonConstants.DEFAULT_D20_COUNT)
 	request_time_unix = int(Time.get_unix_time_from_system())
+	skip_boss = _payload_bool(payload, "skipBoss", "skip_boss", false)
 
 func pickup_counts() -> Dictionary:
 	return {
@@ -111,6 +113,26 @@ func _parse_bounds(raw_value: Variant) -> Rect2i:
 		var size: Vector2i = DungeonGrid.cell_from(raw_value.get("size", {}))
 		return Rect2i(origin, size)
 	return Rect2i(Vector2i.ZERO, DungeonConstants.STANDARD_MIN_BOUNDS)
+
+func _payload_bool(payload: Dictionary, camel: String, snake: String, default_value: bool) -> bool:
+	var raw: Variant = null
+	if payload.has(camel):
+		raw = payload[camel]
+	elif payload.has(snake):
+		raw = payload[snake]
+	else:
+		return default_value
+	if raw is bool:
+		return raw
+	if raw is int:
+		return raw != 0
+	var token: String = str(raw).strip_edges().to_lower()
+	if token == "true" or token == "1":
+		return true
+	if token == "false" or token == "0" or token.is_empty():
+		return false
+	return default_value
+
 
 func _payload_pickup_count(payload: Dictionary, camel: String, snake: String, default_value: int) -> int:
 	var raw: int = default_value

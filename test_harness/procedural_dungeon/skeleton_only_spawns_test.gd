@@ -11,7 +11,8 @@ func _ready() -> void:
 		"startPosition": {"x": 2, "y": 2},
 		"exitPosition": {"x": 16, "y": 16},
 		"generationBounds": {"origin": {"x": 0, "y": 0}, "size": {"x": 24, "y": 24}},
-		"roomCount": 4
+		"roomCount": 4,
+		"skipBoss": true
 	}, 1)
 	if not response.get("ok", false):
 		push_error("Skeleton-only spawns test failed generation: %s" % response)
