@@ -38,6 +38,10 @@ func _ready() -> void:
 	cleanup_timer.timeout.connect(_periodic_cleanup)
 	cleanup_timer.autostart = true
 	add_child(cleanup_timer)
+	if get_node_or_null("RealityTileDrift") == null:
+		var drift := RealityTileDrift.new()
+		drift.name = "RealityTileDrift"
+		add_child(drift)
 
 func on_explosion(proj_position: Vector2, explosion_data: Dictionary) -> void:
 	if !multiplayer.is_server(): return
@@ -271,6 +275,29 @@ func _on_map_peer_connected(peer_id: int) -> void:
 	if not has_map_bounds():
 		return
 	_rpc_replace_overworld_map.rpc_id(peer_id, build_map_sync_payload())
+
+func broadcast_outside_presentation(cell: Vector2i, presentation: int) -> void:
+	if not Lobby.is_network_server():
+		return
+	_rpc_set_outside_presentation.rpc(cell.x, cell.y, presentation)
+
+@rpc("authority", "reliable")
+func _rpc_set_outside_presentation(cell_x: int, cell_y: int, presentation: int) -> void:
+	if Lobby.is_network_server():
+		return
+	apply_outside_presentation(Vector2i(cell_x, cell_y), presentation)
+
+func apply_outside_presentation(cell: Vector2i, presentation: int) -> void:
+	var tree := get_tree()
+	if tree == null:
+		return
+	for node in tree.get_nodes_in_group("outside_tiles"):
+		if not (node is OutsideTile) or not is_instance_valid(node):
+			continue
+		if DungeonGrid.from_world((node as OutsideTile).position) != cell:
+			continue
+		(node as OutsideTile).element_presentation = presentation
+		return
 
 func rebuild_cliff_ring() -> void:
 	var parent: Node2D = _cliff_tiles_parent()
