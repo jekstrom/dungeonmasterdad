@@ -144,3 +144,60 @@ static func _ban_skeleton_if_claimed(node: Node) -> void:
 	if node.has_method("die"):
 		node.die()
 
+func to_sync_dict(now: float) -> Dictionary:
+	var packed: Array = []
+	for pocket in pockets:
+		var rect: Rect2i = pocket["rect"]
+		var remaining: float = maxf(0.0, float(pocket["expires_at"]) - now)
+		packed.append({
+			"id": int(pocket["id"]),
+			"x": rect.position.x,
+			"y": rect.position.y,
+			"w": rect.size.x,
+			"h": rect.size.y,
+			"remaining": remaining,
+			"duration": float(pocket["duration"]),
+			"seq": int(pocket["seq"]),
+		})
+	return {
+		"home_x": home_rect.position.x,
+		"home_y": home_rect.position.y,
+		"home_w": home_rect.size.x,
+		"home_h": home_rect.size.y,
+		"pockets": packed,
+		"next_id": _next_id,
+		"next_seq": _next_seq,
+	}
+
+func apply_sync_dict(payload: Dictionary, now: float) -> void:
+	home_rect = Rect2i(
+		int(payload.get("home_x", 0)),
+		int(payload.get("home_y", 0)),
+		int(payload.get("home_w", 0)),
+		int(payload.get("home_h", 0))
+	)
+	pockets.clear()
+	for item in payload.get("pockets", []):
+		if typeof(item) != TYPE_DICTIONARY:
+			continue
+		var remaining: float = float(item.get("remaining", 0.0))
+		if remaining <= 0.0:
+			continue
+		var rect := Rect2i(
+			int(item.get("x", 0)),
+			int(item.get("y", 0)),
+			int(item.get("w", 0)),
+			int(item.get("h", 0))
+		)
+		if rect.size.x <= 0 or rect.size.y <= 0:
+			continue
+		pockets.append({
+			"id": int(item.get("id", 0)),
+			"rect": rect,
+			"duration": float(item.get("duration", remaining)),
+			"expires_at": now + remaining,
+			"seq": int(item.get("seq", 0)),
+		})
+	_next_id = int(payload.get("next_id", _next_id))
+	_next_seq = int(payload.get("next_seq", _next_seq))
+

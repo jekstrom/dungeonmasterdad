@@ -27,6 +27,8 @@ func _ready() -> void:
 		SignalBus.reality_pocket_requested.connect(_on_reality_pocket_requested)
 	if not SignalBus.reality_claim_changed.is_connected(cull_banned_skeletons):
 		SignalBus.reality_claim_changed.connect(cull_banned_skeletons)
+	if not multiplayer.peer_connected.is_connected(_on_claim_peer_connected):
+		multiplayer.peer_connected.connect(_on_claim_peer_connected)
 	_rebuild_west_strip_spawns()
 	_rebuild_home_overlay()
 
@@ -186,6 +188,9 @@ func get_pocket(pocket_id: int) -> Dictionary:
 	return {}
 
 func spawn_pocket(origin: Vector2i, size: Vector2i, duration: float = DEFAULT_POCKET_DURATION) -> int:
+	if not _is_claim_host():
+		_rpc_request_spawn_pocket.rpc_id(1, origin, size, duration)
+		return -1
 	_sync_claim_home()
 	var clipped: Rect2i = clip_pocket_rect(Rect2i(origin, size))
 	var pocket: Dictionary = claim.add_pocket(clipped, duration, _claim_now())
@@ -199,14 +204,18 @@ func spawn_pocket(origin: Vector2i, size: Vector2i, duration: float = DEFAULT_PO
 	SignalBus.reality_pocket_created.emit(pocket_id, clipped, duration)
 	SignalBus.reality_claim_changed.emit()
 	_rebuild_home_overlay()
+	_broadcast_claim()
 	return pocket_id
 
 func expire_pocket(pocket_id: int) -> bool:
+	if not _is_claim_host():
+		return false
 	if not claim.expire_pocket(pocket_id):
 		return false
 	SignalBus.reality_pocket_expired.emit(pocket_id)
 	SignalBus.reality_claim_changed.emit()
 	_rebuild_home_overlay()
+	_broadcast_claim()
 	return true
 
 func _on_pocket_timeout(pocket_id: int) -> void:
@@ -295,6 +304,7 @@ func _on_map_bounds_cleared() -> void:
 	claim.clear_pockets()
 	_rebuild_home_overlay()
 	SignalBus.reality_claim_changed.emit()
+	_broadcast_claim()
 
 func _on_map_bounds_committed(interior: Rect2i) -> void:
 	super._on_map_bounds_committed(interior)
@@ -303,6 +313,7 @@ func _on_map_bounds_committed(interior: Rect2i) -> void:
 	_rebuild_west_strip_spawns()
 	SignalBus.reality_home_changed.emit(home_rect)
 	SignalBus.reality_claim_changed.emit()
+	_broadcast_claim()
 
 func _clip_live_pockets() -> void:
 	var expired: Array[int] = []
@@ -402,9 +413,56 @@ func on_level_changed(new_level: int) -> void:
 	_sync_claim_home()
 	SignalBus.reality_home_changed.emit(home_rect)
 	SignalBus.reality_claim_changed.emit()
+	_broadcast_claim()
 
 func cull_banned_skeletons(_unused = null) -> void:
 	if multiplayer.multiplayer_peer != null and not multiplayer.is_server():
 		return
 	RealityClaim.cull_skeletons_in_tree(get_tree())
+
+func _is_claim_host() -> bool:
+	if multiplayer.multiplayer_peer == null:
+		return true
+	return multiplayer.is_server()
+
+func build_claim_sync_payload() -> Dictionary:
+	_sync_claim_home()
+	var payload: Dictionary = claim.to_sync_dict(_claim_now())
+	payload["reality_level"] = int(PlayerManager.reality_level)
+	return payload
+
+func apply_claim_sync_payload(payload: Dictionary) -> void:
+	claim.apply_sync_dict(payload, _claim_now())
+	home_rect = claim.home_rect
+	if payload.has("reality_level") and not _is_claim_host():
+		PlayerManager.reality_level = int(payload["reality_level"])
+	if home_rect.size.x > 0 and home_rect.size.y > 0:
+		var world_origin: Vector2 = DungeonGrid.to_world(home_rect.position)
+		var world_size: Vector2 = Vector2(home_rect.size) * DungeonGrid.CELL_PX
+		global_position = world_origin + world_size * 0.5
+		_apply_rect_collision(world_size)
+	_rebuild_home_overlay()
+	SignalBus.reality_claim_changed.emit()
+
+func _broadcast_claim() -> void:
+	if not Lobby.is_network_server():
+		return
+	_rpc_apply_claim.rpc(build_claim_sync_payload())
+
+func _on_claim_peer_connected(peer_id: int) -> void:
+	if not Lobby.is_network_server():
+		return
+	_rpc_apply_claim.rpc_id(peer_id, build_claim_sync_payload())
+
+@rpc("authority", "reliable")
+func _rpc_apply_claim(payload: Dictionary) -> void:
+	if Lobby.is_network_server():
+		return
+	apply_claim_sync_payload(payload)
+
+@rpc("any_peer", "reliable")
+func _rpc_request_spawn_pocket(origin: Vector2i, size: Vector2i, duration: float) -> void:
+	if not _is_claim_host():
+		return
+	spawn_pocket(origin, size, duration)
 
