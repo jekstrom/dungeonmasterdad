@@ -1,6 +1,6 @@
-class_name RealityTileDrift extends Node
+class_name FantasyTileDrift extends Node
 
-## Host-only: stagger Reality-claimed outside tiles onto Reality art.
+## Host-only: stagger Fantasy-claimed outside tiles onto Fantasy art.
 ## Schedules on claim/map changes only. Physics ticks pending due cells, not the whole map.
 
 const DEFAULT_DELAY_MIN := 0.5
@@ -9,7 +9,7 @@ const MAX_CONVERTS_PER_FRAME := 1
 const CLAIM_NONE := 0
 const CLAIM_REALITY := 1
 const CLAIM_FANTASY := -1
-const PUFF_PATH := "res://sprites/reality_drift_puff.png"
+const PUFF_PATH := "res://sprites/fantasy_drift_puff.png"
 const PUFF_FRAME_PX := 32
 const PUFF_FPS := 16.0
 
@@ -75,41 +75,41 @@ func _sync_schedules() -> void:
 	_refresh_dungeon_rect()
 	var drop: Array = []
 	for cell in _pending.keys():
-		if not is_reality_drift_eligible(cell):
+		if not is_fantasy_drift_eligible(cell):
 			drop.append(cell)
 			continue
 		var tile: OutsideTile = _tile_at(cell)
-		if tile == null or tile.element_presentation == OutsideTile.ElementPresentation.REALITY:
+		if tile == null or tile.element_presentation == OutsideTile.ElementPresentation.FANTASY:
 			drop.append(cell)
 	for cell in drop:
 		_pending.erase(cell)
-	for cell in _reality_coverage_cells():
+	for cell in _fantasy_coverage_cells():
 		if _pending.has(cell):
 			continue
-		if not is_reality_drift_eligible(cell):
+		if not is_fantasy_drift_eligible(cell):
 			continue
 		var tile: OutsideTile = _tile_at(cell)
 		if tile == null:
 			continue
-		if tile.element_presentation == OutsideTile.ElementPresentation.REALITY:
+		if tile.element_presentation == OutsideTile.ElementPresentation.FANTASY:
 			continue
 		var delay: float = _rng.randf_range(delay_min, maxf(delay_min, delay_max))
 		_pending[cell] = _now() + delay
 	if _is_host() and not _pending.is_empty():
 		set_physics_process(true)
 
-func _reality_coverage_cells() -> Array[Vector2i]:
+func _fantasy_coverage_cells() -> Array[Vector2i]:
 	var seen: Dictionary = {}
 	var cells: Array[Vector2i] = []
 	var tree := get_tree()
 	if tree == null:
 		return cells
-	var reality: Node = tree.get_first_node_in_group("RealityZone")
-	if reality == null:
+	var fantasy: Node = tree.get_first_node_in_group("FantasyZone")
+	if fantasy == null:
 		return cells
-	_append_rect_cells(seen, cells, reality.home_rect)
-	if "claim" in reality:
-		for pocket in reality.claim.pockets:
+	_append_rect_cells(seen, cells, fantasy.home_rect)
+	if "claim" in fantasy:
+		for pocket in fantasy.claim.pockets:
 			if typeof(pocket) != TYPE_DICTIONARY:
 				continue
 			_append_rect_cells(seen, cells, pocket.get("rect", Rect2i()))
@@ -126,7 +126,7 @@ func _append_rect_cells(seen: Dictionary, cells: Array[Vector2i], rect: Rect2i) 
 			seen[cell] = true
 			cells.append(cell)
 
-func is_reality_drift_eligible(cell: Vector2i) -> bool:
+func is_fantasy_drift_eligible(cell: Vector2i) -> bool:
 	if _dungeon_rect.size.x > 0 and _dungeon_rect.size.y > 0 and _dungeon_rect.has_point(cell):
 		return false
 	if _dungeon_rect.size.x <= 0:
@@ -135,7 +135,7 @@ func is_reality_drift_eligible(cell: Vector2i) -> bool:
 			return false
 	if _tile_at(cell) == null:
 		return false
-	return drift_claim_for_cell(cell) == CLAIM_REALITY
+	return drift_claim_for_cell(cell) == CLAIM_FANTASY
 
 func drift_claim_for_cell(cell: Vector2i) -> int:
 	return ZoneDriftClaim.for_cell(get_tree(), cell)
@@ -182,21 +182,21 @@ func _convert_cell(cell: Vector2i) -> bool:
 	var tile: OutsideTile = _tile_at(cell)
 	if tile == null:
 		return false
-	if not is_reality_drift_eligible(cell):
+	if not is_fantasy_drift_eligible(cell):
 		return false
-	if tile.element_presentation == OutsideTile.ElementPresentation.REALITY:
+	if tile.element_presentation == OutsideTile.ElementPresentation.FANTASY:
 		return false
-	if not tile.has_presentation_strip(OutsideTile.ElementPresentation.REALITY):
-		push_error("US-002: missing Reality strip for kind %s variety %s; leaving current presentation" % [tile.ground_kind, tile.variety])
+	if not tile.has_presentation_strip(OutsideTile.ElementPresentation.FANTASY):
+		push_error("US-004: missing Fantasy strip for kind %s variety %s; leaving current presentation" % [tile.ground_kind, tile.variety])
 		return false
 	var kind: int = int(tile.ground_kind)
 	var variety: int = int(tile.variety)
-	tile.element_presentation = OutsideTile.ElementPresentation.REALITY
+	tile.element_presentation = OutsideTile.ElementPresentation.FANTASY
 	if int(tile.ground_kind) != kind or int(tile.variety) != variety:
 		tile.ground_kind = kind
 		tile.variety = variety
 	play_convert_puff(cell)
-	_broadcast_presentation(cell, int(OutsideTile.ElementPresentation.REALITY))
+	_broadcast_presentation(cell, int(OutsideTile.ElementPresentation.FANTASY))
 	return true
 
 func play_convert_puff(cell: Vector2i) -> void:
@@ -209,7 +209,7 @@ func play_convert_puff(cell: Vector2i) -> void:
 	if parent == null:
 		parent = self
 	var sprite := AnimatedSprite2D.new()
-	sprite.name = "RealityDriftPuff"
+	sprite.name = "FantasyDriftPuff"
 	sprite.sprite_frames = frames
 	sprite.centered = true
 	sprite.z_as_relative = false

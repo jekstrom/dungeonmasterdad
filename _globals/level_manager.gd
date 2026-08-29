@@ -42,6 +42,10 @@ func _ready() -> void:
 		var drift := RealityTileDrift.new()
 		drift.name = "RealityTileDrift"
 		add_child(drift)
+	if get_node_or_null("FantasyTileDrift") == null:
+		var fantasy_drift := FantasyTileDrift.new()
+		fantasy_drift.name = "FantasyTileDrift"
+		add_child(fantasy_drift)
 
 func on_explosion(proj_position: Vector2, explosion_data: Dictionary) -> void:
 	if !multiplayer.is_server(): return
@@ -296,6 +300,10 @@ func apply_outside_presentation(cell: Vector2i, presentation: int) -> void:
 		var drift: Node = get_node_or_null("RealityTileDrift")
 		if drift and drift.has_method("play_convert_puff"):
 			drift.play_convert_puff(cell)
+	elif presentation == int(OutsideTile.ElementPresentation.FANTASY):
+		var fantasy_drift: Node = get_node_or_null("FantasyTileDrift")
+		if fantasy_drift and fantasy_drift.has_method("play_convert_puff"):
+			fantasy_drift.play_convert_puff(cell)
 
 func _outside_tile_at(cell: Vector2i) -> OutsideTile:
 	var parent: Node = get_node_or_null("OutsideTiles")
