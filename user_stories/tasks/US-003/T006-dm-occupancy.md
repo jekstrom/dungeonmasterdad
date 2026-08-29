@@ -3,7 +3,7 @@
 **Story**: US-003  
 **Status**: Todo  
 **Depends on**: T001  
-**Parallel**: with T005
+**Parallel**: with T011
 
 ## Goal
 
@@ -25,4 +25,4 @@ The Dungeon Master may enter and move freely inside Fantasy-claimed cells. Zone 
 
 ## Notes
 
-Paper Pusher exclusion is T005. Do not invent a Fantasy-only DM speed buff here (blizzard is US-017).
+Paper Pusher walk is T011 (T005 revoked). Do not invent a Fantasy-only DM speed buff here (blizzard is US-017).

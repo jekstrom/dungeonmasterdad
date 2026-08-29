@@ -25,7 +25,7 @@ Do T001 first. Home (T002) and overlays (T003) need the claim API. Pockets (T004
 ## Out of scope (stay in other stories)
 
 - Tile art swapping on outside grass/dirt (US-002).
-- Fantasy home, Fantasy pockets, and Paper Pusher exclusion (US-003).
+- Fantasy home, Fantasy pockets, and Paper Pusher walk in Fantasy (US-003 T011).
 - How Reality Level is earned (US-008, US-009).
 - Named Paper Pusher pocket abilities (only the region contract in T004).
 - Map cliff geometry and overworld fill (US-024), except using T013 clip.

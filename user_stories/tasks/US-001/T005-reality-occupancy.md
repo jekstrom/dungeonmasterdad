@@ -28,4 +28,4 @@ Paper Pushers and the Dungeon Master may path and occupy any walkable Reality-cl
 
 ## Notes
 
-Paper Pusher exclusion from Fantasy is US-003. Do not push anyone out of Reality here. Skeleton rules are T007.
+Paper Pushers walk Fantasy (US-003 T011). Do not push anyone out of Reality here. Skeleton rules are T007.

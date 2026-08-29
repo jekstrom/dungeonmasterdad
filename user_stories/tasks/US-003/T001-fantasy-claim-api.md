@@ -15,14 +15,14 @@ One host-authoritative answer to “is this point Fantasy?” Coverage is the **
 - Fantasy zone scene / script (`zones/fantasy_zone.tscn`, Reality’s counterpart)
 - New small claim helper (suggested: `zones/scripts/fantasy_claim.gd` or methods on the Fantasy zone): `is_claimed_cell(Vector2i)`, `is_claimed_world(Vector2)`, home rect, live pocket list.
 - `_globals/signal_bus.gd` — emit when home or pocket set changes.
-- Reality claim API from US-001 — needed to evaluate FR-010 overlap (do not reimplement Reality).
+- Reality claim API from US-001 — needed if a cell is also Reality-claimed (pockets). Do not reimplement Reality. Home overlap is US-025 (no shared home cells).
 
 ## Requirements
 
 - FR-001, Key Entity **Fantasy Claim**
 - Default region shape is axis-aligned rectangle, optionally snapped to the 128px tile grid.
-- A point is Fantasy-claimed if a live Fantasy pocket covers it (and wins overlap per T004) or else the Fantasy home covers it under FR-010.
-- **FR-010 (homes overlap, no pocket):** Paper Pushers blocked (T005), buildings rejected (T007), skeletons banned unless a **Reality pocket** covers the point (T008 / US-001). Document the query here; implement the behaviors in T005–T008.
+- A point is Fantasy-claimed if a live Fantasy pocket covers it (and wins overlap per T004) or else the Fantasy home covers it.
+- **FR-010:** homes do not overlap (US-025). Buildings still rejected in Fantasy (T007). Skeletons banned if Reality-claimed (T008 / US-001). Paper Pushers are **not** blocked (T011).
 
 ## Acceptance
 
@@ -32,4 +32,4 @@ One host-authoritative answer to “is this point Fantasy?” Coverage is the **
 
 ## Notes
 
-Do not grow the home here (T002). Do not create pockets here (T004). Do not displace Paper Pushers here (T005). Occupancy debug can stay code-drawn.
+Do not grow the home here (T002). Do not create pockets here (T004). Do not wall or displace Paper Pushers (T005 revoked; T011). Occupancy debug can stay code-drawn.

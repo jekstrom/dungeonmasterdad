@@ -22,6 +22,7 @@ Live pockets still override homes for occupancy and drift. When a pocket expires
 - A Fantasy pocket over Reality home is Fantasy-claimed while live (occupancy + drift). A Reality pocket over Fantasy home is Reality-claimed while live.
 - Creating or expiring a pocket MUST NOT shrink or grow a home rect. Homes stay the exclusive rects from T002/T003.
 - After expire, cells fall back to whichever **single** home covers them, or unclaimed.
+- Paper Pushers stay through pocket create/expire (US-003 T011). Do not add a wall here.
 
 ## Acceptance
 
@@ -31,4 +32,4 @@ Live pockets still override homes for occupancy and drift. When a pocket expires
 
 ## Notes
 
-Do not implement blizzard slow (US-017). Do not change Paper Pusher exclusion / skeleton ban beyond using the live claim.
+Do not implement blizzard slow (US-017). Skeleton ban still uses live claim (US-001). PP walk is US-003 T011.

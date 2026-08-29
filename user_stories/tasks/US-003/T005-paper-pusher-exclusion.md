@@ -1,36 +1,30 @@
 # T005: Paper Pusher exclusion
 
 **Story**: US-003  
-**Status**: Todo  
+**Status**: Revoked  
+**Replaced by**: [T011](T011-paper-pusher-walk.md)  
 **Depends on**: T001  
 **Parallel**: with T006
 
 ## Goal
 
-Paper Pushers cannot enter Fantasy-claimed space. If they are already inside (home grew, pocket appeared, spawn glitch, knockback), the **host** pushes them to the nearest walkable cell that is not Fantasy-claimed (or a Reality spawn if none exists). They stay alive.
+**Revoked.** James: Paper Pushers can exist and walk in and out of Fantasy zones. Do **not** implement a wall or push-out. If this task already shipped, T011 removes it.
+
+Original intent (do not build): Paper Pushers cannot enter Fantasy-claimed space; host pushes them out if already inside.
 
 ## Files
 
-- Player movement / physics (`player/`)
-- Fantasy claim API from T001
-- Reality spawn strip (US-001 / US-024 west spawn) as fallback
-- Host occupancy pass each physics update
+None. See T011.
 
 ## Requirements
 
-- FR-005, FR-009, FR-010, AC1, AC2, AC6
-- Stop at the boundary when walking in.
-- Displacement is host-authoritative, lands on walkable non-Fantasy, does not kill by itself.
-- Tight corridor / no legal cell: Reality spawn point (US-001).
-- Several Paper Pushers under a new pocket: each displaced independently in the same tick; no two need the same cell.
-- Homes overlap with no pocket: Fantasy exclusion still wins for players (FR-010).
+- Do not implement FR-005/FR-009 as they were originally written.
+- Current occupancy: FR-005 / FR-009 as amended in US-003.md (walk, no wall, no push-out).
 
 ## Acceptance
 
-- **Given** a Paper Pusher outside Fantasy-claimed area, **When** they try to move into it, **Then** they stop at the boundary.
-- **Given** a Paper Pusher already inside Fantasy, **When** the next physics update runs on the server, **Then** they are pushed to the nearest non-Fantasy walkable (or Reality spawn) and remain alive.
-- **Given** Fantasy does not claim a walkable overworld cell, **When** a Paper Pusher moves there, **Then** this story does not block them.
+- **Given** this task, **When** work is scheduled, **Then** skip it and do T011 instead.
 
 ## Notes
 
-Do not define combat reach (US-005). Do not apply blizzard slow (US-017). DM occupancy is T006.
+DM occupancy is T006. Building reject is T007. Skeleton allow is T008. Those stand.

@@ -22,7 +22,7 @@ Effects may create **temporary Fantasy rectangles** with origin, size, and durat
 - Degenerate or zero-size rectangle: treat as no pocket.
 - While live, every point inside is Fantasy for movement, building, skeletons, even over Reality home ground.
 - If two pockets overlap, the **newer** pocket wins (same rule as US-001 FR-004).
-- On expire: the rectangle is no longer Fantasy by itself; remaining home/pocket coverage is re-evaluated. Existing buildings are not auto-destroyed. Paper Pushers may re-enter if the ground is no longer Fantasy-claimed.
+- On expire: the rectangle is no longer Fantasy by itself; remaining home/pocket coverage is re-evaluated. Existing buildings are not auto-destroyed. Paper Pushers already there stay (T011).
 
 ## Acceptance
 
@@ -32,4 +32,4 @@ Effects may create **temporary Fantasy rectangles** with origin, size, and durat
 
 ## Notes
 
-Do not implement blizzard slow or unlock (US-017). Leave a single create API blizzard can call. Reality pocket override of Fantasy is US-001 / T008, not a second pocket type here.
+Do not implement blizzard slow or unlock (US-017). Leave a single create API blizzard can call. Reality pocket override of Fantasy is US-001 / T008, not a second pocket type here. Do not push Paper Pushers on create or expire.

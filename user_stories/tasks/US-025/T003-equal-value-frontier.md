@@ -17,12 +17,13 @@ When zone values are **equal**, neither home advances into the other. The fronti
 ## Requirements
 
 - FR-003, AC3
-- **What the stories already said (replaced):**
+- **What the stories already said (replaced for home geometry):**
   - US-001 FR-010 / US-003 FR-010: homes **may overlap**; Fantasy exclusion and Reality skeleton ban both apply on those cells.
   - US-002 FR-007 / US-004 T004: overlapping homes; higher covering level wins **claim**; **ties keep current art** until a winner exists.
 - **This story:** equal value is a **stable frontier**, not dual-cover with frozen art. Neither home grows into cells the other currently occupies.
 - If they already overlap at equal value: both retract from the intersection. Tile-snap the split. Odd-width contested band: leftover middle cell is unclaimed by either home. Dual-claim is not allowed.
 - Adjacent (no shared cell) is the success state.
+- Paper Pusher exclusion named in that old FR-010 was later **revoked** (US-003 T011). This task is home geometry only; do not shove players when the frontier moves.
 
 ## Acceptance
 
@@ -32,4 +33,4 @@ When zone values are **equal**, neither home advances into the other. The fronti
 
 ## Notes
 
-Do not keep “ties keep current art” as a claim rule for overlapping homes; those homes must not overlap. Drift presentation is T005.
+Do not keep “ties keep current art” as a claim rule for overlapping homes; those homes must not overlap. Drift presentation is T005. Do not displace Paper Pushers (US-003 T011).
