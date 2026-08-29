@@ -1,0 +1,14 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://level/dungeon_portal.gd" id="1_script"]
+[ext_resource type="Texture2D" uid="uid://ds8rgd3rploko" path="res://sprites/dungeon_exit.png" id="2_tex"]
+
+[node name="DungeonExit" type="Node2D"]
+y_sort_enabled = true
+z_index = 0
+script = ExtResource("1_script")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+y_sort_enabled = true
+position = Vector2(0, -63)
+texture = ExtResource("2_tex")

@@ -12,7 +12,7 @@ func is_approved_scene_path(scene_path: String) -> bool:
 	return scene_path == CLIFF_SCENE_PATH
 
 func is_dungeon_tile_path(scene_path: String) -> bool:
-	return scene_path == TileCatalog.FLOOR_SCENE_PATH or scene_path == TileCatalog.WALL_SCENE_PATH
+	return TileCatalog.is_dungeon_catalog_path(scene_path)
 
 func cliff_frame_for_cell(interior: Rect2i, cell: Vector2i) -> int:
 	if interior.size.x <= 0 or interior.size.y <= 0:

@@ -24,7 +24,7 @@ func is_approved_scene_path(scene_path: String) -> bool:
 	return scene_path == OUTSIDE_SCENE_PATH
 
 func is_dungeon_tile_path(scene_path: String) -> bool:
-	return scene_path == TileCatalog.FLOOR_SCENE_PATH or scene_path == TileCatalog.WALL_SCENE_PATH
+	return TileCatalog.is_dungeon_catalog_path(scene_path)
 
 func strip_path(ground_kind: int, presentation: int) -> String:
 	var pres: int = clampi(presentation, 0, 2)

@@ -39,16 +39,19 @@ func _floor_placement(
 	var variant_id := 1
 	if room_set.has(cell):
 		variant_id = 0
+	var source_path: String = _tile_catalog.get_floor_scene_path()
 	if cell == layout_data.entrance_cell:
 		role = "entrance"
 		variant_id = 0
+		source_path = _tile_catalog.get_entrance_scene_path()
 	elif cell == layout_data.exit_cell:
 		role = "exit"
 		variant_id = 0
+		source_path = _tile_catalog.get_exit_scene_path()
 	return {
 		"position": {"x": cell.x, "y": cell.y},
 		"tileRole": role,
-		"tileSourcePath": _tile_catalog.get_floor_scene_path(),
+		"tileSourcePath": source_path,
 		"variantId": variant_id
 	}
 

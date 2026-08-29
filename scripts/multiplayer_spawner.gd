@@ -180,7 +180,13 @@ func _generated_tiles_parent() -> Node:
 func _generated_tile_name(scene_path: String, world_position: Vector2) -> String:
 	var gx := int(round(world_position.x / 128.0))
 	var gy := int(round(world_position.y / 128.0))
-	var prefix := "gw" if scene_path.ends_with("wall.tscn") else "gf"
+	var prefix := "gf"
+	if scene_path.ends_with("wall.tscn"):
+		prefix = "gw"
+	elif scene_path.ends_with("dungeon_entrance.tscn"):
+		prefix = "ge"
+	elif scene_path.ends_with("dungeon_exit.tscn"):
+		prefix = "gx"
 	return "%s_%d_%d" % [prefix, gx, gy]
 
 func _disable_generated_tile_sync(tile: Node) -> void:
@@ -217,6 +223,16 @@ func _instantiate_generated_tile(scene_path: String, world_position: Vector2, va
 	elif "floor_type" in tile:
 		if variant_id >= 0:
 			tile.floor_type = clampi(variant_id, 0, 1)
+		tile.z_index = FLOOR_Z_INDEX
+	elif scene_path.ends_with("dungeon_entrance.tscn"):
+		tile.z_index = WALL_Z_INDEX
+		tile.add_to_group("entrance")
+		tile.add_to_group("room")
+	elif scene_path.ends_with("dungeon_exit.tscn"):
+		tile.z_index = WALL_Z_INDEX
+		tile.add_to_group("exit")
+		tile.add_to_group("room")
+	else:
 		tile.z_index = FLOOR_Z_INDEX
 
 	var parent: Node = _generated_tiles_parent()
