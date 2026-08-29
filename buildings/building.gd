@@ -9,13 +9,15 @@ const BLIZZARD_FACTORY_INTERVAL_FACTOR := 2.0
 @export var interval: float = 1.0
 @export var hitpoints: int = 10
 @export var blizzard_factory_interval_factor: float = BLIZZARD_FACTORY_INTERVAL_FACTOR
-var timer: float = 0.0
+@export var timer: float = 0.0
 var is_ghost: bool = true
 var _baseline_interval: float = -1.0
 var _applied_blizzard_factor: float = 1.0
 
 func _enter_tree() -> void:
 	_ensure_baseline_interval()
+	if self is SmokeFactory or self is PaperFactory:
+		add_to_group("factories")
 	if not SignalBus.spell_cast.is_connected(_on_blizzard_spell_cast):
 		SignalBus.spell_cast.connect(_on_blizzard_spell_cast)
 	if not SignalBus.fantasy_pocket_expired.is_connected(_on_blizzard_pocket_expired):
@@ -47,6 +49,34 @@ func factory_origin() -> Vector2:
 
 func production_remaining() -> float:
 	return maxf(0.0, interval - timer)
+
+func to_timer_sync_dict() -> Dictionary:
+	_ensure_baseline_interval()
+	return {
+		"name": str(name),
+		"x": global_position.x,
+		"y": global_position.y,
+		"interval": interval,
+		"timer": timer,
+		"remaining": production_remaining(),
+		"factor": _applied_blizzard_factor,
+		"baseline": _baseline_interval,
+	}
+
+func apply_timer_sync_dict(payload: Dictionary) -> void:
+	_ensure_baseline_interval()
+	if payload.has("baseline"):
+		var baseline: float = float(payload["baseline"])
+		if baseline > 0.0:
+			_baseline_interval = baseline
+	if payload.has("factor"):
+		_applied_blizzard_factor = float(payload["factor"])
+	if payload.has("interval"):
+		interval = float(payload["interval"])
+	if payload.has("timer"):
+		timer = float(payload["timer"])
+	elif payload.has("remaining"):
+		timer = interval - float(payload["remaining"])
 
 func sync_blizzard_interval(ignore_pocket_id: int = -1) -> void:
 	if not multiplayer.is_server():

@@ -22,6 +22,7 @@ signal spawn_gremlin_cast
 signal spawn_knight_cast
 var player_spawned: bool = false
 var _blizzard_effects: Array[Dictionary] = []
+var _blizzard_broadcast_queued: bool = false
 var dm_player_name: String = "DM"
 
 func _ready() -> void:
@@ -149,6 +150,7 @@ func launch_blizzard(spell_data: Dictionary) -> bool:
 		"slow_factor": slow_factor,
 	})
 	SignalBus.spell_cast.emit(AbilityCatalog.BEMIDJI_BLIZZARD, spell_data)
+	_queue_blizzard_broadcast()
 	return true
 
 func _can_try_cast(ability_id: String) -> bool:
@@ -238,9 +240,11 @@ func drop_blizzard_for_pocket(pocket_id: int) -> void:
 		if int(effect["pocket_id"]) != pocket_id:
 			remaining.append(effect)
 	_blizzard_effects = remaining
+	_queue_blizzard_broadcast()
 
 func clear_blizzard_effects() -> void:
 	_blizzard_effects.clear()
+	_queue_blizzard_broadcast()
 
 func expire_blizzard_due(now: float) -> void:
 	var remaining: Array[Dictionary] = []
@@ -252,16 +256,191 @@ func expire_blizzard_due(now: float) -> void:
 			remaining.append(effect)
 	_blizzard_effects = remaining
 	var fantasy: FantasyZone = _fantasy_zone()
-	if fantasy == null:
-		return
-	for pocket_id in expired_ids:
-		fantasy.expire_pocket(pocket_id)
+	if fantasy != null:
+		for pocket_id in expired_ids:
+			fantasy.expire_pocket(pocket_id)
+	elif not expired_ids.is_empty():
+		_queue_blizzard_broadcast()
 
 func _on_fantasy_pocket_expired(pocket_id: int) -> void:
 	drop_blizzard_for_pocket(pocket_id)
 
 func _on_map_bounds_cleared_blizzard() -> void:
 	clear_blizzard_effects()
+
+func blizzard_now() -> float:
+	var fantasy: FantasyZone = _fantasy_zone()
+	if fantasy:
+		return fantasy.claim_now()
+	return float(Time.get_ticks_msec()) / 1000.0
+
+func pack_blizzard_slows(now: float = -1.0) -> Array:
+	var t: float = blizzard_now() if now < 0.0 else now
+	var packed: Array = []
+	for effect in _blizzard_effects:
+		var remaining: float = maxf(0.0, float(effect["expires_at"]) - t)
+		if remaining <= 0.0:
+			continue
+		var cell_rect: Rect2i = effect["rect"]
+		if cell_rect.size.x <= 0 or cell_rect.size.y <= 0:
+			continue
+		packed.append({
+			"pocket_id": int(effect["pocket_id"]),
+			"x": cell_rect.position.x,
+			"y": cell_rect.position.y,
+			"w": cell_rect.size.x,
+			"h": cell_rect.size.y,
+			"remaining": remaining,
+			"slow_factor": float(effect["slow_factor"]),
+		})
+	return packed
+
+func apply_blizzard_slows(packed: Array, now: float = -1.0) -> void:
+	var t: float = blizzard_now() if now < 0.0 else now
+	var effects: Array[Dictionary] = []
+	for item in packed:
+		if typeof(item) != TYPE_DICTIONARY:
+			continue
+		var remaining: float = float(item.get("remaining", 0.0))
+		if remaining <= 0.0:
+			continue
+		var cell_rect := Rect2i(
+			int(item.get("x", 0)),
+			int(item.get("y", 0)),
+			int(item.get("w", 0)),
+			int(item.get("h", 0))
+		)
+		if cell_rect.size.x <= 0 or cell_rect.size.y <= 0:
+			continue
+		var slow_factor: float = float(item.get("slow_factor", BLIZZARD_SLOW_FACTOR))
+		if slow_factor <= 0.0:
+			slow_factor = BLIZZARD_SLOW_FACTOR
+		effects.append({
+			"pocket_id": int(item.get("pocket_id", 0)),
+			"rect": cell_rect,
+			"expires_at": t + remaining,
+			"slow_factor": slow_factor,
+		})
+	_blizzard_effects = effects
+
+func pack_slowed_players() -> Array:
+	var slowed: Array = []
+	var tree := get_tree()
+	if tree == null:
+		return slowed
+	for node in tree.get_nodes_in_group("players"):
+		if not (node is Node2D) or not is_instance_valid(node):
+			continue
+		var body: Node2D = node
+		var factor: float = blizzard_slow_factor_at(body.global_position)
+		if factor >= 1.0:
+			continue
+		slowed.append({
+			"name": str(body.name),
+			"x": body.global_position.x,
+			"y": body.global_position.y,
+			"slow_factor": factor,
+		})
+	return slowed
+
+func pack_factory_timers() -> Array:
+	var packed: Array = []
+	var tree := get_tree()
+	if tree == null:
+		return packed
+	for node in tree.get_nodes_in_group("factories"):
+		if not is_instance_valid(node) or not node.has_method("to_timer_sync_dict"):
+			continue
+		if bool(node.get("is_ghost")):
+			continue
+		packed.append(node.to_timer_sync_dict())
+	return packed
+
+func apply_factory_timers(packed: Array) -> void:
+	var tree := get_tree()
+	if tree == null:
+		return
+	var by_name: Dictionary = {}
+	var factories: Array = []
+	for node in tree.get_nodes_in_group("factories"):
+		if not is_instance_valid(node):
+			continue
+		by_name[str(node.name)] = node
+		factories.append(node)
+	for item in packed:
+		if typeof(item) != TYPE_DICTIONARY:
+			continue
+		var factory: Node = by_name.get(str(item.get("name", "")), null)
+		if factory == null:
+			factory = _match_factory_by_position(factories, item)
+		if factory and factory.has_method("apply_timer_sync_dict"):
+			factory.apply_timer_sync_dict(item)
+
+func _match_factory_by_position(factories: Array, item: Dictionary) -> Node:
+	var want := Vector2(float(item.get("x", 0.0)), float(item.get("y", 0.0)))
+	var best: Node = null
+	var best_d: float = 4.0
+	for node in factories:
+		if not (node is Node2D):
+			continue
+		var d: float = (node as Node2D).global_position.distance_squared_to(want)
+		if d <= best_d:
+			best_d = d
+			best = node
+	return best
+
+func late_join_blizzard_snapshot() -> Dictionary:
+	var claim_payload: Dictionary = {}
+	var fantasy: FantasyZone = _fantasy_zone()
+	if fantasy:
+		claim_payload = fantasy.build_claim_sync_payload()
+	return {
+		"unlocks": DmUnlocks.snapshot(),
+		"claim": claim_payload,
+		"slows": pack_blizzard_slows(),
+		"slowed": pack_slowed_players(),
+		"factories": pack_factory_timers(),
+	}
+
+func apply_late_join_blizzard_snapshot(payload: Dictionary) -> void:
+	if payload.has("unlocks") and typeof(payload["unlocks"]) == TYPE_DICTIONARY:
+		var unlocks: Dictionary = payload["unlocks"]
+		if not unlocks.is_empty():
+			DmUnlocks.apply_replicated_unlocks(unlocks)
+	var fantasy: FantasyZone = _fantasy_zone()
+	if fantasy and payload.has("claim") and typeof(payload["claim"]) == TYPE_DICTIONARY:
+		var claim_payload: Dictionary = payload["claim"]
+		if not claim_payload.is_empty():
+			fantasy.apply_claim_sync_payload(claim_payload)
+	if payload.has("slows") and typeof(payload["slows"]) == TYPE_ARRAY:
+		apply_blizzard_slows(payload["slows"])
+	if payload.has("factories") and typeof(payload["factories"]) == TYPE_ARRAY:
+		apply_factory_timers(payload["factories"])
+
+func sync_blizzard_to_peer(peer_id: int) -> void:
+	if not Lobby.is_network_server():
+		return
+	replicate_blizzard_state.rpc_id(peer_id, late_join_blizzard_snapshot())
+
+func _queue_blizzard_broadcast() -> void:
+	if not Lobby.is_network_server():
+		return
+	if _blizzard_broadcast_queued:
+		return
+	_blizzard_broadcast_queued = true
+	call_deferred("_flush_blizzard_broadcast")
+
+func _flush_blizzard_broadcast() -> void:
+	_blizzard_broadcast_queued = false
+	if not Lobby.is_network_server():
+		return
+	replicate_blizzard_state.rpc(late_join_blizzard_snapshot())
+
+@rpc("authority", "reliable")
+func replicate_blizzard_state(payload: Dictionary) -> void:
+	if Lobby.is_network_server():
+		return
+	apply_late_join_blizzard_snapshot(payload)
 
 func _is_dm_peer(peer_id: int) -> bool:
 	if peer_id <= 0:

@@ -384,6 +384,7 @@ func spawn_host_player(player_name: String) -> void:
 		
 func _sync_global_state_to_peer(id: int) -> void:
 	sync_global_state.rpc_id(id, DmManager.fantasy_level, DmManager.current_mana, DmManager.max_mana, DmUnlocks.snapshot(), int(PlayerManager.reality_level))
+	DmManager.sync_blizzard_to_peer(id)
 
 @rpc("authority", "call_local", "reliable")
 func sync_global_state(f: int, mana: int = 0, mana_max: int = 100, unlocks: Dictionary = {}, reality_lv: int = -1) -> void:
