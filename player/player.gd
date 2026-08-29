@@ -220,7 +220,7 @@ func apply_aim(aim: Vector2) -> bool:
 	cardinal_direction = new_dir
 	if sprite:
 		# Dedicated left/right frames live on the office sheets; do not mirror the sword sheet.
-		sprite.scale.x = 1
+		sprite.scale = Vector2.ONE
 	DirectionChanged.emit(new_dir)
 	return true
 
@@ -281,7 +281,7 @@ func _pulse_melee_hurtbox(facing: Vector2) -> void:
 
 func update_animation(state: String) -> void:
 	if sprite:
-		sprite.scale.x = 1
+		sprite.scale = Vector2.ONE
 		if state == "attack":
 			sprite.texture = TEX_PENCIL_MELEE
 		else:
@@ -311,7 +311,7 @@ func is_ranged_fire_playing() -> bool:
 func play_ranged_fire_animation() -> void:
 	if sprite:
 		sprite.texture = TEX_STAPLE_GUN
-		sprite.scale.x = 1
+		sprite.scale = Vector2.ONE
 	var anim_name: String = "fire_" + anim_direction()
 	if animation_player and animation_player.has_animation(anim_name):
 		animation_player.play(anim_name)
@@ -561,7 +561,7 @@ func _ensure_combat_visuals() -> void:
 		sprite.hframes = 16
 		sprite.vframes = 3
 		sprite.texture = TEX_STAPLE_GUN
-		sprite.scale.x = 1
+		sprite.scale = Vector2.ONE
 	_ensure_ink_slash()
 	_rebuild_combat_animations()
 
@@ -588,8 +588,10 @@ func _rebuild_combat_animations() -> void:
 	var gun := {
 		"down": {"idle": [0, 1], "walk": [2, 3, 4, 5], "fire": [6, 7]},
 		"up": {"idle": [8, 9], "walk": [10, 11, 12, 13], "fire": [14, 15]},
-		"right": {"idle": [16, 17], "walk": [18, 19, 20, 21], "fire": [22, 23]},
-		"left": {"idle": [24, 25], "walk": [26, 27, 28, 29], "fire": [30, 31]},
+		# E/W cells mix full-height and half-height. Use the large cells only.
+		# No idle/breathe on sides; do not scale E/W down to fit N/S.
+		"right": {"idle": [17], "walk": [19, 21], "fire": [23]},
+		"left": {"idle": [24], "walk": [26, 27, 28, 29], "fire": [31]},
 	}
 	# Packed DOWN/LEFT/RIGHT/UP, idle x2, walk x4, swing x3 (T005 / T008).
 	var pencil := {
@@ -599,12 +601,13 @@ func _rebuild_combat_animations() -> void:
 		"up": {"idle": [27, 28], "walk": [29, 30, 31, 32], "attack": [33, 34, 35]},
 	}
 	for d in ["down", "up", "left", "right"]:
-		_put_anim(lib, "idle_" + d, TEX_STAPLE_GUN, gun[d]["idle"], 0.4, true, false, d)
+		var side: bool = d == "left" or d == "right"
+		_put_anim(lib, "idle_" + d, TEX_STAPLE_GUN, gun[d]["idle"], 0.1 if side else 0.4, not side, false, d)
 		_put_anim(lib, "walk_" + d, TEX_STAPLE_GUN, gun[d]["walk"], 0.4, true, false, d)
 		_put_anim(lib, "fire_" + d, TEX_STAPLE_GUN, gun[d]["fire"], 0.18, false, false, d)
 		_put_anim(lib, "attack_" + d, TEX_PENCIL_MELEE, pencil[d]["attack"], 0.28, false, true, d)
 	# Keep *_side as right-facing aliases for older play() calls.
-	_put_anim(lib, "idle_side", TEX_STAPLE_GUN, gun["right"]["idle"], 0.4, true, false, "right")
+	_put_anim(lib, "idle_side", TEX_STAPLE_GUN, gun["right"]["idle"], 0.1, false, false, "right")
 	_put_anim(lib, "walk_side", TEX_STAPLE_GUN, gun["right"]["walk"], 0.4, true, false, "right")
 	_put_anim(lib, "attack_side", TEX_PENCIL_MELEE, pencil["right"]["attack"], 0.28, false, true, "right")
 	_put_anim(lib, "fire_side", TEX_STAPLE_GUN, gun["right"]["fire"], 0.18, false, false, "right")
