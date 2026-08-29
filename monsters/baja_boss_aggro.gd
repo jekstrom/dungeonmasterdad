@@ -1,42 +1,81 @@
 class_name BajaBossAggro extends EnemyState
 
-## Tiny host dispatcher: melee -> attack else -> blast.
-## user_stories/tasks/US-017/T003-host-boss-combat.md
+## Host chase + combat dispatcher. Walk toward the DM until melee, then attack.
+## Blast is the ranged beat when in blast range but not melee. Close the gap if
+## out of blast range. user_stories/tasks/US-017/T003-host-boss-combat.md
 ## Blast is Baja spit, not Bemidji Blizzard. T004 unlock is not here.
 
 @export var attack_state: EnemyState
 @export var blast_state: EnemyState
 @export var wander_state: EnemyState
 @export var idle_state: EnemyState
+@export var anim_name: String = "walk"
+@export var chase_speed: float = 220.0
 
 func enter() -> void:
 	if enemy == null or enemy._dying:
 		return
-	enemy.velocity = Vector2.ZERO
-	var next := _pick()
+	enemy.acquire_aggro_target()
+	var next := _pick_combat()
 	if next:
 		state_machine.change_state(next)
 		return
-	enemy.UpdateAnimation("idle")
+	_chase()
 
 func exit() -> void:
 	pass
 
 func process(_delta: float) -> EnemyState:
-	return _pick()
+	if enemy == null or enemy._dying:
+		return null
+	var next := _pick_combat()
+	if next:
+		return next
+	_chase()
+	return null
 
 func physics(_delta: float) -> EnemyState:
 	return null
 
-func _pick() -> EnemyState:
+func _pick_combat() -> EnemyState:
 	if enemy == null or enemy._dying:
 		return null
 	if not enemy.has_aggro_target():
 		if wander_state:
 			return wander_state
 		return idle_state
-	if enemy.has_method("ready_for_combat") and not enemy.call("ready_for_combat"):
-		return null
 	if enemy.can_melee_current_target():
-		return attack_state
-	return blast_state
+		if _ready_for_combat():
+			return attack_state
+		enemy.velocity = Vector2.ZERO
+		return null
+	if _ready_for_combat() and _in_blast_range() and blast_state:
+		return blast_state
+	return null
+
+func _ready_for_combat() -> bool:
+	if enemy.has_method("ready_for_combat"):
+		return bool(enemy.call("ready_for_combat"))
+	return true
+
+func _in_blast_range() -> bool:
+	if enemy == null:
+		return false
+	if enemy.has_method("in_blast_range_of_target"):
+		return bool(enemy.call("in_blast_range_of_target"))
+	if enemy.has_method("in_blast_range_of"):
+		return bool(enemy.call("in_blast_range_of", enemy.aggro_target))
+	return false
+
+func _chase() -> void:
+	if enemy == null or enemy._dying:
+		return
+	enemy.acquire_aggro_target()
+	var target: Node2D = enemy.aggro_target
+	if target == null or not is_instance_valid(target):
+		enemy.velocity = Vector2.ZERO
+		return
+	var to_target: Vector2 = enemy.global_position.direction_to(target.global_position)
+	enemy.velocity = to_target * chase_speed
+	enemy.SetDirection(to_target)
+	enemy.UpdateAnimation(anim_name)

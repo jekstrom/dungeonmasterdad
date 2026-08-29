@@ -14,6 +14,7 @@ const FALLBACK_CLIP := "idle_down"
 const WANDER_CHEBYSHEV := 2
 const BLAST_CHEBYSHEV := 2
 const BLAST_RANGE_PX := 256.0
+const AGGRO_RANGE_PX := 1024.0
 const COMBAT_COOLDOWN := 0.8
 const DIE_CLIP_SEC := 0.6
 const PUFF_SEC := 0.65
@@ -49,15 +50,29 @@ func _capture_home_cell() -> void:
 	_home_cell_captured = true
 
 
+func screen_spot_range() -> float:
+	# Boss spots the DM several cells out (beyond blast 256px / Chebyshev 2).
+	# user_stories/tasks/US-017/T003-host-boss-combat.md
+	return maxf(super.screen_spot_range(), AGGRO_RANGE_PX)
+
+
 func _physics_process(delta: float) -> void:
 	combat_cooldown = maxf(0.0, combat_cooldown - delta)
 	super._physics_process(delta)
 	if _dying:
 		return
+	if not multiplayer.is_server():
+		return
 	_clamp_wander_to_home()
 
 
 func _clamp_wander_to_home() -> void:
+	# Clamp only in idle/wander with no aggro target. Combat chase must leave home.
+	# user_stories/tasks/US-017/T003-host-boss-combat.md
+	if _dying:
+		return
+	if has_aggro_target():
+		return
 	_capture_home_cell()
 	var cell: Vector2i = DungeonGrid.from_world(global_position)
 	if DungeonGrid.chebyshev(cell, home_cell) <= WANDER_CHEBYSHEV:
@@ -70,6 +85,24 @@ func _clamp_wander_to_home() -> void:
 
 func ready_for_combat() -> bool:
 	return (not _dying) and combat_cooldown <= 0.0
+
+
+func in_blast_range_of(node: Node2D) -> bool:
+	# Baja spit: Chebyshev <= 2 or distance <= 256px. Out of this, chase.
+	# user_stories/tasks/US-017/T003-host-boss-combat.md
+	if node == null or not is_instance_valid(node):
+		return false
+	var self_cell: Vector2i = DungeonGrid.from_world(global_position)
+	var other_cell: Vector2i = DungeonGrid.from_world(node.global_position)
+	if DungeonGrid.chebyshev(self_cell, other_cell) <= BLAST_CHEBYSHEV:
+		return true
+	return global_position.distance_to(node.global_position) <= BLAST_RANGE_PX
+
+
+func in_blast_range_of_target(target: Node2D = null) -> bool:
+	if target == null:
+		target = aggro_target
+	return in_blast_range_of(target)
 
 
 func mark_combat_cooldown() -> void:
@@ -104,13 +137,7 @@ func apply_blast_hit() -> void:
 		return
 	acquire_aggro_target()
 	var target: Node2D = aggro_target
-	if target == null or not is_instance_valid(target):
-		return
-	var self_cell: Vector2i = DungeonGrid.from_world(global_position)
-	var other_cell: Vector2i = DungeonGrid.from_world(target.global_position)
-	var in_cells := DungeonGrid.chebyshev(self_cell, other_cell) <= BLAST_CHEBYSHEV
-	var in_px := global_position.distance_to(target.global_position) <= BLAST_RANGE_PX
-	if not in_cells and not in_px:
+	if not in_blast_range_of(target):
 		return
 	if target.has_method("apply_fantasy_hit"):
 		target.call("apply_fantasy_hit", 1)

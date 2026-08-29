@@ -6,6 +6,7 @@ class_name BajaBossAttack extends EnemyState
 @export var anim_name: String = "attack"
 @export var idle_state: EnemyState
 @export var wander_state: EnemyState
+@export var chase_state: EnemyState
 @export var clip_duration: float = 0.6
 
 var _timer: float = 0.0
@@ -46,6 +47,8 @@ func physics(_delta: float) -> EnemyState:
 	return null
 
 func _after_clip() -> EnemyState:
+	if enemy.has_aggro_target() and chase_state:
+		return chase_state
 	if enemy.has_aggro_target() and not enemy.can_melee_current_target():
 		if wander_state:
 			return wander_state

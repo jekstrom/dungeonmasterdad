@@ -9,6 +9,7 @@ cd "$ROOT"
 SCENES=(
 	"test_harness/procedural_dungeon/us017_boss_spawn_test.tscn|US-017 T001/T002 boss spawn test passed"
 	"test_harness/procedural_dungeon/us017_boss_combat_test.tscn|US-017 T003 boss combat test passed"
+	"test_harness/procedural_dungeon/us017_boss_aggro_test.tscn|US-017 T003 boss aggro test passed"
 	"test_harness/procedural_dungeon/us017_boss_unlock_test.tscn|US-017 T004 boss unlock test passed"
 	"test_harness/procedural_dungeon/us017_blizzard_cast_test.tscn|US-017 T005 blizzard cast test passed"
 	"test_harness/procedural_dungeon/us017_blizzard_factory_test.tscn|US-017 T006 blizzard factory test passed"

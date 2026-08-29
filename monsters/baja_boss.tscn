@@ -435,15 +435,17 @@ blast_state = NodePath("../blast")
 wander_state = NodePath("../wander")
 idle_state = NodePath("../idle")
 
-[node name="attack" type="Node" parent="EnemyStateMachine" node_paths=PackedStringArray("idle_state", "wander_state")]
+[node name="attack" type="Node" parent="EnemyStateMachine" node_paths=PackedStringArray("idle_state", "wander_state", "chase_state")]
 script = ExtResource("12_attack")
 idle_state = NodePath("../idle")
 wander_state = NodePath("../wander")
+chase_state = NodePath("../aggro")
 
-[node name="blast" type="Node" parent="EnemyStateMachine" node_paths=PackedStringArray("idle_state", "wander_state")]
+[node name="blast" type="Node" parent="EnemyStateMachine" node_paths=PackedStringArray("idle_state", "wander_state", "chase_state")]
 script = ExtResource("13_blast")
 idle_state = NodePath("../idle")
 wander_state = NodePath("../wander")
+chase_state = NodePath("../aggro")
 
 [node name="stun" type="Node" parent="EnemyStateMachine" node_paths=PackedStringArray("next_state")]
 script = ExtResource("7_stun")
