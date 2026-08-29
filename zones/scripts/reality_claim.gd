@@ -115,8 +115,20 @@ static func is_world_claimed(tree: SceneTree, world: Vector2) -> bool:
 		return bool(zone.is_claimed_world(world))
 	return false
 
+static func should_despawn_skeleton(tree: SceneTree, world: Vector2) -> bool:
+	if tree == null:
+		return false
+	var cell: Vector2i = DungeonGrid.from_world(world)
+	var reality: Node = zone_from_tree(tree)
+	var fantasy: Node = tree.get_first_node_in_group("FantasyZone")
+	if reality and reality.has_method("winning_pocket_id") and int(reality.winning_pocket_id(cell)) >= 0:
+		return true
+	if fantasy and fantasy.has_method("winning_pocket_id") and int(fantasy.winning_pocket_id(cell)) >= 0:
+		return false
+	return is_world_claimed(tree, world)
+
 static func should_reject_skeleton_spawn(tree: SceneTree, scene_path: String, world: Vector2) -> bool:
-	return is_skeleton_scene_path(scene_path) and is_world_claimed(tree, world)
+	return is_skeleton_scene_path(scene_path) and should_despawn_skeleton(tree, world)
 
 static func cull_skeletons_in_tree(tree: SceneTree) -> void:
 	if tree == null:
@@ -139,7 +151,7 @@ static func _ban_skeleton_if_claimed(node: Node) -> void:
 		return
 	if not (node is Node2D):
 		return
-	if not is_world_claimed(node.get_tree(), (node as Node2D).global_position):
+	if not should_despawn_skeleton(node.get_tree(), (node as Node2D).global_position):
 		return
 	if node.has_method("die"):
 		node.die()

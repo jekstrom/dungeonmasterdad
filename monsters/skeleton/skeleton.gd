@@ -15,11 +15,19 @@ func _physics_process(delta: float) -> void:
 		return
 	if _dying:
 		return
-	if RealityClaim.is_world_claimed(get_tree(), global_position):
+	if RealityClaim.should_despawn_skeleton(get_tree(), global_position):
 		die()
+		return
+	if _is_fantasy_claimed():
 		return
 	if not _is_in_dungeon():
 		die()
+
+func _is_fantasy_claimed() -> bool:
+	var zone: Node = get_tree().get_first_node_in_group("FantasyZone") if get_tree() else null
+	if zone and zone.has_method("is_claimed_world"):
+		return bool(zone.is_claimed_world(global_position))
+	return false
 
 func _is_in_dungeon() -> bool:
 	var manager: Node = get_node_or_null("/root/DungeonGenerationManager")

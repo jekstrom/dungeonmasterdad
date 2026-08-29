@@ -35,7 +35,7 @@ func is_area_clear(pos: Vector2, size: Vector2, _unused_radius = 0, _unused_pos:
 	var result = space_state.intersect_shape(query)
 	
 	var footprint := Rect2(pos.x - size.x / 2.0, pos.y - size.y / 2.0, size.x, size.y)
-	return result.is_empty() and _footprint_inside_reality(footprint) and _footprint_on_outside_tiles(footprint)
+	return result.is_empty() and _footprint_inside_reality(footprint) and _footprint_on_outside_tiles(footprint) and not _footprint_intersects_fantasy(footprint)
 
 func _footprint_inside_reality(footprint: Rect2) -> bool:
 	var zone = get_tree().get_first_node_in_group("RealityZone")
@@ -67,3 +67,12 @@ func footprint_cells(footprint: Rect2) -> Array[Vector2i]:
 		for x in range(start.x, end.x + 1):
 			cells.append(Vector2i(x, y))
 	return cells
+
+func _footprint_intersects_fantasy(footprint: Rect2) -> bool:
+	var zone: Node = get_tree().get_first_node_in_group("FantasyZone")
+	if zone == null or not zone.has_method("is_claimed_cell"):
+		return false
+	for cell in footprint_cells(footprint):
+		if bool(zone.is_claimed_cell(cell)):
+			return true
+	return false
