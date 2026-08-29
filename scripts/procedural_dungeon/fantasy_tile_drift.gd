@@ -83,6 +83,7 @@ func _sync_schedules() -> void:
 			drop.append(cell)
 	for cell in drop:
 		_pending.erase(cell)
+	_reconcile_stale_presentations()
 	for cell in _fantasy_coverage_cells():
 		if _pending.has(cell):
 			continue
@@ -97,6 +98,48 @@ func _sync_schedules() -> void:
 		_pending[cell] = _now() + delay
 	if _is_host() and not _pending.is_empty():
 		set_physics_process(true)
+
+
+func _reconcile_stale_presentations() -> void:
+	# Claim/map-change only. Strip wrong-faction art immediately; Neutral→claimed stays staggered.
+	for node in _iter_outside_tiles():
+		if not (node is OutsideTile) or not is_instance_valid(node):
+			continue
+		var tile: OutsideTile = node
+		var cell: Vector2i = DungeonGrid.from_world(tile.position)
+		if _dungeon_rect.size.x > 0 and _dungeon_rect.size.y > 0 and _dungeon_rect.has_point(cell):
+			continue
+		var claim: int = drift_claim_for_cell(cell)
+		var pres: int = int(tile.element_presentation)
+		if pres == int(OutsideTile.ElementPresentation.FANTASY) and claim != CLAIM_FANTASY:
+			_snap_to_neutral(cell, tile)
+		elif pres == int(OutsideTile.ElementPresentation.REALITY) and claim != CLAIM_REALITY:
+			_snap_to_neutral(cell, tile)
+
+func _iter_outside_tiles() -> Array:
+	var level: Node = _level()
+	if level:
+		var parent: Node = level.get_node_or_null("OutsideTiles")
+		if parent:
+			return parent.get_children()
+	var tree := get_tree()
+	if tree == null:
+		return []
+	return tree.get_nodes_in_group("outside_tiles")
+
+func _snap_to_neutral(cell: Vector2i, tile: OutsideTile) -> void:
+	if tile.element_presentation == OutsideTile.ElementPresentation.NEUTRAL:
+		return
+	if not tile.has_presentation_strip(OutsideTile.ElementPresentation.NEUTRAL):
+		push_error("US-025 T005: missing Neutral strip for kind %s variety %s; leaving current presentation" % [tile.ground_kind, tile.variety])
+		return
+	var kind: int = int(tile.ground_kind)
+	var variety: int = int(tile.variety)
+	tile.element_presentation = OutsideTile.ElementPresentation.NEUTRAL
+	if int(tile.ground_kind) != kind or int(tile.variety) != variety:
+		tile.ground_kind = kind
+		tile.variety = variety
+	_broadcast_presentation(cell, int(OutsideTile.ElementPresentation.NEUTRAL))
 
 func _fantasy_coverage_cells() -> Array[Vector2i]:
 	var seen: Dictionary = {}

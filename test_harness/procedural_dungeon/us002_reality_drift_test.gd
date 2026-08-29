@@ -176,6 +176,46 @@ func _ready() -> void:
 		get_tree().quit(1)
 		return
 
+	# US-025 T005: already-converted Reality art must snap Neutral when unclaimed.
+	var leak_tile: OutsideTile = _outside_at(east_cell)
+	if leak_tile == null:
+		push_error("US-025 T005: Reality leak cell missing")
+		get_tree().quit(1)
+		return
+	var leak_kind: int = int(leak_tile.ground_kind)
+	var leak_variety: int = int(leak_tile.variety)
+	var leak_pocket_id: int = reality.spawn_pocket(east_cell, Vector2i(2, 2), 8.0)
+	if leak_pocket_id < 0:
+		push_error("US-025 T005: Reality leak pocket spawn failed")
+		get_tree().quit(1)
+		return
+	leak_tile.element_presentation = OutsideTile.ElementPresentation.REALITY
+	drift.set_physics_process(false)
+	if not reality.expire_pocket(leak_pocket_id):
+		push_error("US-025 T005: Reality leak pocket expire failed")
+		get_tree().quit(1)
+		return
+	drift.set_physics_process(false)
+	await get_tree().process_frame
+	drift.set_physics_process(false)
+	leak_tile = _outside_at(east_cell)
+	if leak_tile == null or leak_tile.element_presentation == OutsideTile.ElementPresentation.REALITY:
+		push_error("US-025 T005: unclaimed cell must not remain Reality after claim loss")
+		get_tree().quit(1)
+		return
+	if leak_tile.element_presentation != OutsideTile.ElementPresentation.NEUTRAL:
+		push_error("US-025 T005: unclaimed cell must snap Neutral, got %s" % leak_tile.element_presentation)
+		get_tree().quit(1)
+		return
+	if int(leak_tile.ground_kind) != leak_kind or int(leak_tile.variety) != leak_variety:
+		push_error("US-025 T005: Reality snap must not change kind or variety")
+		get_tree().quit(1)
+		return
+	if not _snapshot_matches(level, east_cell, leak_kind, leak_variety, int(OutsideTile.ElementPresentation.NEUTRAL)):
+		push_error("US-025 T005: snapshot must reflect Neutral after Reality strip")
+		get_tree().quit(1)
+		return
+
 	drift.set_physics_process(false)
 	var fantasy: FantasyZone = load("res://zones/fantasy_zone.tscn").instantiate()
 	add_child(fantasy)
