@@ -550,6 +550,7 @@ func _outside_sync_items() -> Array:
 			"y": cell.y,
 			"k": int(tile.ground_kind),
 			"v": int(tile.variety),
+			"p": int(tile.element_presentation),
 		})
 	return items
 
@@ -595,7 +596,7 @@ func _apply_outside_from_payload(items: Variant) -> void:
 		if typeof(item) != TYPE_DICTIONARY:
 			continue
 		var cell := Vector2i(int(item.get("x", 0)), int(item.get("y", 0)))
-		_place_outside_at(parent, cell, int(item.get("k", 0)), int(item.get("v", 0)))
+		_place_outside_at(parent, cell, int(item.get("k", 0)), int(item.get("v", 0)), int(item.get("p", 0)))
 
 func _apply_trees_from_payload(items: Variant) -> void:
 	var parent: Node2D = _scattered_trees_parent()
@@ -622,7 +623,7 @@ func _place_cliff_at(parent: Node2D, cell: Vector2i, frame: int) -> void:
 	if "cliff_frame" in cliff:
 		cliff.cliff_frame = frame
 
-func _place_outside_at(parent: Node2D, cell: Vector2i, ground_kind: int, variety: int) -> void:
+func _place_outside_at(parent: Node2D, cell: Vector2i, ground_kind: int, variety: int, presentation: int = 0) -> void:
 	if _outside_scene == null:
 		return
 	var tile: Node2D = _outside_scene.instantiate() as Node2D
@@ -637,6 +638,8 @@ func _place_outside_at(parent: Node2D, cell: Vector2i, ground_kind: int, variety
 		tile.ground_kind = ground_kind
 	if "variety" in tile:
 		tile.variety = variety
+	if "element_presentation" in tile:
+		tile.element_presentation = presentation
 
 func _place_tree_at(parent: Node2D, cell: Vector2i, tree_type: int) -> void:
 	if _tree_scene == null:

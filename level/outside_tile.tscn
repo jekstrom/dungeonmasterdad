@@ -1,7 +1,7 @@
 [gd_scene load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://level/outside_tile.gd" id="1_script"]
-[ext_resource type="Texture2D" path="res://sprites/outside_ground_placeholder.png" id="2_tex"]
+[ext_resource type="Texture2D" path="res://sprites/outside_grass_neutral.png" id="2_tex"]
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_outside"]
 resource_local_to_scene = true

@@ -3,11 +3,25 @@ class_name OutsideTile extends Node2D
 
 const FLOOR_Z_INDEX := -1
 const SPRITE_GRID_Y := -63.0
+const CELL_SIZE := 128
 
 enum GroundKind { GRASS, DIRT }
+enum ElementPresentation { NEUTRAL, REALITY, FANTASY }
+
+const _GRASS_STRIPS: Array[Texture2D] = [
+	preload("res://sprites/outside_grass_neutral.png"),
+	preload("res://sprites/outside_grass_reality.png"),
+	preload("res://sprites/outside_grass_fantasy.png"),
+]
+const _DIRT_STRIPS: Array[Texture2D] = [
+	preload("res://sprites/outside_dirt_neutral.png"),
+	preload("res://sprites/outside_dirt_reality.png"),
+	preload("res://sprites/outside_dirt_fantasy.png"),
+]
 
 @export var ground_kind: GroundKind = GroundKind.GRASS: set = _set_ground_kind
 @export var variety: int = 0: set = _set_variety
+@export var element_presentation: ElementPresentation = ElementPresentation.NEUTRAL: set = _set_element_presentation
 @onready var sprite_2d: Sprite2D = $Sprite2D
 
 func _enter_tree() -> void:
@@ -30,16 +44,30 @@ func _set_variety(value: int) -> void:
 	if is_inside_tree():
 		_update_visual()
 
+func _set_element_presentation(value: ElementPresentation) -> void:
+	element_presentation = value
+	if is_inside_tree():
+		_update_visual()
+
 func atlas_frame() -> int:
-	var kind_offset: int = 0 if ground_kind == GroundKind.GRASS else OutsideCatalog.VARIETY_COUNT
-	return kind_offset + clampi(variety, 0, OutsideCatalog.VARIETY_COUNT - 1)
+	return clampi(variety, 0, OutsideCatalog.VARIETY_COUNT - 1)
+
+func strip_texture() -> Texture2D:
+	var pres: int = clampi(int(element_presentation), 0, 2)
+	if ground_kind == GroundKind.DIRT:
+		return _DIRT_STRIPS[pres]
+	return _GRASS_STRIPS[pres]
 
 func _update_visual() -> void:
 	if not _resolve_sprite():
 		return
 	_ensure_unique_texture()
 	if sprite_2d.texture is AtlasTexture:
-		(sprite_2d.texture as AtlasTexture).region = Rect2(atlas_frame() * 128, 0, 128, 128)
+		var atlas := sprite_2d.texture as AtlasTexture
+		var strip: Texture2D = strip_texture()
+		if strip != null and atlas.atlas != strip:
+			atlas.atlas = strip
+		atlas.region = Rect2(atlas_frame() * CELL_SIZE, 0, CELL_SIZE, CELL_SIZE)
 	sprite_2d.position = Vector2(0, SPRITE_GRID_Y)
 
 func _ensure_unique_texture() -> void:
