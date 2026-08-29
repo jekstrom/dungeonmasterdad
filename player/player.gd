@@ -289,10 +289,13 @@ func update_animation(state: String) -> void:
 	var anim_name: String = state + "_" + anim_direction()
 	if animation_player == null:
 		return
+	# Do not restart the same clip; play() every physics tick flickers on replicas.
 	if animation_player.has_animation(anim_name):
-		animation_player.play(anim_name)
+		if animation_player.current_animation != anim_name:
+			animation_player.play(anim_name)
 	elif animation_player.has_animation(state + "_side"):
-		animation_player.play(state + "_side")
+		if animation_player.current_animation != state + "_side":
+			animation_player.play(state + "_side")
 
 func anim_direction() -> String:
 	if cardinal_direction == Vector2.DOWN:
