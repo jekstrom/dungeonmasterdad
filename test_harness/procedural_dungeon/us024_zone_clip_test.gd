@@ -113,12 +113,16 @@ func _ready() -> void:
 		push_error("US-024 T013: grown Fantasy home left the interior")
 		get_tree().quit(1)
 		return
-	if reality.home_rect != interior:
-		push_error("US-024 T013: huge Reality growth should truncate to interior")
+	if reality.home_rect.position.x < interior.position.x or reality.home_rect.end.x > interior.end.x:
+		push_error("US-024 T013: huge Reality growth should stay inside interior, got %s" % reality.home_rect)
 		get_tree().quit(1)
 		return
-	if fantasy.home_rect != interior:
-		push_error("US-024 T013: huge Fantasy growth should truncate to interior")
+	if fantasy.home_rect.end.x > interior.end.x or fantasy.home_rect.position.x < interior.position.x:
+		push_error("US-024 T013: huge Fantasy growth should stay inside interior, got %s" % fantasy.home_rect)
+		get_tree().quit(1)
+		return
+	if Zone.homes_occupy_same_cell(reality.home_rect, fantasy.home_rect):
+		push_error("US-025 T001: huge growth must not leave overlapping homes %s vs %s" % [reality.home_rect, fantasy.home_rect])
 		get_tree().quit(1)
 		return
 

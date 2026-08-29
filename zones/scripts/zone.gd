@@ -15,6 +15,7 @@ var _home_overlay_root: Node2D = null
 var _home_overlay_texture: Texture2D = null
 var _queued_rect_collision: Vector2 = Vector2.ZERO
 var _rect_collision_queued: bool = false
+static var _resolving_homes: bool = false
 
 func _ready() -> void:
 	if is_reality:
@@ -63,10 +64,8 @@ func clip_home_to_interior() -> void:
 	if bounds == null or not bounds.has_committed_bounds():
 		return
 	var interior: Rect2i = bounds.get_interior()
-	if is_reality:
-		_place_reality_home(bounds, interior)
-	else:
-		_place_fantasy_home(bounds, interior)
+	home_rect = proposed_home_rect(bounds, interior)
+	_resolve_overlapping_homes(bounds, interior)
 	_apply_clipped_home_presentation()
 
 func clip_pocket_rect(rect: Rect2i) -> Rect2i:
@@ -75,19 +74,151 @@ func clip_pocket_rect(rect: Rect2i) -> Rect2i:
 		return Rect2i()
 	return bounds.intersect_interior(rect)
 
-func _place_reality_home(bounds: MapBounds, interior: Rect2i) -> void:
+func proposed_home_rect(bounds: MapBounds, interior: Rect2i) -> Rect2i:
+	if is_reality:
+		return _proposed_reality_home(bounds, interior)
+	return _proposed_fantasy_home(bounds, interior)
+
+func _proposed_reality_home(bounds: MapBounds, interior: Rect2i) -> Rect2i:
 	var width: int = _home_width_from_radius() + maxi(0, _current_zone_level())
 	var proposed := Rect2i(interior.position, Vector2i(width, interior.size.y))
-	home_rect = bounds.intersect_interior(proposed)
+	return bounds.intersect_interior(proposed)
 
-func _place_fantasy_home(bounds: MapBounds, interior: Rect2i) -> void:
+func _proposed_fantasy_home(bounds: MapBounds, interior: Rect2i) -> Rect2i:
 	var seed_rect: Rect2i = _fantasy_seed_rect(interior)
 	var growth: int = maxi(0, _current_zone_level())
 	var proposed := Rect2i(
 		seed_rect.position - Vector2i(growth, growth),
 		seed_rect.size + Vector2i(growth * 2, growth * 2)
 	)
-	home_rect = bounds.intersect_interior(proposed)
+	return bounds.intersect_interior(proposed)
+
+func _place_reality_home(bounds: MapBounds, interior: Rect2i) -> void:
+	home_rect = _proposed_reality_home(bounds, interior)
+
+func _place_fantasy_home(bounds: MapBounds, interior: Rect2i) -> void:
+	home_rect = _proposed_fantasy_home(bounds, interior)
+
+func _resolve_overlapping_homes(bounds: MapBounds, interior: Rect2i) -> void:
+	if _resolving_homes:
+		return
+	var tree := get_tree()
+	if tree == null:
+		return
+	var reality: Node = self if is_reality else tree.get_first_node_in_group("RealityZone")
+	var fantasy: Node = self if not is_reality else tree.get_first_node_in_group("FantasyZone")
+	if reality == null or fantasy == null:
+		return
+	if not reality.has_method("proposed_home_rect") or not fantasy.has_method("proposed_home_rect"):
+		return
+	_resolving_homes = true
+	var reality_proposed: Rect2i = reality.proposed_home_rect(bounds, interior)
+	var fantasy_proposed: Rect2i = fantasy.proposed_home_rect(bounds, interior)
+	var resolved: Array = resolve_home_rects(
+		reality_proposed,
+		fantasy_proposed,
+		int(PlayerManager.reality_level),
+		int(DmManager.fantasy_level)
+	)
+	var reality_rect: Rect2i = resolved[0]
+	var fantasy_rect: Rect2i = resolved[1]
+	reality.home_rect = reality_rect
+	fantasy.home_rect = fantasy_rect
+	var peer: Node = fantasy if is_reality else reality
+	_apply_peer_resolved_home(peer)
+	_resolving_homes = false
+
+func _apply_peer_resolved_home(peer: Node) -> void:
+	if peer == null or peer == self:
+		return
+	if peer.has_method("_sync_claim_home"):
+		peer._sync_claim_home()
+	if peer.has_method("_apply_clipped_home_presentation"):
+		peer._apply_clipped_home_presentation()
+	if bool(peer.get("is_reality")):
+		SignalBus.reality_home_changed.emit(peer.home_rect)
+		SignalBus.reality_claim_changed.emit()
+	else:
+		SignalBus.fantasy_home_changed.emit(peer.home_rect)
+		SignalBus.fantasy_claim_changed.emit()
+	if peer.has_method("_broadcast_claim"):
+		peer._broadcast_claim()
+
+static func homes_occupy_same_cell(a: Rect2i, b: Rect2i) -> bool:
+	var hit: Rect2i = a.intersection(b)
+	return hit.size.x > 0 and hit.size.y > 0
+
+static func resolve_home_rects(reality: Rect2i, fantasy: Rect2i, reality_level: int, fantasy_level: int) -> Array:
+	if not homes_occupy_same_cell(reality, fantasy):
+		return [reality, fantasy]
+	if reality_level > fantasy_level:
+		return [reality, _shrink_home_off(fantasy, reality, false)]
+	if fantasy_level > reality_level:
+		return [_shrink_home_off(reality, fantasy, true), fantasy]
+	return _retract_equal_homes(reality, fantasy)
+
+static func _shrink_home_off(loser: Rect2i, winner: Rect2i, shrink_from_east: bool) -> Rect2i:
+	var hit: Rect2i = loser.intersection(winner)
+	if hit.size.x <= 0 or hit.size.y <= 0:
+		return loser
+	var out: Rect2i = loser
+	if shrink_from_east:
+		var new_end_x: int = mini(loser.end.x, hit.position.x)
+		var new_w: int = new_end_x - loser.position.x
+		if new_w <= 0:
+			return Rect2i()
+		out = Rect2i(loser.position, Vector2i(new_w, loser.size.y))
+	else:
+		var new_x: int = maxi(loser.position.x, hit.end.x)
+		var new_w2: int = loser.end.x - new_x
+		if new_w2 <= 0:
+			return Rect2i()
+		out = Rect2i(Vector2i(new_x, loser.position.y), Vector2i(new_w2, loser.size.y))
+	return _shrink_vertical_if_needed(out, winner)
+
+static func _shrink_vertical_if_needed(loser: Rect2i, winner: Rect2i) -> Rect2i:
+	var hit: Rect2i = loser.intersection(winner)
+	if hit.size.x <= 0 or hit.size.y <= 0:
+		return loser
+	if hit.position.y <= loser.position.y:
+		var new_y: int = hit.end.y
+		var new_h: int = loser.end.y - new_y
+		if new_h <= 0:
+			return Rect2i()
+		return Rect2i(Vector2i(loser.position.x, new_y), Vector2i(loser.size.x, new_h))
+	var keep_h: int = hit.position.y - loser.position.y
+	if keep_h <= 0:
+		return Rect2i()
+	return Rect2i(loser.position, Vector2i(loser.size.x, keep_h))
+
+static func _retract_equal_homes(reality: Rect2i, fantasy: Rect2i) -> Array:
+	var hit: Rect2i = reality.intersection(fantasy)
+	if hit.size.x <= 0 or hit.size.y <= 0:
+		return [reality, fantasy]
+	var ox: int = hit.position.x
+	var ow: int = hit.size.x
+	var reality_end_x: int = reality.end.x
+	var fantasy_end_x: int = fantasy.end.x
+	var r: Rect2i = reality
+	var f: Rect2i = fantasy
+	if ow % 2 == 0:
+		var split: int = ox + int(ow / 2)
+		var r_w: int = split - reality.position.x
+		r = Rect2i() if r_w <= 0 else Rect2i(reality.position, Vector2i(r_w, reality.size.y))
+		var f_w: int = fantasy_end_x - split
+		f = Rect2i() if f_w <= 0 else Rect2i(Vector2i(split, fantasy.position.y), Vector2i(f_w, fantasy.size.y))
+	else:
+		var mid: int = ox + int(ow / 2)
+		var r_w2: int = mid - reality.position.x
+		r = Rect2i() if r_w2 <= 0 else Rect2i(reality.position, Vector2i(r_w2, reality.size.y))
+		var f_x: int = mid + 1
+		var f_w2: int = fantasy_end_x - f_x
+		f = Rect2i() if f_w2 <= 0 else Rect2i(Vector2i(f_x, fantasy.position.y), Vector2i(f_w2, fantasy.size.y))
+	if homes_occupy_same_cell(r, f):
+		f = _shrink_home_off(f, r, false)
+		if homes_occupy_same_cell(r, f):
+			r = _shrink_home_off(r, f, true)
+	return [r, f]
 
 func _fantasy_seed_rect(interior: Rect2i) -> Rect2i:
 	var level_node: Node = _level_manager()

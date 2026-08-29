@@ -341,23 +341,23 @@ func _ready() -> void:
 	reality.on_level_changed(8)
 	fantasy.on_level_changed(8)
 	await get_tree().process_frame
-	if not reality.home_rect.has_point(home_cell) or not fantasy.home_rect.has_point(home_cell):
-		push_error("US-004 T004: home overlap cell missing after level bump")
+	if Zone.homes_occupy_same_cell(reality.home_rect, fantasy.home_rect):
+		push_error("US-025 T001: Reality and Fantasy homes must not overlap after equal bump")
 		get_tree().quit(1)
 		return
-	if drift.is_fantasy_drift_eligible(home_cell) or reality_drift.is_reality_drift_eligible(home_cell):
-		push_error("US-004 T004: tied home overlap must keep current art")
+	if reality.home_rect.has_point(home_cell) and fantasy.home_rect.has_point(home_cell):
+		push_error("US-025 T001: a cell must not sit in both homes")
 		get_tree().quit(1)
 		return
 	DmManager.fantasy_level = 12
 	fantasy.on_level_changed(12)
 	await get_tree().process_frame
-	if not drift.is_fantasy_drift_eligible(home_cell):
-		push_error("US-004 T004: higher Fantasy Level must win overlapping homes")
+	if Zone.homes_occupy_same_cell(reality.home_rect, fantasy.home_rect):
+		push_error("US-025 T002: homes must stay disjoint after higher Fantasy Level")
 		get_tree().quit(1)
 		return
-	if reality_drift.is_reality_drift_eligible(home_cell):
-		push_error("US-004 T004: higher Fantasy Level must not stay Reality-eligible")
+	if reality_drift.is_reality_drift_eligible(home_cell) and drift.is_fantasy_drift_eligible(home_cell):
+		push_error("US-025 T002: a cell must not be drift-eligible for both zones")
 		get_tree().quit(1)
 		return
 

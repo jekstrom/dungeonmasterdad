@@ -1,7 +1,7 @@
 class_name ZoneDriftClaim extends RefCounted
 
-## Shared Reality/Fantasy drift claim winner (US-002 FR-007 / US-004 FR-006).
-## Pockets override homes. Overlapping homes: higher covering level wins. Ties keep current art.
+## Shared Reality/Fantasy drift claim winner.
+## Pockets override homes. US-025: homes themselves do not overlap; dual-home is a safety net only.
 
 const CLAIM_NONE := 0
 const CLAIM_REALITY := 1
