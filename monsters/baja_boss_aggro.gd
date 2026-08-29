@@ -1,12 +1,17 @@
 class_name BajaBossAggro extends EnemyState
 
 ## Host chase + combat dispatcher. Walk toward the DM until melee, then attack.
-## Blast is the ranged beat when in blast range but not melee. Close the gap if
-## out of blast range. user_stories/tasks/US-017/T003-host-boss-combat.md
-## Blast is Baja spit, not Bemidji Blizzard. T004 unlock is not here.
+## Priority: melee if in melee; else jet if ready + in jet range (~512-640px);
+## else existing blast if in blast range (256); else chase.
+## Jet cooldown ~3s so blast/melee still happen. After jet, chase_state=aggro.
+## Do not wander-skip aggro.
+## user_stories/tasks/US-017/T003-host-boss-combat.md
+## user_stories/tasks/US-027/T001-jet-telegraph.md
+## NOT Freeze Wave, NOT Sugar Rush, NOT US-018 fireball, NOT Bemidji Blizzard.
 
 @export var attack_state: EnemyState
 @export var blast_state: EnemyState
+@export var jet_state: EnemyState
 @export var wander_state: EnemyState
 @export var idle_state: EnemyState
 @export var anim_name: String = "walk"
@@ -49,6 +54,8 @@ func _pick_combat() -> EnemyState:
 			return attack_state
 		enemy.velocity = Vector2.ZERO
 		return null
+	if _ready_for_jet() and _in_jet_range() and jet_state:
+		return jet_state
 	if _ready_for_combat() and _in_blast_range() and blast_state:
 		return blast_state
 	return null
@@ -57,6 +64,18 @@ func _ready_for_combat() -> bool:
 	if enemy.has_method("ready_for_combat"):
 		return bool(enemy.call("ready_for_combat"))
 	return true
+
+func _ready_for_jet() -> bool:
+	if enemy.has_method("ready_for_jet"):
+		return bool(enemy.call("ready_for_jet"))
+	return false
+
+func _in_jet_range() -> bool:
+	if enemy == null:
+		return false
+	if enemy.has_method("in_jet_range_of"):
+		return bool(enemy.call("in_jet_range_of", enemy.aggro_target))
+	return false
 
 func _in_blast_range() -> bool:
 	if enemy == null:

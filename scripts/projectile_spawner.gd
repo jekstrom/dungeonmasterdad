@@ -5,6 +5,7 @@ extends MultiplayerSpawner
 var projectile_scene: PackedScene
 
 const STAPLE_PROJECTILE_SCENE: PackedScene = preload("res://player/staple_projectile.tscn")
+const CARBONATED_JET_SCENE: PackedScene = preload("res://monsters/carbonated_jet.tscn")
 
 @export
 var staple_scene: PackedScene
@@ -17,6 +18,7 @@ func _ready():
 	_ensure_spawn_function()
 	set_multiplayer_authority(1)
 	add_spawnable_scene("res://player/staple_projectile.tscn")
+	add_spawnable_scene("res://monsters/carbonated_jet.tscn")
 	
 	# Only connect to signals on server - clients shouldn't handle spawning  
 	if multiplayer.is_server():
@@ -40,6 +42,22 @@ func _custom_spawn(data: Dictionary) -> Node2D:
 		if data.has("max_range"):
 			p.max_range = float(data.max_range)
 		return p
+	# US-027 Carbonated Jet. Keep fireball as the default branch below so
+	# US-005 staple_fire_test still instantiates FireballSpell.
+	if str(data.get("kind", "")) == "carbonated_jet":
+		var jet = CARBONATED_JET_SCENE.instantiate()
+		jet.shooter_id = int(data.get("shooter_id", 0))
+		jet.position = data.get("position", Vector2.ZERO)
+		jet.direction = data.get("direction", Vector2.RIGHT)
+		if data.has("damage"):
+			jet.damage = int(data.damage)
+		if data.has("speed"):
+			jet.speed = float(data.speed)
+		if data.has("max_range"):
+			jet.max_range = float(data.max_range)
+		if data.has("shooter_path"):
+			jet.shooter_path = data.shooter_path
+		return jet
 	var p = projectile_scene.instantiate()
 	p.shooter_id = data.shooter_id
 	p.position = data.position
@@ -58,6 +76,14 @@ func spawn_staple(data: Dictionary) -> Node:
 		return null
 	_ensure_spawn_function()
 	data["kind"] = "staple"
+	return spawn(data)
+
+func spawn_carbonated_jet(data: Dictionary) -> Node:
+	# US-027 Carbonated Jet. Host-only. Not US-018 fireball.
+	if !multiplayer.is_server():
+		return null
+	_ensure_spawn_function()
+	data["kind"] = "carbonated_jet"
 	return spawn(data)
 
 func on_spell_cast(spell_id: String, spell_data: Dictionary) -> void:

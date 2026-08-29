@@ -2,7 +2,7 @@ class_name BajaBossBlast extends EnemyState
 
 ## Host ranged Baja spit (blast_*), NOT Bemidji Blizzard, NOT US-018 fireball.
 ## user_stories/tasks/US-017/T003-host-boss-combat.md
-## Do not create a Fantasy pocket. Do not unlock (T004).
+## US-027 HARD RULE: KEEP this spit. Carbonated Jet is baja_boss_jet.gd.
 
 @export var anim_name: String = "blast"
 @export var idle_state: EnemyState
