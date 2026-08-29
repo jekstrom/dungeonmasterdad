@@ -116,6 +116,16 @@ func _ready() -> void:
 		get_tree().quit(1)
 		return
 
+	if ResourceLoader.exists("res://sprites/reality_drift_puff.png") and not _has_puff(level):
+		push_error("US-002 T005: convert puff missing")
+		get_tree().quit(1)
+		return
+
+	if not _snapshot_matches(level, home_cell, home_kind, home_variety, int(OutsideTile.ElementPresentation.REALITY)):
+		push_error("US-002 T006: late-join snapshot missing current Reality presentation")
+		get_tree().quit(1)
+		return
+
 	east_tile = _outside_at(east_cell)
 	if east_tile == null or int(east_tile.element_presentation) != east_pres:
 		push_error("US-002: unclaimed outside tile must not convert to Reality")
@@ -164,7 +174,69 @@ func _ready() -> void:
 		get_tree().quit(1)
 		return
 
+	drift.set_physics_process(false)
+	var fantasy: FantasyZone = load("res://zones/fantasy_zone.tscn").instantiate()
+	add_child(fantasy)
+	await get_tree().process_frame
+	PlayerManager.reality_level = 8
+	DmManager.fantasy_level = 8
+	reality.on_level_changed(8)
+	fantasy.on_level_changed(8)
+	await get_tree().process_frame
+	if not reality.home_rect.has_point(home_cell) or not fantasy.home_rect.has_point(home_cell):
+		push_error("US-002 T004: home overlap cell missing after level bump")
+		get_tree().quit(1)
+		return
+	if drift.is_reality_drift_eligible(home_cell):
+		push_error("US-002 T004: tied home overlap must keep current art")
+		get_tree().quit(1)
+		return
+	PlayerManager.reality_level = 12
+	reality.on_level_changed(12)
+	await get_tree().process_frame
+	if not drift.is_reality_drift_eligible(home_cell):
+		push_error("US-002 T004: higher Reality Level must win overlapping homes")
+		get_tree().quit(1)
+		return
+
+	var fantasy_pocket_id: int = fantasy.spawn_pocket(home_cell, Vector2i(2, 2), 8.0)
+	if fantasy_pocket_id < 0:
+		push_error("US-002 T004: Fantasy pocket spawn failed")
+		get_tree().quit(1)
+		return
+	if drift.is_reality_drift_eligible(home_cell):
+		push_error("US-002 T004: Fantasy pocket must block Reality drift")
+		get_tree().quit(1)
+		return
+	if not fantasy.expire_pocket(fantasy_pocket_id):
+		push_error("US-002 T004: Fantasy pocket expire failed")
+		get_tree().quit(1)
+		return
+	if not drift.is_reality_drift_eligible(home_cell):
+		push_error("US-002 T004: Reality home must win again after Fantasy pocket expires")
+		get_tree().quit(1)
+		return
+
+	var reality_pocket_id: int = reality.spawn_pocket(east_cell, Vector2i(2, 2), 8.0)
+	if reality_pocket_id < 0:
+		push_error("US-002 T004: Reality pocket over Fantasy grass failed")
+		get_tree().quit(1)
+		return
+	if not drift.is_reality_drift_eligible(east_cell):
+		push_error("US-002 T004: Reality pocket must schedule Reality drift")
+		get_tree().quit(1)
+		return
+	if not reality.expire_pocket(reality_pocket_id):
+		push_error("US-002 T004: Reality pocket expire failed")
+		get_tree().quit(1)
+		return
+	if drift.is_reality_drift_eligible(east_cell):
+		push_error("US-002 T004: expired Reality pocket must drop Reality eligibility")
+		get_tree().quit(1)
+		return
+
 	PlayerManager.reality_level = 0
+	DmManager.fantasy_level = 0
 	print("US-002 Reality tile drift test passed")
 	get_tree().quit(0)
 
@@ -194,3 +266,21 @@ func _count_eligible_not_reality(reality: RealityZone) -> int:
 			continue
 		n += 1
 	return n
+
+func _has_puff(level: Node) -> bool:
+	for child in level.get_children():
+		if child is AnimatedSprite2D and str(child.name).find("Puff") >= 0:
+			return true
+	return false
+
+func _snapshot_matches(level: Node, cell: Vector2i, kind: int, variety: int, presentation: int) -> bool:
+	if not level.has_method("build_map_sync_payload"):
+		return false
+	var payload: Dictionary = level.build_map_sync_payload()
+	for item in payload.get("out", []):
+		if typeof(item) != TYPE_DICTIONARY:
+			continue
+		if int(item.get("x", 0)) != cell.x or int(item.get("y", 0)) != cell.y:
+			continue
+		return int(item.get("k", -1)) == kind and int(item.get("v", -1)) == variety and int(item.get("p", -1)) == presentation
+	return false

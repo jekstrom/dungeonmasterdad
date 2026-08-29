@@ -297,6 +297,10 @@ func apply_outside_presentation(cell: Vector2i, presentation: int) -> void:
 		if DungeonGrid.from_world((node as OutsideTile).position) != cell:
 			continue
 		(node as OutsideTile).element_presentation = presentation
+		if presentation == int(OutsideTile.ElementPresentation.REALITY):
+			var drift: Node = get_node_or_null("RealityTileDrift")
+			if drift and drift.has_method("play_convert_puff"):
+				drift.play_convert_puff(cell)
 		return
 
 func rebuild_cliff_ring() -> void:
