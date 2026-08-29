@@ -41,7 +41,7 @@ func _initialize_spawn_points() -> void:
 func _generate_default_spawn_points() -> void:
 	"""Create evenly distributed spawn points around the zone center"""
 	var num_points = 8  # Generate 8 spawn points by default
-	var spawn_radius = radius * 0.7  # Place points at 70% of zone radius
+	var spawn_radius = float(base_radius if radius == null else radius) * 0.7
 	
 	spawn_points.clear()
 	for i in range(num_points):
@@ -129,8 +129,7 @@ func _update_spawn_cooldowns(current_time: float) -> void:
 
 func is_position_within_zone(pos: Vector2) -> bool:
 	"""Check if a world position is within this reality zone's boundaries"""
-	var distance_to_center = global_position.distance_to(pos)
-	return distance_to_center <= radius
+	return contains_world_position(pos)
 
 func get_safe_spawn_position_near(target_position: Vector2) -> Vector2:
 	"""Get a spawn position as close as possible to the target while staying in zone"""
@@ -200,7 +199,7 @@ func _on_respawn_location_selected(player_id: int, pos: Vector2) -> void:
 # =============================================================================
 
 func _draw() -> void:
-	super._draw()  # Draw the zone circle
+	super._draw()  # Reality home overlay is in Zone; spawn dots only here
 	
 	# Draw spawn points in debug mode
 	if OS.is_debug_build():
@@ -232,7 +231,7 @@ func validate_spawn_points() -> bool:
 	
 	# Check for spawn points outside the zone
 	for spawn_pos in spawn_points:
-		if spawn_pos.length() > radius:
+		if not contains_world_position(global_position + spawn_pos):
 			print("RealityZone: Warning - Spawn point ", spawn_pos, " is outside zone radius")
 	
 	return true

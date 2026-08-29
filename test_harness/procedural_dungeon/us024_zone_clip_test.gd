@@ -74,8 +74,12 @@ func _ready() -> void:
 		push_error("US-024 T013: Fantasy home should sit on east interior edge")
 		get_tree().quit(1)
 		return
-	if not _circle_inside_interior(reality, level.map_bounds):
-		push_error("US-024 T013: Reality circle extends past interior")
+	if reality.collision_shape_2d.shape is CircleShape2D:
+		push_error("US-024 T013: Reality collision must not be a circle")
+		get_tree().quit(1)
+		return
+	if not (reality.collision_shape_2d.shape is RectangleShape2D):
+		push_error("US-024 T013: Reality collision must be a rectangle")
 		get_tree().quit(1)
 		return
 	if not _circle_inside_interior(fantasy, level.map_bounds):

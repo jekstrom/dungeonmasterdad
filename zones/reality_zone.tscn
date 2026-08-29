@@ -2,7 +2,8 @@
 
 [ext_resource type="Script" uid="uid://c8ovai6aycvjo" path="res://zones/RealityZone.gd" id="1_efm3j"]
 
-[sub_resource type="CircleShape2D" id="CircleShape2D_648lk"]
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_home"]
+size = Vector2(128, 128)
 
 [node name="RealityZone" type="Area2D"]
 z_index = -1
@@ -11,4 +12,6 @@ zone_color = Color(0.27917853, 0.3228467, 0.37614077, 0.3019608)
 is_reality = true
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
-shape = SubResource("CircleShape2D_648lk")
+shape = SubResource("RectangleShape2D_home")
+
+[node name="HomeOverlay" type="Node2D" parent="."]

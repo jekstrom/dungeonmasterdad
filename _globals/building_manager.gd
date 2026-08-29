@@ -8,9 +8,7 @@ func request_placement(building_id: String, pos: Vector2, check_pos: Vector2):
 	var sender_id = multiplayer.get_remote_sender_id()
 	var data: BuildingData = BuildingDatabase.get_building(building_id)
 	var building_root = get_tree().get_first_node_in_group("building_root")
-	var reality_zone_radius = get_tree().get_first_node_in_group("RealityZone").radius
-	var reality_zone_pos = get_tree().get_first_node_in_group("RealityZone").global_position
-	if PlayerManager.has_resources(sender_id, data.cost_item, data.cost_qty) and is_area_clear(check_pos, data.size, reality_zone_radius, reality_zone_pos):
+	if PlayerManager.has_resources(sender_id, data.cost_item, data.cost_qty) and is_area_clear(check_pos, data.size):
 		PlayerManager.consume_resources(sender_id, data.cost_item, data.cost_qty)
 		
 		if building_root:
@@ -23,7 +21,7 @@ func request_placement(building_id: String, pos: Vector2, check_pos: Vector2):
 			print("no building root found")
 			assert(false, "no building root")
 
-func is_area_clear(pos: Vector2, size: Vector2, reality_zone_radius: int, reality_zone_pos: Vector2) -> bool:
+func is_area_clear(pos: Vector2, size: Vector2, _unused_radius = 0, _unused_pos: Vector2 = Vector2.ZERO) -> bool:
 	var query = PhysicsShapeQueryParameters2D.new()
 	var shape = RectangleShape2D.new()
 	shape.size = Vector2(size.x, size.y)
@@ -36,21 +34,13 @@ func is_area_clear(pos: Vector2, size: Vector2, reality_zone_radius: int, realit
 	
 	var result = space_state.intersect_shape(query)
 	
-	return result.is_empty() and is_rect_inside_circle(Rect2(pos.x - size.x / 2, pos.y - size.y / 2, size.x, size.y), reality_zone_pos, reality_zone_radius)
+	var footprint := Rect2(pos.x - size.x / 2, pos.y - size.y / 2, size.x, size.y)
+	return result.is_empty() and _footprint_inside_reality(footprint)
 
-func is_rect_inside_circle(rect: Rect2, circle_center: Vector2, radius: float) -> bool:
-	var corners = [
-		rect.position, # Top-Left
-		Vector2(rect.end.x, rect.position.y), # Top-Right
-		rect.end, # Bottom-Right
-		Vector2(rect.position.x, rect.end.y) # Bottom-Left
-	]
-
-	var radius_squared = radius * radius
-	
-	for corner in corners:
-		# If any corner is further than the radius, the rect is NOT completely inside
-		if corner.distance_squared_to(circle_center) > radius_squared:
-			return false
-			
-	return true
+func _footprint_inside_reality(footprint: Rect2) -> bool:
+	var zone = get_tree().get_first_node_in_group("RealityZone")
+	if zone == null:
+		return false
+	if zone.has_method("contains_world_rect"):
+		return zone.contains_world_rect(footprint)
+	return false

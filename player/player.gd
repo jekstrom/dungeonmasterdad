@@ -122,9 +122,7 @@ func setup_building(building: String):
 	ghost_building.set_ghost()
 	
 func update_ghost(pos: Vector2):
-	var reality_zone_radius = get_parent().find_child("RealityZone").radius
-	var reality_zone_pos = get_parent().find_child("RealityZone").global_position
-	var valid_placement = BuildingManager.is_area_clear(pos, Vector2(BuildingData.building_size, BuildingData.building_size), reality_zone_radius, reality_zone_pos)
+	var valid_placement = BuildingManager.is_area_clear(pos, Vector2(BuildingData.building_size, BuildingData.building_size))
 	if !valid_placement:
 		ghost_building.modulate = Color(1, 0, 0, 0.7)
 	else:
