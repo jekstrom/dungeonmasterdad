@@ -16,6 +16,8 @@ func _ready() -> void:
 	_sync_claim_home()
 	if not SignalBus.fantasy_pocket_requested.is_connected(_on_fantasy_pocket_requested):
 		SignalBus.fantasy_pocket_requested.connect(_on_fantasy_pocket_requested)
+	if not multiplayer.peer_connected.is_connected(_on_claim_peer_connected):
+		multiplayer.peer_connected.connect(_on_claim_peer_connected)
 	_rebuild_home_overlay()
 
 func is_position_within_zone(pos: Vector2) -> bool:
@@ -63,6 +65,9 @@ func get_pocket(pocket_id: int) -> Dictionary:
 	return {}
 
 func spawn_pocket(origin: Vector2i, size: Vector2i, duration: float = DEFAULT_POCKET_DURATION) -> int:
+	if not _is_claim_host():
+		_rpc_request_spawn_pocket.rpc_id(1, origin, size, duration)
+		return -1
 	_sync_claim_home()
 	var clipped: Rect2i = clip_pocket_rect(Rect2i(origin, size))
 	var pocket: Dictionary = claim.add_pocket(clipped, duration, _claim_now())
@@ -76,14 +81,18 @@ func spawn_pocket(origin: Vector2i, size: Vector2i, duration: float = DEFAULT_PO
 	SignalBus.fantasy_pocket_created.emit(pocket_id, clipped, duration)
 	SignalBus.fantasy_claim_changed.emit()
 	_rebuild_home_overlay()
+	_broadcast_claim()
 	return pocket_id
 
 func expire_pocket(pocket_id: int) -> bool:
+	if not _is_claim_host():
+		return false
 	if not claim.expire_pocket(pocket_id):
 		return false
 	SignalBus.fantasy_pocket_expired.emit(pocket_id)
 	SignalBus.fantasy_claim_changed.emit()
 	_rebuild_home_overlay()
+	_broadcast_claim()
 	return true
 
 func _on_pocket_timeout(pocket_id: int) -> void:
@@ -134,6 +143,7 @@ func _on_map_bounds_cleared() -> void:
 	claim.clear_pockets()
 	_rebuild_home_overlay()
 	SignalBus.fantasy_claim_changed.emit()
+	_broadcast_claim()
 
 func _on_map_bounds_committed(interior: Rect2i) -> void:
 	super._on_map_bounds_committed(interior)
@@ -141,6 +151,7 @@ func _on_map_bounds_committed(interior: Rect2i) -> void:
 	_clip_live_pockets()
 	SignalBus.fantasy_home_changed.emit(home_rect)
 	SignalBus.fantasy_claim_changed.emit()
+	_broadcast_claim()
 
 func _clip_live_pockets() -> void:
 	var expired: Array[int] = []
@@ -157,6 +168,7 @@ func on_level_changed(new_level: int) -> void:
 	_sync_claim_home()
 	SignalBus.fantasy_home_changed.emit(home_rect)
 	SignalBus.fantasy_claim_changed.emit()
+	_broadcast_claim()
 
 func _physics_process(_delta: float) -> void:
 	displace_paper_pushers()
@@ -279,3 +291,109 @@ func _ensure_exclusion_body() -> void:
 	_exclusion_body.collision_layer = EXCLUSION_LAYER
 	_exclusion_body.collision_mask = 0
 
+func _is_claim_host() -> bool:
+	if multiplayer.multiplayer_peer == null:
+		return true
+	return multiplayer.is_server()
+
+func build_claim_sync_payload() -> Dictionary:
+	displace_paper_pushers()
+	_sync_claim_home()
+	var payload: Dictionary = claim.to_sync_dict(_claim_now())
+	payload["fantasy_level"] = int(DmManager.fantasy_level)
+	payload["players"] = _pack_player_positions()
+	return payload
+
+func apply_claim_sync_payload(payload: Dictionary) -> void:
+	claim.apply_sync_dict(payload, _claim_now())
+	home_rect = claim.home_rect
+	if payload.has("fantasy_level") and not _is_claim_host():
+		DmManager.fantasy_level = int(payload["fantasy_level"])
+	if home_rect.size.x > 0 and home_rect.size.y > 0:
+		var world_origin: Vector2 = DungeonGrid.to_world(home_rect.position)
+		var world_size: Vector2 = Vector2(home_rect.size) * DungeonGrid.CELL_PX
+		global_position = world_origin + world_size * 0.5
+		_apply_rect_collision(world_size)
+	_rebuild_home_overlay()
+	SignalBus.fantasy_claim_changed.emit()
+	_apply_packed_players(payload.get("players", []))
+
+func _broadcast_claim() -> void:
+	if not Lobby.is_network_server():
+		return
+	_rpc_apply_claim.rpc(build_claim_sync_payload())
+
+func _on_claim_peer_connected(peer_id: int) -> void:
+	if not Lobby.is_network_server():
+		return
+	_rpc_apply_claim.rpc_id(peer_id, build_claim_sync_payload())
+
+@rpc("authority", "reliable")
+func _rpc_apply_claim(payload: Dictionary) -> void:
+	if Lobby.is_network_server():
+		return
+	apply_claim_sync_payload(payload)
+
+@rpc("any_peer", "reliable")
+func _rpc_request_spawn_pocket(origin: Vector2i, size: Vector2i, duration: float) -> void:
+	if not _is_claim_host():
+		return
+	spawn_pocket(origin, size, duration)
+
+func _pack_player_positions() -> Array:
+	var packed: Array = []
+	var tree := get_tree()
+	if tree == null:
+		return packed
+	for node in tree.get_nodes_in_group("players"):
+		if node == null or not is_instance_valid(node):
+			continue
+		if node.is_in_group("dm"):
+			continue
+		if not (node is Node2D):
+			continue
+		var body := node as Node2D
+		packed.append({
+			"name": str(body.name),
+			"peer_id": body.get_multiplayer_authority(),
+			"x": body.global_position.x,
+			"y": body.global_position.y,
+		})
+	return packed
+
+func _apply_packed_players(packed: Array) -> void:
+	if _is_claim_host():
+		return
+	if typeof(packed) != TYPE_ARRAY:
+		return
+	var tree := get_tree()
+	if tree == null:
+		return
+	for item in packed:
+		if typeof(item) != TYPE_DICTIONARY:
+			continue
+		var dest := Vector2(float(item.get("x", 0.0)), float(item.get("y", 0.0)))
+		if is_claimed_world(dest):
+			continue
+		var body: Node2D = _find_packed_player(tree, item)
+		if body == null:
+			continue
+		body.global_position = dest
+		if body is CharacterBody2D:
+			(body as CharacterBody2D).velocity = Vector2.ZERO
+
+func _find_packed_player(tree: SceneTree, item: Dictionary) -> Node2D:
+	var peer_id: int = int(item.get("peer_id", 0))
+	var want_name: String = str(item.get("name", ""))
+	for node in tree.get_nodes_in_group("players"):
+		if node == null or not is_instance_valid(node):
+			continue
+		if node.is_in_group("dm"):
+			continue
+		if not (node is Node2D):
+			continue
+		if peer_id > 0 and node.get_multiplayer_authority() == peer_id:
+			return node as Node2D
+		if want_name != "" and str(node.name) == want_name:
+			return node as Node2D
+	return null
