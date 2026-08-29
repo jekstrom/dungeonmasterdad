@@ -28,8 +28,8 @@ const BUILDING_SIZE := Vector2(128, 128)
 const POCKET_SIZE := Vector2i(3, 3)
 
 var _level: Node
-var _reality: RealityZone
-var _fantasy: FantasyZone
+var _reality: Node
+var _fantasy: Node
 var _interior := Rect2i(0, 0, 16, 10)
 var _dungeon := Rect2i(8, 2, 8, 6)
 var _drops: Array = []
@@ -118,6 +118,7 @@ func _assert_death_unlocks_blizzard_and_can() -> bool:
 	await get_tree().process_frame
 	if not (boss is BajaBossScript):
 		return _fail("US-017 T009: instantiated node is not BajaBoss")
+	boss.set("grant_blizzard_on_death", true)
 	if not multiplayer.is_server():
 		return _fail("US-017 T009: die() must run as server")
 	_drops.clear()
@@ -163,10 +164,24 @@ func _assert_optional_aggro_closer() -> bool:
 	DmManager.dm = dm
 	await get_tree().process_frame
 	await get_tree().physics_frame
+	await get_tree().physics_frame
 	if not bool(boss.call("has_aggro_target")):
 		return _fail("US-017 T009: optional aggro closer: boss must aggro the DM")
-	if bool(DmUnlocks.dm_unlocks.get(Catalog.BEMIDJI_BLIZZARD, false)) and not bool(boss.get("grant_blizzard_on_death")):
-		pass
+	var start_dist: float = boss.global_position.distance_to(dm.global_position)
+	var sm: Node = boss.get_node_or_null("EnemyStateMachine")
+	var tick := 1.0 / 60.0
+	for _i in 120:
+		if sm:
+			sm._process(tick)
+			sm._physics_process(tick)
+		if boss.has_method("_physics_process"):
+			boss._physics_process(tick)
+	await get_tree().process_frame
+	var later_dist: float = boss.global_position.distance_to(dm.global_position)
+	if later_dist >= start_dist - 32.0:
+		return _fail("US-017 T009: optional aggro: boss must move closer to DM, dist %s -> %s" % [start_dist, later_dist])
+	if bool(boss.get("grant_blizzard_on_death")):
+		return _fail("US-017 T009: aggro path grant_blizzard_on_death must stay false")
 	DmManager.dm = null
 	boss.queue_free()
 	dm.queue_free()
