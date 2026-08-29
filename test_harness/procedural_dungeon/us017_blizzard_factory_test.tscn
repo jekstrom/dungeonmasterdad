@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://test_harness/procedural_dungeon/us017_blizzard_factory_test.gd" id="1_test"]
+
+[node name="Us017BlizzardFactoryTest" type="Node"]
+script = ExtResource("1_test")

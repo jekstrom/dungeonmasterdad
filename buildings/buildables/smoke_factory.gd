@@ -9,7 +9,9 @@ func _ready() -> void:
 	animation_player.play("smoke")
 		
 func _process(delta: float) -> void:
+	if not multiplayer.is_server(): return
 	if is_ghost: return
+	sync_blizzard_interval()
 	timer += delta
 	if timer >= interval:
 		timer -= interval

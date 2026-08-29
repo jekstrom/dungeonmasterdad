@@ -9,6 +9,7 @@ const AbilityCatalog = preload("res://dm/dm_ability_catalog.gd")
 const DEFAULT_MAX_MANA: int = 100
 const BLIZZARD_DURATION: float = 8.0
 const BLIZZARD_SLOW_FACTOR: float = 0.5
+const BLIZZARD_FACTORY_INTERVAL_FACTOR: float = 2.0
 const BLIZZARD_POCKET_CELLS: Vector2i = Vector2i(3, 3)
 
 var dm: DM
@@ -190,19 +191,37 @@ func _fantasy_zone() -> FantasyZone:
 		return null
 	return tree.get_first_node_in_group("FantasyZone") as FantasyZone
 
+func _blizzard_world_rect(cell_rect: Rect2i) -> Rect2:
+	return Rect2(
+		DungeonGrid.to_world(cell_rect.position),
+		Vector2(cell_rect.size) * DungeonGrid.CELL_PX
+	)
+
 func blizzard_slow_factor_at(world: Vector2) -> float:
 	var factor: float = 1.0
 	for effect in _blizzard_effects:
 		var cell_rect: Rect2i = effect["rect"]
 		if cell_rect.size.x <= 0 or cell_rect.size.y <= 0:
 			continue
-		var world_rect := Rect2(
-			DungeonGrid.to_world(cell_rect.position),
-			Vector2(cell_rect.size) * DungeonGrid.CELL_PX
-		)
-		if world_rect.has_point(world):
+		if _blizzard_world_rect(cell_rect).has_point(world):
 			factor = minf(factor, float(effect["slow_factor"]))
 	return factor
+
+func is_in_blizzard_slow_rect(world: Vector2, ignore_pocket_id: int = -1) -> bool:
+	for effect in _blizzard_effects:
+		if ignore_pocket_id >= 0 and int(effect["pocket_id"]) == ignore_pocket_id:
+			continue
+		var cell_rect: Rect2i = effect["rect"]
+		if cell_rect.size.x <= 0 or cell_rect.size.y <= 0:
+			continue
+		if _blizzard_world_rect(cell_rect).has_point(world):
+			return true
+	return false
+
+func blizzard_factory_interval_factor_at(world: Vector2, ignore_pocket_id: int = -1) -> float:
+	if is_in_blizzard_slow_rect(world, ignore_pocket_id):
+		return BLIZZARD_FACTORY_INTERVAL_FACTOR
+	return 1.0
 
 func live_blizzard_count() -> int:
 	return _blizzard_effects.size()
