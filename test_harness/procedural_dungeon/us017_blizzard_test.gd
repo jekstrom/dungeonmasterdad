@@ -2,7 +2,13 @@ extends Node
 
 ## US-017 T009: independent blizzard verification harness.
 ## user_stories/tasks/US-017/T009-verification-harness.md
-## Headless independent test: spawn, death unlock, locked/short mana, 3x3 8s pocket,
+##
+## Two-window play pass (host + client; not executed headless):
+## - Fight the exit boss (south placeholder OK). Death unlocks HUD blizzard icon; can appears.
+## - Cast on Reality home: ice overlay, PP walks through slowed, buildings won't place, factories tick slower.
+## - Second window matches pocket, slow, and factory timing. Expire clears ice and speeds.
+##
+## Headless independent test: spawn, death unlock, locked try_cast / short mana, 3x3 8s pocket,
 ## PP walk T011 (no push-out) at 50% in-rect / baseline outside, building reject,
 ## skeleton allowed, factory 2x origin-in with 90% not reset, expire same-tick,
 ## late-join snapshot unlock+pocket. Optional aggro closer. No US-019/020/018.
@@ -196,6 +202,12 @@ func _assert_locked_or_short_mana_no_pocket() -> bool:
 	DmManager.set_mana(100)
 	if bool(DmUnlocks.dm_unlocks.get(Catalog.BEMIDJI_BLIZZARD, true)):
 		return _fail("US-017 T009: bemidji_blizzard must start locked")
+	if not multiplayer.is_server():
+		return _fail("US-017 T009: offline peer must be server for try_cast")
+	if DmManager.try_cast(Catalog.BEMIDJI_BLIZZARD):
+		return _fail("US-017 T009: locked try_cast must return false")
+	if DmManager.current_mana != 100:
+		return _fail("US-017 T009: locked try_cast must not spend mana, got %d" % DmManager.current_mana)
 	var pockets_before: int = _fantasy.claim.live_pocket_count()
 	if DmManager.launch_blizzard(_spell_at(_pocket_origin())):
 		return _fail("US-017 T009: locked launch_blizzard must return false")
