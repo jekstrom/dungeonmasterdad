@@ -39,17 +39,14 @@ func enter() -> void:
 	enemy.UpdateAnimation(anim_name)
 	_timer = telegraph_sec
 	_fired = false
-	if enemy is BajaBoss:
-		(enemy as BajaBoss).show_jet_tell.rpc(_aim)
-	elif enemy.has_method("show_jet_tell"):
+	# Duck-type: do not `is BajaBoss` (class_name cache hole, US-017 T004).
+	if enemy.has_method("show_jet_tell"):
 		enemy.rpc("show_jet_tell", _aim)
 
 func exit() -> void:
 	if enemy == null:
 		return
-	if enemy is BajaBoss:
-		(enemy as BajaBoss).hide_jet_tell.rpc()
-	elif enemy.has_method("hide_jet_tell"):
+	if enemy.has_method("hide_jet_tell"):
 		enemy.rpc("hide_jet_tell")
 	if _fired and enemy.has_method("mark_jet_cooldown"):
 		enemy.call("mark_jet_cooldown")

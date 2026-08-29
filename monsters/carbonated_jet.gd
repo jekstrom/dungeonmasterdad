@@ -7,7 +7,9 @@ class_name CarbonatedJet extends Hurtbox
 ## user_stories/tasks/US-027/T002-piercing-stream.md
 ## user_stories/tasks/US-027/T003-replicate-jet.md
 
-const JET_TEX := preload("res://sprites/baja_jet.png")
+# Load at runtime so a missing .import cannot empty this script at parse.
+# sprites/baja_jet.png.import is committed for headless (US-027 T004).
+var _jet_tex: Texture2D = null
 const WRAP_PX := 12.0
 const BODY_CELL_X := 128.0
 const CELL := 128.0
@@ -50,6 +52,12 @@ func _ready() -> void:
 			shooter = tree.root.get_node_or_null(shooter_path)
 
 
+func _jet_texture() -> Texture2D:
+	if _jet_tex == null:
+		_jet_tex = load("res://sprites/baja_jet.png") as Texture2D
+	return _jet_tex
+
+
 func _ensure_sprites() -> void:
 	# Wire baja_jet.png cells. No ColorRect / Polygon2D syrup.
 	var neon := get_node_or_null("Neon")
@@ -72,7 +80,7 @@ func _make_cell_sprite(node_name: String, frame: int, pos: Vector2, region: bool
 		spr = Sprite2D.new()
 		spr.name = node_name
 		add_child(spr)
-	spr.texture = JET_TEX
+	spr.texture = _jet_texture()
 	spr.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	spr.scale = Vector2.ONE
 	spr.centered = true
@@ -90,7 +98,7 @@ func _apply_body_region(wrap: float) -> void:
 		return
 	# Body cell is index 1 at x=128. 12px wrap stays inside the cell (width 116).
 	# hframes=1 while region_enabled so the 116px window is not subdivided.
-	body.texture = JET_TEX
+	body.texture = _jet_texture()
 	body.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	body.hframes = 1
 	body.vframes = 1
@@ -99,7 +107,7 @@ func _apply_body_region(wrap: float) -> void:
 	body.set_meta("jet_cell", 1)
 	var fizz := get_node_or_null("Fizz") as Sprite2D
 	if fizz:
-		fizz.texture = JET_TEX
+		fizz.texture = _jet_texture()
 		fizz.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 		fizz.hframes = 1
 		fizz.vframes = 1
@@ -150,7 +158,7 @@ func _area_entered(area: Area2D) -> void:
 	if not (area is Hitbox):
 		return
 	var victim: Node = area.get_parent()
-	if victim is BajaBoss:
+	if victim != null and victim.has_method("fire_carbonated_jet"):
 		return
 	if _is_shooter(victim) or _is_shooter(area):
 		return
@@ -182,7 +190,7 @@ func _on_body_entered(body: Node) -> void:
 		return
 	if _is_shooter(body):
 		return
-	if body is BajaBoss:
+	if body.has_method("fire_carbonated_jet"):
 		return
 	# Do not wall or shove Paper Pushers (US-003 T011). Only walls/static stop us.
 	if body is StaticBody2D:
