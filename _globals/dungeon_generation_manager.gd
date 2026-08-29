@@ -641,8 +641,11 @@ func _spawn_generated_monsters(layout_data: DungeonLayoutData, level_manager: No
 	for spawn in layout_data.monster_spawns:
 		var position_dict: Dictionary = spawn.get("position", {})
 		var world_position: Vector2 = DungeonGrid.to_world_from_dict(position_dict)
+		var scene_path: String = str(spawn.get("monsterScenePath", ""))
+		if RealityClaim.should_reject_skeleton_spawn(get_tree(), scene_path, world_position):
+			continue
 		var monster: Node2D = spawner.spawn_monster_from_scene_path(
-			str(spawn.get("monsterScenePath", "")),
+			scene_path,
 			world_position,
 			str(spawn.get("spawnId", ""))
 		)

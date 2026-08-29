@@ -3,6 +3,8 @@ class_name RealityClaim extends RefCounted
 ## Host-side Reality coverage: west-anchored home ∪ live pockets.
 ## Circles are never the occupancy source. Newer pockets win overlay overlap.
 
+const SKELETON_SCENE_PATH := "res://monsters/skeleton/skeleton.tscn"
+
 var home_rect: Rect2i = Rect2i()
 var pockets: Array[Dictionary] = []
 
@@ -98,3 +100,47 @@ func pocket_cells() -> Array[Vector2i]:
 
 func _home_covers(cell: Vector2i) -> bool:
 	return home_rect.size.x > 0 and home_rect.size.y > 0 and home_rect.has_point(cell)
+
+static func is_skeleton_scene_path(scene_path: String) -> bool:
+	return scene_path == SKELETON_SCENE_PATH or scene_path.ends_with("/skeleton.tscn")
+
+static func zone_from_tree(tree: SceneTree) -> Node:
+	if tree == null:
+		return null
+	return tree.get_first_node_in_group("RealityZone")
+
+static func is_world_claimed(tree: SceneTree, world: Vector2) -> bool:
+	var zone: Node = zone_from_tree(tree)
+	if zone and zone.has_method("is_claimed_world"):
+		return bool(zone.is_claimed_world(world))
+	return false
+
+static func should_reject_skeleton_spawn(tree: SceneTree, scene_path: String, world: Vector2) -> bool:
+	return is_skeleton_scene_path(scene_path) and is_world_claimed(tree, world)
+
+static func cull_skeletons_in_tree(tree: SceneTree) -> void:
+	if tree == null:
+		return
+	var seen: Dictionary = {}
+	for node in tree.get_nodes_in_group("skeletons"):
+		seen[node] = true
+		_ban_skeleton_if_claimed(node)
+	for node in tree.get_nodes_in_group("generated_dungeon_monsters"):
+		if seen.has(node):
+			continue
+		_ban_skeleton_if_claimed(node)
+
+static func _ban_skeleton_if_claimed(node: Node) -> void:
+	if node == null or not is_instance_valid(node):
+		return
+	if not (node is Skeleton):
+		return
+	if node.get("_dying") == true:
+		return
+	if not (node is Node2D):
+		return
+	if not is_world_claimed(node.get_tree(), (node as Node2D).global_position):
+		return
+	if node.has_method("die"):
+		node.die()
+

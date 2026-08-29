@@ -136,6 +136,9 @@ func spawn_monster_from_scene_path(scene_path: String, world_position: Vector2, 
 		push_warning("MultiplayerSpawner: monster scene path is not in catalog: %s" % scene_path)
 		return null
 
+	if RealityClaim.should_reject_skeleton_spawn(get_tree(), scene_path, world_position):
+		return null
+
 	var packed_scene: PackedScene = load(scene_path)
 	if not packed_scene:
 		push_warning("MultiplayerSpawner: failed to load monster scene: %s" % scene_path)

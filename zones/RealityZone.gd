@@ -25,6 +25,8 @@ func _ready() -> void:
 		SignalBus.respawn_location_selected.connect(_on_respawn_location_selected)
 	if not SignalBus.reality_pocket_requested.is_connected(_on_reality_pocket_requested):
 		SignalBus.reality_pocket_requested.connect(_on_reality_pocket_requested)
+	if not SignalBus.reality_claim_changed.is_connected(cull_banned_skeletons):
+		SignalBus.reality_claim_changed.connect(cull_banned_skeletons)
 	_rebuild_west_strip_spawns()
 	_rebuild_home_overlay()
 
@@ -394,3 +396,15 @@ func get_spawn_statistics() -> Dictionary:
 			stats["reserved_spawn_points"] += 1
 	
 	return stats
+
+func on_level_changed(new_level: int) -> void:
+	super.on_level_changed(new_level)
+	_sync_claim_home()
+	SignalBus.reality_home_changed.emit(home_rect)
+	SignalBus.reality_claim_changed.emit()
+
+func cull_banned_skeletons(_unused = null) -> void:
+	if multiplayer.multiplayer_peer != null and not multiplayer.is_server():
+		return
+	RealityClaim.cull_skeletons_in_tree(get_tree())
+
