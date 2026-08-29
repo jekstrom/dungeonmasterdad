@@ -15,13 +15,24 @@ const CONVERT_PUFF_FANTASY := "res://sprites/fantasy_drift_puff.png"
 const SPARKS_PATH := "res://sprites/sparks.png"
 const FRAME_PX := 32
 const FRAME_COUNT := 6
-const POP_FPS := 10.0
+const DUST_FPS := 10.0
+const SPARKLE_FPS := 14.0
 const ANIM := &"pop"
 const DEFAULT_INTERVAL_MIN := 1.8
 const DEFAULT_INTERVAL_MAX := 3.6
+const SPARKLE_INTERVAL_MIN := 0.45
+const SPARKLE_INTERVAL_MAX := 0.9
+const SPARKLE_SCALE_MIN := 2.0
+const SPARKLE_SCALE_MAX := 2.7
+const SPARKLE_POPS_PER_TICK := 2
+const DUST_SCALE := 1.0
+const SPARKLE_MODULATE := Color(1.2, 1.25, 1.55, 1.0)
+const DUST_MODULATE := Color(1.0, 1.0, 1.0, 1.0)
 
 var interval_min: float = DEFAULT_INTERVAL_MIN
 var interval_max: float = DEFAULT_INTERVAL_MAX
+var sparkle_interval_min: float = SPARKLE_INTERVAL_MIN
+var sparkle_interval_max: float = SPARKLE_INTERVAL_MAX
 var rebuild_count: int = 0
 
 var _dust_cells: Array[Vector2i] = []
@@ -33,7 +44,8 @@ var _dust_frames: SpriteFrames = null
 var _sparkle_frames: SpriteFrames = null
 var _dust_tried: bool = false
 var _sparkle_tried: bool = false
-var _until_pop: float = 0.0
+var _until_dust: float = 0.0
+var _until_sparkle: float = 0.0
 
 func _ready() -> void:
 	_rng.randomize()
@@ -53,11 +65,16 @@ func _process(delta: float) -> void:
 	if _dust_cells.is_empty() and _sparkle_cells.is_empty():
 		set_process(false)
 		return
-	_until_pop -= delta
-	if _until_pop > 0.0:
-		return
-	_until_pop = _rng.randf_range(interval_min, maxf(interval_min, interval_max))
-	_play_random_pop()
+	if not _dust_cells.is_empty():
+		_until_dust -= delta
+		if _until_dust <= 0.0:
+			_until_dust = _rng.randf_range(interval_min, maxf(interval_min, interval_max))
+			_play_dust_pop()
+	if not _sparkle_cells.is_empty():
+		_until_sparkle -= delta
+		if _until_sparkle <= 0.0:
+			_until_sparkle = _rng.randf_range(sparkle_interval_min, maxf(sparkle_interval_min, sparkle_interval_max))
+			_play_sparkle_pops()
 
 func _on_claim_changed(_unused = null) -> void:
 	rebuild_candidates()
@@ -89,8 +106,11 @@ func rebuild_candidates() -> void:
 	var has_any: bool = not _dust_cells.is_empty() or not _sparkle_cells.is_empty()
 	set_physics_process(false)
 	set_process(has_any)
-	if has_any and _until_pop <= 0.0:
-		_until_pop = _rng.randf_range(interval_min, maxf(interval_min, interval_max))
+	if has_any:
+		if not _dust_cells.is_empty() and _until_dust <= 0.0:
+			_until_dust = _rng.randf_range(interval_min, maxf(interval_min, interval_max))
+		if not _sparkle_cells.is_empty() and _until_sparkle <= 0.0:
+			_until_sparkle = _rng.randf_range(sparkle_interval_min, maxf(sparkle_interval_min, sparkle_interval_max))
 
 func is_dust_candidate(cell: Vector2i) -> bool:
 	return _dust_lookup.has(cell)
@@ -163,17 +183,19 @@ func _append_rect_cells(seen: Dictionary, cells: Array[Vector2i], rect: Rect2i) 
 			seen[cell] = true
 			cells.append(cell)
 
-func _play_random_pop() -> void:
+func _play_dust_pop() -> void:
 	var dust_near: Array[Vector2i] = _nearby(_dust_cells)
-	var sparkle_near: Array[Vector2i] = _nearby(_sparkle_cells)
-	var total: int = dust_near.size() + sparkle_near.size()
-	if total <= 0:
+	if dust_near.is_empty():
 		return
-	var pick: int = _rng.randi_range(0, total - 1)
-	if pick < dust_near.size():
-		_spawn_pop(dust_near[pick], CLAIM_REALITY)
-	else:
-		_spawn_pop(sparkle_near[pick - dust_near.size()], CLAIM_FANTASY)
+	_spawn_pop(dust_near[_rng.randi_range(0, dust_near.size() - 1)], CLAIM_REALITY)
+
+func _play_sparkle_pops() -> void:
+	var sparkle_near: Array[Vector2i] = _nearby(_sparkle_cells)
+	if sparkle_near.is_empty():
+		return
+	var n: int = mini(SPARKLE_POPS_PER_TICK, sparkle_near.size())
+	for _i in range(n):
+		_spawn_pop(sparkle_near[_rng.randi_range(0, sparkle_near.size() - 1)], CLAIM_FANTASY)
 
 func _nearby(cells: Array[Vector2i]) -> Array[Vector2i]:
 	var vis: Rect2i = _visible_cell_rect()
@@ -232,7 +254,15 @@ func _spawn_pop(cell: Vector2i, kind: int) -> AnimatedSprite2D:
 	sprite.sprite_frames = frames
 	sprite.centered = true
 	sprite.z_as_relative = false
-	sprite.z_index = 10
+	if kind == CLAIM_REALITY:
+		sprite.z_index = 10
+		sprite.scale = Vector2(DUST_SCALE, DUST_SCALE)
+		sprite.modulate = DUST_MODULATE
+	else:
+		sprite.z_index = 16
+		var sc: float = _rng.randf_range(SPARKLE_SCALE_MIN, SPARKLE_SCALE_MAX)
+		sprite.scale = Vector2(sc, sc)
+		sprite.modulate = SPARKLE_MODULATE
 	sprite.position = DungeonGrid.to_world_center(cell) + Vector2(
 		_rng.randf_range(-20.0, 20.0),
 		_rng.randf_range(-20.0, 20.0)
@@ -274,7 +304,7 @@ func _ensure_frames(kind: int) -> SpriteFrames:
 		if _dust_tried:
 			return null
 		_dust_tried = true
-		_dust_frames = _load_strip(DUST_PATH)
+		_dust_frames = _load_strip(DUST_PATH, DUST_FPS)
 		return _dust_frames
 	if kind == CLAIM_FANTASY:
 		if _sparkle_frames != null:
@@ -282,11 +312,11 @@ func _ensure_frames(kind: int) -> SpriteFrames:
 		if _sparkle_tried:
 			return null
 		_sparkle_tried = true
-		_sparkle_frames = _load_strip(SPARKLE_PATH)
+		_sparkle_frames = _load_strip(SPARKLE_PATH, SPARKLE_FPS)
 		return _sparkle_frames
 	return null
 
-func _load_strip(path: String) -> SpriteFrames:
+func _load_strip(path: String, fps: float) -> SpriteFrames:
 	if path == CONVERT_PUFF_REALITY or path == CONVERT_PUFF_FANTASY or path == SPARKS_PATH:
 		return null
 	if not ResourceLoader.exists(path):
@@ -297,7 +327,7 @@ func _load_strip(path: String) -> SpriteFrames:
 	var frames := SpriteFrames.new()
 	frames.add_animation(ANIM)
 	frames.set_animation_loop(ANIM, false)
-	frames.set_animation_speed(ANIM, POP_FPS)
+	frames.set_animation_speed(ANIM, fps)
 	var frame_count: int = mini(FRAME_COUNT, maxi(1, int(tex.get_width()) / FRAME_PX))
 	for i in range(frame_count):
 		var atlas := AtlasTexture.new()
