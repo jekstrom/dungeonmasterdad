@@ -415,7 +415,7 @@ func _host_fire_staple(aim: Vector2) -> void:
 	if staple_count <= 0:
 		staple_count = 0
 		_replicate_staple_count()
-		_notify_empty_click()
+		# No jam/click SFX until audio exists. Empty fire fails silent.
 		return
 	var dir: Vector2 = aim
 	if dir.length() < 0.01:
@@ -472,36 +472,6 @@ func _refresh_staple_hud() -> void:
 		return
 	if PlayerHud and PlayerHud.has_method("update_staple_magazine"):
 		PlayerHud.update_staple_magazine(staple_count, staple_magazine_max)
-
-func _notify_empty_click() -> void:
-	var owner_id: int = get_multiplayer_authority()
-	if owner_id == multiplayer.get_unique_id() or owner_id <= 0:
-		play_empty_magazine_click()
-		return
-	play_empty_magazine_click.rpc_id(owner_id)
-
-@rpc("any_peer", "reliable")
-func play_empty_magazine_click() -> void:
-	var sender: int = multiplayer.get_remote_sender_id()
-	if sender != 0 and sender != 1 and sender != get_multiplayer_authority():
-		return
-	empty_click_played = true
-	var player_audio := AudioStreamPlayer.new()
-	var stream := AudioStreamWAV.new()
-	stream.format = AudioStreamWAV.FORMAT_8_BITS
-	stream.mix_rate = 11025
-	stream.stereo = false
-	var frames: int = 110
-	var data := PackedByteArray()
-	data.resize(frames)
-	for i in frames:
-		var t: float = 1.0 - float(i) / float(frames)
-		data[i] = 128 + int(sin(float(i) * 1.4) * 36.0 * t)
-	stream.data = data
-	player_audio.stream = stream
-	add_child(player_audio)
-	player_audio.play()
-	player_audio.finished.connect(player_audio.queue_free)
 
 func _input(event: InputEvent) -> void:
 	# Live LMB cannot live only in _unhandled_input: HUD Controls consume the click.

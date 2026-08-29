@@ -79,8 +79,8 @@ func _ready() -> void:
 	if _staple_count() != empty_before:
 		_fail("US-005 T010: empty fire must not spawn a projectile")
 		return
-	if not player.empty_click_played:
-		_fail("US-005 T010: empty fire must play jam/empty click")
+	if player.empty_click_played:
+		_fail("US-005 T010: empty fire must fail silent (no jam/click audio)")
 		return
 
 	var range_bolt: Node = spawner.spawn_staple({
