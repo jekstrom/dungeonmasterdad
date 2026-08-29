@@ -558,10 +558,10 @@ func _rebuild_combat_animations() -> void:
 	var gun := {
 		"down": {"idle": [0, 1], "walk": [2, 3, 4, 5], "fire": [6, 7]},
 		"up": {"idle": [8, 9], "walk": [10, 11, 12, 13], "fire": [14, 15]},
-		# E/W cells mix full-height and half-height. Use the large cells only.
-		# No idle/breathe on sides; do not scale E/W down to fit N/S.
-		"right": {"idle": [17], "walk": [19, 21], "fire": [23]},
-		"left": {"idle": [24], "walk": [26, 27, 28, 29], "fire": [31]},
+		# cac03b2 dropped mini cells. E/W is the same 8-frame 64 grid as N/S.
+		# Still no idle/breathe on sides (single plant frame). Scale stays 1,1.
+		"right": {"idle": [16], "walk": [18, 19, 20, 21], "fire": [22, 23]},
+		"left": {"idle": [24], "walk": [26, 27, 28, 29], "fire": [30, 31]},
 	}
 	# Packed DOWN/LEFT/RIGHT/UP, idle x2, walk x4, swing x3 (T005 / T008).
 	var pencil := {
