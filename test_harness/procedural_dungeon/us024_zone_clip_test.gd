@@ -82,8 +82,12 @@ func _ready() -> void:
 		push_error("US-024 T013: Reality collision must be a rectangle")
 		get_tree().quit(1)
 		return
-	if not _circle_inside_interior(fantasy, level.map_bounds):
-		push_error("US-024 T013: Fantasy circle extends past interior")
+	if fantasy.collision_shape_2d.shape is CircleShape2D:
+		push_error("US-024 T013: Fantasy collision must not be a circle")
+		get_tree().quit(1)
+		return
+	if not (fantasy.collision_shape_2d.shape is RectangleShape2D):
+		push_error("US-024 T013: Fantasy collision must be a rectangle")
 		get_tree().quit(1)
 		return
 
@@ -133,19 +137,3 @@ func _rect_inside_interior(rect: Rect2i, bounds: MapBounds) -> bool:
 				return false
 	return true
 
-func _circle_inside_interior(zone: Zone, bounds: MapBounds) -> bool:
-	if zone.radius == null:
-		return false
-	var samples: Array[Vector2] = [
-		zone.global_position,
-		zone.global_position + Vector2(zone.radius, 0),
-		zone.global_position + Vector2(-zone.radius, 0),
-		zone.global_position + Vector2(0, zone.radius),
-		zone.global_position + Vector2(0, -zone.radius),
-	]
-	for point in samples:
-		if not bounds.is_world_position_in_interior(point):
-			return false
-		if bounds.is_world_position_on_cliff(point):
-			return false
-	return true

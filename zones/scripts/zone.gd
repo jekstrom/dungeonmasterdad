@@ -2,6 +2,7 @@ class_name Zone extends Area2D
 
 const SPRITE_GRID_Y := -63.0
 const HOME_OVERLAY_PATH := "res://sprites/reality_home_overlay.png"
+const FANTASY_HOME_OVERLAY_PATH := "res://sprites/fantasy_home_overlay.png"
 
 @export var base_radius: float = 100.0
 @export var zone_color: Color = Color(0, 1, 0, 0.3)
@@ -24,27 +25,11 @@ func _ready() -> void:
 		SignalBus.map_bounds_committed.connect(_on_map_bounds_committed)
 	if not SignalBus.map_bounds_cleared.is_connected(_on_map_bounds_cleared):
 		SignalBus.map_bounds_cleared.connect(_on_map_bounds_cleared)
-	if is_reality:
-		clip_home_to_interior()
-	else:
-		radius = base_radius + float(_current_zone_level())
-		_apply_circle_radius(radius)
-		clip_home_to_interior()
+	clip_home_to_interior()
 
 func _draw() -> void:
-	if is_reality:
-		return
-	if home_rect.size.x > 0 and home_rect.size.y > 0:
-		var world_origin: Vector2 = DungeonGrid.to_world(home_rect.position)
-		var world_size: Vector2 = Vector2(home_rect.size) * DungeonGrid.CELL_PX
-		var local_rect := Rect2(world_origin - global_position, world_size)
-		draw_rect(local_rect, zone_color)
-		draw_rect(local_rect, zone_color.darkened(0.5), false, 2.0)
-		return
-	if radius == null:
-		return
-	draw_circle(Vector2.ZERO, radius, zone_color)
-	draw_arc(Vector2.ZERO, radius, 0, TAU, 64, zone_color.darkened(0.5), 2.0, true)
+	# Home look is cell overlays (Reality and Fantasy). Skip debug circle/rect.
+	return
 
 func contains_world_position(world: Vector2) -> bool:
 	if home_rect.size.x <= 0 or home_rect.size.y <= 0:
@@ -62,12 +47,6 @@ func contains_world_rect(rect: Rect2) -> bool:
 
 func on_level_changed(_new_level: int) -> void:
 	clip_home_to_interior()
-	if is_reality:
-		return
-	if home_rect.size.x <= 0:
-		radius = base_radius + float(_current_zone_level())
-		_apply_circle_radius(radius)
-		queue_redraw()
 
 func _on_map_bounds_committed(_interior: Rect2i) -> void:
 	clip_home_to_interior()
@@ -122,20 +101,15 @@ func _fantasy_seed_rect(interior: Rect2i) -> Rect2i:
 
 func _apply_clipped_home_presentation() -> void:
 	if home_rect.size.x <= 0 or home_rect.size.y <= 0:
-		if is_reality:
-			_clear_home_overlay()
-			if _resolve_collision_shape():
-				collision_shape_2d.disabled = true
+		_clear_home_overlay()
+		if _resolve_collision_shape():
+			collision_shape_2d.disabled = true
 		return
 	var world_origin: Vector2 = DungeonGrid.to_world(home_rect.position)
 	var world_size: Vector2 = Vector2(home_rect.size) * DungeonGrid.CELL_PX
 	global_position = world_origin + world_size * 0.5
-	if is_reality:
-		_apply_rect_collision(world_size)
-		_rebuild_home_overlay()
-	else:
-		radius = maxf(0.0, minf(world_size.x, world_size.y) * 0.5 - 0.5)
-		_apply_circle_radius(radius)
+	_apply_rect_collision(world_size)
+	_rebuild_home_overlay()
 	queue_redraw()
 
 func _apply_rect_collision(world_size: Vector2) -> void:
@@ -157,25 +131,12 @@ func _apply_rect_collision(world_size: Vector2) -> void:
 		collision_shape_2d.shape = rect_shape
 	rect_shape.size = world_size
 
-func _apply_circle_radius(value: float) -> void:
-	if not _resolve_collision_shape():
-		return
-	collision_shape_2d.scale = Vector2.ONE
-	collision_shape_2d.position = Vector2.ZERO
-	collision_shape_2d.disabled = false
-	if collision_shape_2d.shape is CircleShape2D:
-		if not collision_shape_2d.shape.resource_local_to_scene:
-			collision_shape_2d.shape = collision_shape_2d.shape.duplicate()
-			collision_shape_2d.shape.resource_local_to_scene = true
-		(collision_shape_2d.shape as CircleShape2D).radius = value
-
 func _rebuild_home_overlay() -> void:
-	if not is_reality:
-		return
 	_ensure_home_overlay_root()
 	_clear_overlay_children(_home_overlay_root)
 	if _home_overlay_texture == null:
-		_home_overlay_texture = load(HOME_OVERLAY_PATH) as Texture2D
+		var path: String = HOME_OVERLAY_PATH if is_reality else FANTASY_HOME_OVERLAY_PATH
+		_home_overlay_texture = load(path) as Texture2D
 	if _home_overlay_texture == null:
 		return
 	for y in range(home_rect.position.y, home_rect.end.y):

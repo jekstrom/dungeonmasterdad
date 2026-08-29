@@ -2,12 +2,14 @@
 
 [ext_resource type="Script" uid="uid://f4aftun4u1fp" path="res://zones/scripts/zone.gd" id="1_lfnct"]
 
-[sub_resource type="CircleShape2D" id="CircleShape2D_ujdv3"]
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_home"]
+size = Vector2(128, 128)
 
 [node name="FantasyZone" type="Area2D"]
 z_index = -1
 script = ExtResource("1_lfnct")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
-scale = Vector2(2, 2)
-shape = SubResource("CircleShape2D_ujdv3")
+shape = SubResource("RectangleShape2D_home")
+
+[node name="HomeOverlay" type="Node2D" parent="."]
