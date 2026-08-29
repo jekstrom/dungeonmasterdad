@@ -1,6 +1,6 @@
-[gd_scene load_steps=31 format=3]
+[gd_scene load_steps=36 format=3]
 
-[ext_resource type="Script" path="res://monsters/baja_boss.gd" id="1_script"]
+[ext_resource type="Script" uid="uid://0twrtfaicoou" path="res://monsters/baja_boss.gd" id="1_script"]
 [ext_resource type="Texture2D" uid="uid://suenlvmbyg3f" path="res://monsters/baja_boss.png" id="2_tex"]
 [ext_resource type="Texture2D" uid="uid://dnhaymu1d41d4" path="res://sprites/Shadow.png" id="3_shadow"]
 [ext_resource type="Script" uid="uid://bmnavawl3vkgc" path="res://monsters/enemy_state_machine.gd" id="4_sm"]
@@ -9,10 +9,18 @@
 [ext_resource type="Script" uid="uid://dfm3rswj3txub" path="res://monsters/states/enemy_state_stun.gd" id="7_stun"]
 [ext_resource type="Texture2D" uid="uid://dt4icgcs5dbex" path="res://monsters/DestroySmoke.png" id="8_smoke"]
 [ext_resource type="PackedScene" uid="uid://c1c212xev4n6e" path="res://hitbox.tscn" id="9_hit"]
+[ext_resource type="PackedScene" uid="uid://cmhep8oix5sk6" path="res://hurtbox.tscn" id="10_hurt"]
+[ext_resource type="Script" uid="uid://cp7hkuwqemn3l" path="res://monsters/baja_boss_aggro.gd" id="11_aggro"]
+[ext_resource type="Script" uid="uid://c4q376gxm83pg" path="res://monsters/baja_boss_attack.gd" id="12_attack"]
+[ext_resource type="Script" uid="uid://bw2tgv868vwg5" path="res://monsters/baja_boss_blast.gd" id="13_blast"]
 
 [sub_resource type="CapsuleShape2D" id="CapsuleShape2D_body"]
 radius = 20.0
 height = 40.0
+
+[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_hurt"]
+radius = 48.0
+height = 96.0
 
 [sub_resource type="Animation" id="Animation_reset"]
 length = 0.001
@@ -410,13 +418,32 @@ autoplay = &"idle_down"
 [node name="EnemyStateMachine" type="Node" parent="."]
 script = ExtResource("4_sm")
 
-[node name="idle" type="Node" parent="EnemyStateMachine" node_paths=PackedStringArray("next_state")]
+[node name="idle" type="Node" parent="EnemyStateMachine" node_paths=PackedStringArray("next_state", "attack_state")]
 script = ExtResource("5_idle")
 next_state = NodePath("../wander")
+attack_state = NodePath("../aggro")
 
-[node name="wander" type="Node" parent="EnemyStateMachine" node_paths=PackedStringArray("next_state")]
+[node name="wander" type="Node" parent="EnemyStateMachine" node_paths=PackedStringArray("next_state", "attack_state")]
 script = ExtResource("6_wander")
 next_state = NodePath("../idle")
+attack_state = NodePath("../aggro")
+
+[node name="aggro" type="Node" parent="EnemyStateMachine" node_paths=PackedStringArray("attack_state", "blast_state", "wander_state", "idle_state")]
+script = ExtResource("11_aggro")
+attack_state = NodePath("../attack")
+blast_state = NodePath("../blast")
+wander_state = NodePath("../wander")
+idle_state = NodePath("../idle")
+
+[node name="attack" type="Node" parent="EnemyStateMachine" node_paths=PackedStringArray("idle_state", "wander_state")]
+script = ExtResource("12_attack")
+idle_state = NodePath("../idle")
+wander_state = NodePath("../wander")
+
+[node name="blast" type="Node" parent="EnemyStateMachine" node_paths=PackedStringArray("idle_state", "wander_state")]
+script = ExtResource("13_blast")
+idle_state = NodePath("../idle")
+wander_state = NodePath("../wander")
 
 [node name="stun" type="Node" parent="EnemyStateMachine" node_paths=PackedStringArray("next_state")]
 script = ExtResource("7_stun")
@@ -443,3 +470,12 @@ collision_layer = 8
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Hitbox"]
 position = Vector2(0, -20)
 shape = SubResource("CapsuleShape2D_body")
+
+[node name="Hurtbox" parent="." instance=ExtResource("10_hurt")]
+collision_mask = 4
+monitoring = false
+damage = 1
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Hurtbox"]
+position = Vector2(0, -48)
+shape = SubResource("CapsuleShape2D_hurt")

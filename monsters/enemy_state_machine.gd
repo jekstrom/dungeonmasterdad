@@ -3,6 +3,7 @@ class_name EnemyStateMachine extends Node
 var states: Array[EnemyState]
 var prev_state: EnemyState
 var current_state: EnemyState
+var enemy: Enemy
 
 func _ready() -> void:
 	if not multiplayer.is_server(): return
@@ -10,14 +11,19 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	if not multiplayer.is_server(): return
+	if current_state == null:
+		return
 	change_state(current_state.process(delta))
 	
 func _physics_process(delta: float) -> void:
 	if not multiplayer.is_server(): return
+	if current_state == null:
+		return
 	change_state(current_state.physics(delta))
 	
 func initialize(_enemy: Enemy) -> void:
 	if not multiplayer.is_server(): return
+	enemy = _enemy
 	states = []
 	
 	for c in get_children():
@@ -35,6 +41,8 @@ func initialize(_enemy: Enemy) -> void:
 
 func change_state(new_state: EnemyState) -> void:
 	if not multiplayer.is_server(): return
+	if enemy and enemy._dying:
+		return
 	if new_state == null || new_state == current_state:
 		return
 		
