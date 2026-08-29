@@ -1,6 +1,7 @@
 class_name DM extends CharacterBody2D
 
 const AbilityCatalog = preload("res://dm/dm_ability_catalog.gd")
+const DewSlickScript = preload("res://doodads/dew_slick.gd")
 const DIR_4 = [Vector2.RIGHT, Vector2.DOWN, Vector2.LEFT, Vector2.UP]
 var cardinal_direction: Vector2 = Vector2.DOWN
 var direction: Vector2 = Vector2.ZERO
@@ -33,6 +34,7 @@ signal DirectionChanged(new_direction: Vector2)
 @export var melee_damage: int = 1
 
 func _ready() -> void:
+	z_index = DungeonConstants.WALL_Z_INDEX + 1
 	collision_mask = collision_mask | 16
 	if is_multiplayer_authority():
 		camera_2d.make_current()
@@ -97,7 +99,7 @@ func _process(delta: float) -> void:
 	if current_targeting:
 		update_target(get_global_mouse_position())
 	
-func _physics_process(_delta: float) -> void:
+func _physics_process(delta: float) -> void:
 	if _dead:
 		velocity = Vector2.ZERO
 		return
@@ -112,7 +114,11 @@ func _physics_process(_delta: float) -> void:
 		Input.get_axis("left", "right"),
 		Input.get_axis("up", "down")
 	).normalized()
-	velocity = direction * 300
+	var desired: Vector2 = direction * 300.0
+	if DewSlickScript.any_covers_world(global_position):
+		velocity = DewSlickScript.slide_velocity(velocity, desired, delta)
+	else:
+		velocity = desired
 	move_and_slide()
 	enforce_map_interior()
 
@@ -120,6 +126,26 @@ func enforce_map_interior() -> void:
 	var level: Node = get_tree().get_first_node_in_group("level_manager") if get_tree() else null
 	if level and level.has_method("enforce_body_interior"):
 		level.enforce_body_interior(self)
+
+func apply_knockback(from: Vector2, distance: float) -> void:
+	if _dead:
+		return
+	if multiplayer.has_multiplayer_peer() and not multiplayer.is_server():
+		return
+	_apply_knockback_local(from, distance)
+
+func _apply_knockback_local(from: Vector2, distance: float) -> void:
+	if _dead:
+		return
+	var dir: Vector2 = global_position - from
+	if dir.length() < 0.001:
+		dir = Vector2.DOWN
+	else:
+		dir = dir.normalized()
+	var dist: float = maxf(0.0, distance)
+	global_position += dir * dist
+	velocity = dir * (dist / 0.5)
+	enforce_map_interior()
 
 @rpc("any_peer", "reliable")
 func apply_interior_clamp(pos: Vector2) -> void:

@@ -4,7 +4,7 @@
 **Branch**: `027-baja-carbonated-jet`  
 **Status**: Todo
 
-**Implement first** among the three Baja specials. Telegraphed piercing neon syrup stream. Hits the DM. Distinct from Freeze Wave and US-017 blast.
+**Implement first** among the Baja Blast boss specials. Telegraphed piercing neon syrup stream. Hits the DM. Distinct from the US-028 fountain slick and US-017 blast.
 
 ## Order
 
@@ -19,11 +19,11 @@ Telegraph (T001) first. Stream (T002) needs the tell. Replication (T003) and har
 
 ## Out of scope
 
-- Freeze Wave (US-028), Sugar Rush (US-029).
+- Fountain slick (US-028), Sugar Rush (US-029).
 - US-019 cube, US-020 cozy, US-018 fireball.
 - US-017 blast spit (keep it; do not replace it with Jet).
 - PP occupancy (US-003 T011).
 
 ## Independent test (story)
 
-Aggro the Baja Blast boss. Arm-point telegraph, then a piercing neon stream that can hit the DM. Second window matches. Freeze Wave is a different move.
+Aggro the Baja Blast boss. Arm-point telegraph, then a piercing neon stream that can hit the DM. Second window matches. The US-028 fountain is a different system.

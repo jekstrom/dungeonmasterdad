@@ -18,7 +18,7 @@ For **10s**, move speed and attack speed are up, and damage taken is **+15%**. T
 
 - FR-002, FR-003, FR-004, AC2, AC3, AC5
 - Timed buff only. After 10s, multipliers end even if HP is still low.
-- Jet / Freeze Wave may still fire during the rush.
+- Jet may still fire during the rush. The US-028 fountain is not a boss clip.
 
 ## Acceptance
 

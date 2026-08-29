@@ -20,7 +20,7 @@ When the boss chooses Carbonated Jet, it **points an arm** (facing pose) and a *
 - FR-001, AC1
 - Suggested tell 0.4–0.8s. Lane matches the upcoming stream.
 - Cancel if the boss dies during the tell (no fire).
-- Distinct from Freeze Wave’s telegraph (US-028).
+- Distinct from the US-028 fountain charge (room gush, not a boss tell).
 
 ## Acceptance
 
@@ -29,4 +29,4 @@ When the boss chooses Carbonated Jet, it **points an arm** (facing pose) and a *
 
 ## Notes
 
-Do not spawn the stream here (T002). Do not implement Freeze Wave.
+Do not spawn the stream here (T002). Do not implement the US-028 fountain.

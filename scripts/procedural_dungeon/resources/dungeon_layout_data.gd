@@ -13,6 +13,8 @@ class_name DungeonLayoutData extends Resource
 @export var tile_placements: Array[Dictionary] = []
 @export var monster_spawns: Array[Dictionary] = []
 @export var item_pickups: Array[Dictionary] = []
+@export var fountain_cell: Vector2i = DungeonGrid.SENTINEL
+@export var fountain_room_cells: Array[Vector2i] = []
 @export var generation_seed: int = 100
 
 func translate_cells(delta: Vector2i) -> void:
@@ -20,6 +22,9 @@ func translate_cells(delta: Vector2i) -> void:
 		return
 	entrance_cell += delta
 	exit_cell += delta
+	if fountain_cell != DungeonGrid.SENTINEL:
+		fountain_cell += delta
+	fountain_room_cells = _shifted_vector_cells(fountain_room_cells, delta)
 	walkable_cells = _shifted_vector_cells(walkable_cells, delta)
 	blocked_cells = _shifted_vector_cells(blocked_cells, delta)
 	main_path_cells = _shifted_vector_cells(main_path_cells, delta)
@@ -89,5 +94,16 @@ func to_contract_dictionary() -> Dictionary:
 		"mainPath": DungeonGrid.points_to_dicts(main_path_cells),
 		"tilePlacements": tile_placements,
 		"monsterSpawns": monster_spawns,
-		"itemPickups": item_pickups
+		"itemPickups": item_pickups,
+		"fountain": _fountain_contract()
+	}
+
+
+func _fountain_contract() -> Dictionary:
+	if fountain_cell == DungeonGrid.SENTINEL:
+		return {}
+	return {
+		"x": fountain_cell.x,
+		"y": fountain_cell.y,
+		"cells": DungeonGrid.points_to_dicts(fountain_room_cells)
 	}

@@ -25,4 +25,4 @@ Trigger, remaining time, multipliers, and end are host-authoritative. Late join 
 
 ## Notes
 
-Do not replicate Jet or Freeze Wave here.
+Do not replicate Jet or the US-028 fountain here.

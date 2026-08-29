@@ -24,6 +24,7 @@ var _path_validator: PathValidator = PathValidator.new()
 var _tile_placement_builder: TilePlacementBuilder = TilePlacementBuilder.new()
 var _monster_spawn_planner: MonsterSpawnPlanner = MonsterSpawnPlanner.new()
 var _pickup_spawn_planner = preload("res://scripts/procedural_dungeon/pickup_spawn_planner.gd").new()
+var _fountain_spawn_planner = preload("res://scripts/procedural_dungeon/fountain_spawn_planner.gd").new()
 var _dungeon_scene_builder: DungeonSceneBuilder = DungeonSceneBuilder.new()
 
 func _ready() -> void:
@@ -176,7 +177,130 @@ func notify_generation_succeeded(layout_payload: Dictionary) -> void:
 	active_request_id = ""
 	active_layout_id = layout_id
 	generation_state = DungeonGenerationTypes.GenerationLifecycleState.COMMITTED
+	if not multiplayer.is_server():
+		_spawn_fountain_from_contract(layout_payload)
 	SignalBus.dungeon_generation_succeeded.emit(request_id, layout_id)
+
+
+func broadcast_fountain_charge() -> void:
+	if not multiplayer.is_server():
+		return
+	fountain_play_charge.rpc()
+
+
+func broadcast_fountain_splash() -> void:
+	if not multiplayer.is_server():
+		return
+	var tree := get_tree()
+	if tree:
+		for node in tree.get_nodes_in_group("water_fountain"):
+			if node.has_method("fire_splash"):
+				node.call("fire_splash")
+	fountain_play_splash.rpc(pack_fountain_state())
+
+
+func pack_fountain_state() -> Dictionary:
+	var tree := get_tree()
+	if tree == null:
+		return {}
+	for node in tree.get_nodes_in_group("water_fountain"):
+		if node.has_method("pack_state"):
+			return node.call("pack_state")
+	return {}
+
+
+func apply_fountain_state(payload: Dictionary) -> void:
+	if payload.is_empty() or not payload.has("x"):
+		_clear_generated_fountains()
+		_clear_dew_slicks()
+		return
+	var stub := DungeonLayoutData.new()
+	stub.fountain_cell = Vector2i(int(payload.get("x", 0)), int(payload.get("y", 0)))
+	stub.fountain_room_cells = _cells_from_payload(payload.get("cells", []))
+	var existing: Node = _first_fountain()
+	if existing == null:
+		_spawn_generated_fountain(stub, null)
+		existing = _first_fountain()
+	elif existing.has_method("configure_room"):
+		existing.call("configure_room", stub.fountain_cell, stub.fountain_room_cells)
+	if existing and existing.has_method("apply_state"):
+		existing.call("apply_state", payload)
+
+
+func sync_fountain_to_peer(peer_id: int) -> void:
+	if not multiplayer.is_server():
+		return
+	replicate_fountain_state.rpc_id(peer_id, pack_fountain_state())
+
+
+@rpc("authority", "call_local", "reliable")
+func replicate_fountain_state(payload: Dictionary) -> void:
+	if multiplayer.is_server():
+		return
+	apply_fountain_state(payload)
+
+
+@rpc("authority", "call_local", "reliable")
+func fountain_play_charge() -> void:
+	var tree := get_tree()
+	if tree == null:
+		return
+	for node in tree.get_nodes_in_group("water_fountain"):
+		if node.has_method("begin_charge"):
+			node.call("begin_charge")
+
+
+@rpc("authority", "reliable")
+func fountain_play_splash(payload: Dictionary = {}) -> void:
+	if multiplayer.is_server():
+		return
+	apply_fountain_state(payload)
+
+
+func _first_fountain() -> Node:
+	var tree := get_tree()
+	if tree == null:
+		return null
+	var nodes: Array = tree.get_nodes_in_group("water_fountain")
+	if nodes.is_empty():
+		return null
+	return nodes[0]
+
+
+func _cells_from_payload(raw: Variant) -> Array[Vector2i]:
+	var cells: Array[Vector2i] = []
+	if not (raw is Array):
+		return cells
+	for item in raw:
+		cells.append(DungeonGrid.cell_from(item))
+	return cells
+
+
+func _clear_dew_slicks() -> void:
+	var tree := get_tree()
+	if tree == null:
+		return
+	for node in tree.get_nodes_in_group("dew_slick"):
+		if not is_instance_valid(node):
+			continue
+		node.remove_from_group("dew_slick")
+		var parent: Node = node.get_parent()
+		if parent:
+			parent.remove_child(node)
+		node.queue_free()
+
+
+func _spawn_fountain_from_contract(layout_payload: Dictionary) -> void:
+	var raw: Variant = layout_payload.get("fountain", {})
+	if not (raw is Dictionary) or (raw as Dictionary).is_empty():
+		_clear_generated_fountains()
+		_clear_dew_slicks()
+		return
+	var cell: Vector2i = DungeonGrid.cell_from(raw)
+	var stub := DungeonLayoutData.new()
+	stub.fountain_cell = cell
+	stub.fountain_room_cells = _cells_from_payload((raw as Dictionary).get("cells", []))
+	_spawn_generated_fountain(stub, null)
 
 @rpc("authority", "call_local", "reliable")
 func notify_generation_failed(request_id: String, error_code: String, message: String) -> void:
@@ -420,6 +544,23 @@ func _build_layout_candidate(request: DungeonGenerationRequest, generation_seed:
 		layout_data.monster_spawns,
 		request.pickup_counts()
 	)
+	layout_data.fountain_cell = _fountain_spawn_planner.plan_fountain_cell(
+		layout_data.room_regions,
+		layout_data.walkable_cells,
+		layout_data.entrance_cell,
+		layout_data.exit_cell,
+		layout_data.generation_seed,
+		layout_data.monster_spawns,
+		layout_data.item_pickups,
+		request.skip_fountain
+	)
+	if layout_data.fountain_cell != DungeonGrid.SENTINEL:
+		layout_data.fountain_room_cells = _fountain_spawn_planner.room_cells_containing(
+			layout_data.room_regions,
+			layout_data.fountain_cell
+		)
+	else:
+		layout_data.fountain_room_cells = []
 
 	var spawn_set: DungeonSpawnSet = DungeonSpawnSet.new()
 	spawn_set.layout_id = layout_data.layout_id
@@ -599,6 +740,7 @@ func _commit_layout_to_world(layout_data: DungeonLayoutData) -> Dictionary:
 		level_manager.rollback_generated_dungeon_stage()
 		return spawn_result
 
+	_spawn_generated_fountain(layout_data, level_manager)
 	level_manager.commit_generated_dungeon_stage()
 	_spawn_generated_pickups(layout_data)
 	_print_region_dump(layout_data)
@@ -657,6 +799,57 @@ func _spawn_generated_monsters(layout_data: DungeonLayoutData, level_manager: No
 	return {
 		"ok": true
 	}
+
+func _spawn_generated_fountain(layout_data: DungeonLayoutData, level_manager: Node) -> void:
+	_clear_generated_fountains()
+	if layout_data.fountain_cell == DungeonGrid.SENTINEL:
+		return
+	var packed: PackedScene = load("res://doodads/water_fountain.tscn") as PackedScene
+	if packed == null:
+		return
+	var fountain: Node2D = packed.instantiate() as Node2D
+	if fountain == null:
+		return
+	fountain.name = ("fountain_%d_%d" % [layout_data.fountain_cell.x, layout_data.fountain_cell.y]).validate_node_name()
+	fountain.position = DungeonGrid.to_world_center(layout_data.fountain_cell)
+	fountain.add_to_group("water_fountain")
+	var parent: Node = _generated_fountain_parent()
+	parent.add_child(fountain)
+	if fountain.has_method("configure_room"):
+		var cells: Array[Vector2i] = layout_data.fountain_room_cells
+		if cells.is_empty():
+			cells = _fountain_spawn_planner.room_cells_containing(
+				layout_data.room_regions,
+				layout_data.fountain_cell
+			)
+		fountain.call("configure_room", layout_data.fountain_cell, cells)
+	if level_manager and level_manager.has_method("register_staged_generated_node"):
+		level_manager.register_staged_generated_node(fountain)
+
+
+func _generated_fountain_parent() -> Node:
+	var current: Node = get_tree().current_scene
+	if current:
+		var tiles: Node = current.get_node_or_null("GeneratedTiles")
+		if tiles:
+			return tiles
+		return current
+	return get_tree().root
+
+
+func _clear_generated_fountains() -> void:
+	var tree := get_tree()
+	if tree == null:
+		return
+	for node in tree.get_nodes_in_group("water_fountain"):
+		if not is_instance_valid(node):
+			continue
+		node.remove_from_group("water_fountain")
+		var parent: Node = node.get_parent()
+		if parent:
+			parent.remove_child(node)
+		node.queue_free()
+
 
 func _spawn_generated_pickups(layout_data: DungeonLayoutData) -> void:
 	if not multiplayer.is_server():

@@ -55,6 +55,9 @@ func _on_peer_connected_authority(id: int) -> void:
 	if multiplayer.is_server():
 		sync_generated_tiles_to_peer(id)
 		_sync_global_state_to_peer(id)
+		var dungeon: Node = get_node_or_null("/root/DungeonGenerationManager")
+		if dungeon and dungeon.has_method("sync_fountain_to_peer"):
+			dungeon.call("sync_fountain_to_peer", id)
 
 func on_connected_ok():
 	var id = multiplayer.get_unique_id()

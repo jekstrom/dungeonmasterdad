@@ -14,6 +14,7 @@ class_name DungeonGenerationRequest extends Resource
 @export var request_time_unix: int = 0
 @export var requested_by_peer_id: int = 1
 @export var skip_boss: bool = false
+@export var skip_fountain: bool = false
 
 func validate() -> Dictionary:
 	if request_id.strip_edges().is_empty():
@@ -85,6 +86,7 @@ func from_payload(payload: Dictionary) -> void:
 	d20_count = _payload_pickup_count(payload, "d20Count", "d20_count", DungeonConstants.DEFAULT_D20_COUNT)
 	request_time_unix = int(Time.get_unix_time_from_system())
 	skip_boss = _payload_bool(payload, "skipBoss", "skip_boss", false)
+	skip_fountain = _payload_bool(payload, "skipFountain", "skip_fountain", false)
 
 func pickup_counts() -> Dictionary:
 	return {

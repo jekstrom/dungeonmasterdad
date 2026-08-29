@@ -36,4 +36,4 @@ Prove once-at-50%, 10s buff, +15% taken, then baseline. Two-window play.
 
 ## Notes
 
-Do not require Jet, Freeze Wave, cozy, cube, or fireball.
+Do not require Jet, the US-028 fountain, cozy, cube, or fireball.

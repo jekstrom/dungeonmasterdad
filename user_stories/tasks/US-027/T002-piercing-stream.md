@@ -7,7 +7,7 @@
 
 ## Goal
 
-Fire a **piercing high-velocity** stream of neon Baja syrup along the telegraphed line. Host-authoritative. **Hits the DM** in the dungeon. Not Freeze Wave. Not US-017 blast.
+Fire a **piercing high-velocity** stream of neon Baja syrup along the telegraphed line. Host-authoritative. **Hits the DM** in the dungeon. Not the US-028 fountain splash. Not US-017 blast.
 
 ## Files
 
@@ -27,7 +27,7 @@ Fire a **piercing high-velocity** stream of neon Baja syrup along the telegraphe
 
 - **Given** the telegraph completes, **When** the stream fires, **Then** it travels the lane at high speed and pierces.
 - **Given** the stream overlaps the DM, **When** the host resolves, **Then** the DM is hit.
-- **Given** US-017 blast or a Freeze Wave, **When** Jet plays, **Then** it uses a different scene/VFX/hit shape.
+- **Given** US-017 blast or a US-028 fountain splash, **When** Jet plays, **Then** it uses a different scene/VFX/hit shape.
 
 ## Notes
 

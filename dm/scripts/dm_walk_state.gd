@@ -1,5 +1,7 @@
 class_name DmWalkState extends DmState
 
+const DewSlickScript = preload("res://doodads/dew_slick.gd")
+
 @export var move_speed: float = 100.0
 @onready var idle: DmState = $"../idle"
 @onready var attack: DmState = $"../attack"
@@ -13,8 +15,8 @@ func Exit() -> void:
 func Process(_delta: float) -> DmState:
 	if dm.direction == Vector2.ZERO:
 		return idle
-		
-	dm.velocity = dm.direction * move_speed
+	if not DewSlickScript.any_covers_world(dm.global_position):
+		dm.velocity = dm.direction * move_speed
 	
 	if dm.set_direction():
 		dm.update_animation("walk")

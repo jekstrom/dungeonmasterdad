@@ -20,7 +20,7 @@ Trigger (T001) first. Buff numbers (T002) and VFX (T003) can overlap. Replicatio
 
 ## Out of scope
 
-- Carbonated Jet (US-027), Freeze Wave (US-028) move bodies.
+- Carbonated Jet (US-027) move body. Fountain slick (US-028) doodad.
 - US-019 cube, US-020 cozy, US-018 fireball.
 - PP occupancy (US-003 T011).
 

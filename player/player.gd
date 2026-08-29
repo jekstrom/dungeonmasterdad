@@ -1,5 +1,6 @@
 class_name Player extends CharacterBody2D
 
+const DewSlickScript = preload("res://doodads/dew_slick.gd")
 const DIR_4 = [Vector2.RIGHT, Vector2.DOWN, Vector2.LEFT, Vector2.UP]
 const BASE_MOVE_SPEED: float = 300.0
 var cardinal_direction: Vector2 = Vector2.DOWN
@@ -67,6 +68,7 @@ func _enter_tree() -> void:
 	collision_mask = (collision_mask | 16) & ~32
 
 func _ready() -> void:
+	z_index = DungeonConstants.WALL_Z_INDEX + 1
 	if is_multiplayer_authority():
 		camera_2d.make_current()
 	else:
@@ -179,7 +181,11 @@ func _physics_process(_delta: float) -> void:
 		_flush_queued_staple_fire()
 		_melee_swing_active = false
 		return
-	velocity = direction * get_move_speed()
+	var desired: Vector2 = direction * get_move_speed()
+	if DewSlickScript.any_covers_world(global_position):
+		velocity = DewSlickScript.slide_velocity(velocity, desired, _delta)
+	else:
+		velocity = desired
 	move_and_slide()
 	enforce_map_interior()
 	_flush_queued_staple_fire()
@@ -195,6 +201,29 @@ func enforce_map_interior() -> void:
 	var level: Node = get_tree().get_first_node_in_group("level_manager") if get_tree() else null
 	if level and level.has_method("enforce_body_interior"):
 		level.enforce_body_interior(self)
+
+func apply_knockback(from: Vector2, distance: float) -> void:
+	if multiplayer.has_multiplayer_peer() and not multiplayer.is_server():
+		return
+	if is_multiplayer_authority() or not multiplayer.has_multiplayer_peer():
+		_apply_knockback_local(from, distance)
+		return
+	receive_knockback.rpc_id(get_multiplayer_authority(), from, distance)
+
+@rpc("authority", "reliable")
+func receive_knockback(from: Vector2, distance: float) -> void:
+	_apply_knockback_local(from, distance)
+
+func _apply_knockback_local(from: Vector2, distance: float) -> void:
+	var dir: Vector2 = global_position - from
+	if dir.length() < 0.001:
+		dir = Vector2.DOWN
+	else:
+		dir = dir.normalized()
+	var dist: float = maxf(0.0, distance)
+	global_position += dir * dist
+	velocity = dir * (dist / 0.5)
+	enforce_map_interior()
 
 @rpc("any_peer", "reliable")
 func apply_interior_clamp(pos: Vector2) -> void:

@@ -1,5 +1,7 @@
 class_name DmIdleState extends DmState
 
+const DewSlickScript = preload("res://doodads/dew_slick.gd")
+
 @onready var walk: DmState = $"../walk"
 @onready var attack: DmState = $"../attack"
 
@@ -12,7 +14,8 @@ func Exit() -> void:
 func Process(_delta: float) -> DmState:
 	if dm.direction != Vector2.ZERO:
 		return walk
-	dm.velocity = Vector2.ZERO
+	if not DewSlickScript.any_covers_world(dm.global_position):
+		dm.velocity = Vector2.ZERO
 	if dm.set_direction():
 		dm.update_animation("idle")
 	return null

@@ -18,7 +18,7 @@ Prove telegraph → piercing stream → DM hit headless, plus a two-window play 
 - Telegraph exists before the stream.
 - Stream is piercing and host-hit on a dummy DM hurtbox in the lane.
 - Death during telegraph: no stream.
-- Jet scene is not `baja_boss_blast` and not Freeze Wave.
+- Jet scene is not `baja_boss_blast` and not a fountain splash.
 
 ## Play pass (host + client)
 
@@ -35,4 +35,4 @@ Prove telegraph → piercing stream → DM hit headless, plus a two-window play 
 
 ## Notes
 
-Do not require Freeze Wave, Sugar Rush, cozy, cube, or fireball.
+Do not require the US-028 fountain, Sugar Rush, cozy, cube, or fireball.

@@ -1,5 +1,7 @@
 class_name PlayerWalkState extends PlayerState
 
+const DewSlickScript = preload("res://doodads/dew_slick.gd")
+
 @export var move_speed: float = 100.0
 @onready var idle: PlayerState = $"../idle"
 @onready var attack: PlayerState = $"../attack"
@@ -15,8 +17,8 @@ func Process(_delta: float) -> PlayerState:
 
 	if player.direction == Vector2.ZERO:
 		return idle
-
-	player.velocity = player.direction * move_speed * player.blizzard_slow_factor()
+	if not DewSlickScript.any_covers_world(player.global_position):
+		player.velocity = player.direction * move_speed * player.blizzard_slow_factor()
 
 	if player.is_ranged_fire_playing():
 		return null

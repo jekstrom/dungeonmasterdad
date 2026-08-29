@@ -35,6 +35,7 @@ const HEALTH_BAR_SCENE: PackedScene = preload("res://monsters/enemy_health_bar.t
 #@onready var hitbox: Hitbox = $Hitbox
 
 func _ready() -> void:
+	z_index = DungeonConstants.WALL_Z_INDEX + 1
 	if max_hp < hp:
 		max_hp = hp
 	if max_hp <= 0:
