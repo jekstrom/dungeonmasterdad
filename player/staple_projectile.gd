@@ -12,6 +12,9 @@ func _ready() -> void:
 	super._ready()
 	add_to_group("staple_projectiles")
 	collision_mask = collision_mask | 16
+	monitoring = true
+	# Layer 0 + monitorable=false skips wall body overlap in Godot 4.7.
+	monitorable = true
 	if not body_entered.is_connected(_on_body_entered):
 		body_entered.connect(_on_body_entered)
 	_origin = global_position
@@ -21,15 +24,21 @@ func _ready() -> void:
 		direction = direction.normalized()
 	rotation = direction.angle()
 
-func _process(delta: float) -> void:
+func _physics_process(delta: float) -> void:
 	if _consumed:
 		return
-	global_position += direction * speed * delta
+	if speed != 0.0:
+		global_position += direction * speed * delta
 	if global_position.distance_to(_origin) >= max_range:
 		consume()
 		return
 	if _exited_map_interior():
 		consume()
+		return
+	for body in get_overlapping_bodies():
+		_on_body_entered(body)
+		if _consumed:
+			return
 
 func _area_entered(area: Area2D) -> void:
 	if _consumed:
@@ -39,14 +48,19 @@ func _area_entered(area: Area2D) -> void:
 	var victim: Node = area.get_parent()
 	if victim != null and str(victim.name) == str(shooter_id):
 		return
+	# T004: buildings take no staple damage (US-011 is goblin raids, not staples).
 	if _is_building(victim):
 		return
+	# T004: Reality/Fantasy occupancy and overlapping zones must not cancel combat.
 	if multiplayer.is_server():
 		area.take_damage(self)
 	consume()
 
 func _on_body_entered(body: Node) -> void:
 	if _consumed:
+		return
+	if body is StaticBody2D:
+		consume()
 		return
 	if body is CollisionObject2D and (body as CollisionObject2D).get_collision_layer_value(5):
 		consume()
@@ -75,6 +89,10 @@ func consume() -> void:
 	if _consumed:
 		return
 	_consumed = true
+	if area_entered.is_connected(_area_entered):
+		area_entered.disconnect(_area_entered)
+	if body_entered.is_connected(_on_body_entered):
+		body_entered.disconnect(_on_body_entered)
 	set_deferred("monitoring", false)
 	set_deferred("monitorable", false)
 	queue_free()

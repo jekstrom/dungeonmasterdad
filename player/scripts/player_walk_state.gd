@@ -17,6 +17,9 @@ func Process(_delta: float) -> PlayerState:
 		return idle
 
 	player.velocity = player.direction * move_speed
+
+	if player.is_ranged_fire_playing():
+		return null
 	
 	if player.set_direction():
 		player.update_animation("walk")

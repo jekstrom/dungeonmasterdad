@@ -14,6 +14,13 @@ func _ready() -> void:
 	SignalBus.on_dm_unlock.connect(_on_dm_unlock)
 	SignalBus.on_dm_lock.connect(_on_dm_lock)
 	turn_off()
+	# Top bar Spacer is a full-width Control; do not swallow world LMB.
+	var spacer: Control = get_node_or_null("MarginContainer/HBoxContainer/Spacer") as Control
+	if spacer:
+		spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var bar: Control = get_node_or_null("MarginContainer") as Control
+	if bar:
+		bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	
 func _on_dm_unlock(unlock: String) -> void:
 	if unlock == "shadow_zone":

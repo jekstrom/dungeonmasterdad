@@ -72,11 +72,38 @@ func _ready() -> void:
 		_fail("US-005 T002: host fire must spawn one staple projectile")
 		return
 
+	# Live LMB path (Player._input), not request_fire_staple().
+	player.staple_count = 20
+	player._replicate_staple_count()
+	var lmb := InputEventMouseButton.new()
+	lmb.button_index = MOUSE_BUTTON_LEFT
+	lmb.pressed = true
+	lmb.position = Vector2(64, 64)
+	if not player.wants_fire_staple(lmb):
+		_fail("US-005 T002: LMB must match fire/primary_click")
+		return
+	var bar: Control = PlayerHud.get_node_or_null("MarginContainer") as Control
+	if bar != null and bar.mouse_filter != Control.MOUSE_FILTER_IGNORE:
+		_fail("US-005 T002: factory HUD bar must IGNORE mouse so world LMB is not swallowed")
+		return
+	var before_lmb: int = _staple_count()
+	player._input(lmb)
+	await get_tree().physics_frame
+	await get_tree().process_frame
+	if player.staple_count != 19:
+		_fail("US-005 T002: live LMB path must consume 1 staple, mag is %d" % player.staple_count)
+		return
+	if _staple_count() != before_lmb + 1:
+		_fail("US-005 T002: live LMB path must spawn a staple projectile")
+		return
+
 	var mag_before_melee: int = player.staple_count
 	player.start_melee_attack()
 	if player.staple_count != mag_before_melee:
 		_fail("US-005: melee must not spend staples")
 		return
+	await get_tree().physics_frame
+	await get_tree().process_frame
 
 	player.staple_count = 0
 	player.empty_click_played = false

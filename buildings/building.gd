@@ -5,6 +5,7 @@ class_name Building extends Node
 @onready var collision_shape_2d: CollisionShape2D = $CollisionShape2D
 
 @export var interval: float = 1.0
+@export var hitpoints: int = 10
 var timer: float = 0.0
 var is_ghost: bool = true
 

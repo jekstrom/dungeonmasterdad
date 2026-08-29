@@ -11,6 +11,11 @@ func Exit() -> void:
 	pass
 
 func Process(_delta: float) -> PlayerState:
+	if player.is_ranged_fire_playing():
+		if player.direction != Vector2.ZERO:
+			return walk
+		player.velocity = Vector2.ZERO
+		return null
 	if player.direction != Vector2.ZERO:
 		return walk
 	player.velocity = Vector2.ZERO

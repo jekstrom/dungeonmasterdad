@@ -14,6 +14,17 @@ func _ready() -> void:
 	build_smoke_factory_button.connect("button_down", on_build_smoke_factory_button_pressed)
 	build_paper_factory_button.connect("button_down", on_build_paper_factory_button_pressed)
 	update_staple_magazine(20, 20)
+	_pass_world_clicks_through(self)
+
+func _pass_world_clicks_through(n: Node) -> void:
+	# Factory TextureButtons keep STOP so they still select a building.
+	if n is BaseButton:
+		(n as Control).mouse_filter = Control.MOUSE_FILTER_STOP
+		return
+	if n is Control:
+		(n as Control).mouse_filter = Control.MOUSE_FILTER_IGNORE
+	for child in n.get_children():
+		_pass_world_clicks_through(child)
 
 func turn_on() -> void:
 	self.visible = true

@@ -1,7 +1,9 @@
-[gd_scene load_steps=27 format=3 uid="uid://cof1o04wsy0rc"]
+[gd_scene load_steps=29 format=3 uid="uid://cof1o04wsy0rc"]
 
 [ext_resource type="Script" uid="uid://t4prbjbidme4" path="res://player/player.gd" id="1_kwy1i"]
-[ext_resource type="Texture2D" uid="uid://dkc4x6ya465y1" path="res://player/sprites/PlayerSprite02.png" id="3_4tdu3"]
+[ext_resource type="Texture2D" path="res://player/sprites/player_staple_gun.png" id="3_4tdu3"]
+[ext_resource type="Texture2D" path="res://player/sprites/player_pencil_melee.png" id="15_pencil"]
+[ext_resource type="Texture2D" path="res://sprites/melee_ink_slash.png" id="16_ink"]
 [ext_resource type="Script" uid="uid://dbyqwxcdrpqrb" path="res://player/scripts/player_state_machine.gd" id="4_cbkgn"]
 [ext_resource type="Script" uid="uid://bofvq87df5yb3" path="res://player/scripts/player_idle_state.gd" id="5_yfnbg"]
 [ext_resource type="Script" uid="uid://bcjqi08kyb3qs" path="res://player/scripts/player_walk_state.gd" id="6_8be7r"]
@@ -218,6 +220,12 @@ properties/4/replication_mode = 1
 properties/5/path = NodePath(".:sync_color")
 properties/5/spawn = true
 properties/5/replication_mode = 1
+properties/6/path = NodePath("Sprite2D:texture")
+properties/6/spawn = true
+properties/6/replication_mode = 2
+properties/7/path = NodePath("Sprite2D:frame")
+properties/7/spawn = true
+properties/7/replication_mode = 2
 
 [sub_resource type="CapsuleShape2D" id="CapsuleShape2D_ebec5"]
 
@@ -238,6 +246,14 @@ position = Vector2(0, -13)
 texture = ExtResource("3_4tdu3")
 hframes = 16
 vframes = 3
+
+[node name="MeleeInkSlash" type="Sprite2D" parent="."]
+visible = false
+z_index = 2
+texture_filter = 1
+position = Vector2(0, -8)
+texture = ExtResource("16_ink")
+hframes = 12
 
 [node name="PlayerStateMachine" type="Node" parent="."]
 script = ExtResource("4_cbkgn")

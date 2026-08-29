@@ -6,12 +6,13 @@ cd "$ROOT"
 
 SCENES=(
 	test_harness/procedural_dungeon/us005_staple_fire_test.tscn
+	test_harness/procedural_dungeon/us005_combat_loadout_test.tscn
 )
 
 failed=0
 for scene in "${SCENES[@]}"; do
 	echo "=== ${scene} ==="
-	if ! godot --path "$ROOT" --headless --quit-after 60 "$scene"; then
+	if ! godot --path "$ROOT" --headless --quit-after 180 "$scene"; then
 		echo "FAIL ${scene}"
 		failed=1
 	fi

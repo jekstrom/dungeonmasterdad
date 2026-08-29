@@ -48,7 +48,7 @@ func HandleInput(_event: InputEvent) -> PlayerState:
 	if !is_multiplayer_authority(): 
 		return null
 	
-	if _event.is_action_pressed("attack"):
+	if _event.is_action_pressed("attack") or _event.is_action_pressed("fire") or _event.is_action_pressed("primary_click"):
 		return null
 	if _event.is_action_pressed("interact"):
 		PlayerManager.interact_pressed.emit()
