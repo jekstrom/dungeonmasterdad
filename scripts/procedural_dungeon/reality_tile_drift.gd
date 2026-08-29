@@ -1,8 +1,7 @@
 class_name RealityTileDrift extends Node
 
 ## Host-only: stagger Reality-claimed outside tiles onto Reality art.
-## Dungeon floors/walls are never eligible. Grass stays grass, dirt stays dirt.
-## T004: pockets override homes; overlapping homes use higher covering level; ties keep current art.
+## Schedules on claim/map changes only. Physics ticks pending due cells, not the whole map.
 
 const DEFAULT_DELAY_MIN := 0.5
 const DEFAULT_DELAY_MAX := 8.0
@@ -19,20 +18,35 @@ var delay_max: float = DEFAULT_DELAY_MAX
 var puff_enabled: bool = true
 
 var _pending: Dictionary = {}
+var _tiles_by_cell: Dictionary = {}
+var _dungeon_rect: Rect2i = Rect2i()
 var _rng := RandomNumberGenerator.new()
+var _puff_frames: SpriteFrames = null
+var _puff_frames_tried: bool = false
 
 func _ready() -> void:
 	_rng.randomize()
+	set_physics_process(false)
 	if not SignalBus.reality_claim_changed.is_connected(_on_claim_changed):
 		SignalBus.reality_claim_changed.connect(_on_claim_changed)
 	if not SignalBus.fantasy_claim_changed.is_connected(_on_claim_changed):
 		SignalBus.fantasy_claim_changed.connect(_on_claim_changed)
+	if not SignalBus.map_bounds_committed.is_connected(_on_map_bounds_committed):
+		SignalBus.map_bounds_committed.connect(_on_map_bounds_committed)
+	call_deferred("_bootstrap")
 
-func _physics_process(_delta: float) -> void:
+func _bootstrap() -> void:
 	if not _is_host():
 		return
 	_sync_schedules()
+
+func _physics_process(_delta: float) -> void:
+	if not _is_host():
+		set_physics_process(false)
+		return
 	_fire_due()
+	if _pending.is_empty():
+		set_physics_process(false)
 
 func _is_host() -> bool:
 	if multiplayer.multiplayer_peer == null:
@@ -41,8 +55,15 @@ func _is_host() -> bool:
 
 func clear_schedules() -> void:
 	_pending.clear()
+	set_physics_process(false)
 
 func _on_claim_changed(_unused = null) -> void:
+	if not _is_host():
+		return
+	_sync_schedules()
+
+func _on_map_bounds_committed(_interior: Rect2i = Rect2i()) -> void:
+	_tiles_by_cell.clear()
 	if not _is_host():
 		return
 	_sync_schedules()
@@ -51,37 +72,67 @@ func _now() -> float:
 	return float(Time.get_ticks_msec()) / 1000.0
 
 func _sync_schedules() -> void:
-	var tree := get_tree()
-	if tree == null:
-		return
-	var seen: Dictionary = {}
-	for node in tree.get_nodes_in_group("outside_tiles"):
-		if not (node is OutsideTile) or not is_instance_valid(node):
-			continue
-		var tile: OutsideTile = node
-		var cell: Vector2i = DungeonGrid.from_world(tile.position)
-		seen[cell] = true
+	_refresh_dungeon_rect()
+	var drop: Array = []
+	for cell in _pending.keys():
 		if not is_reality_drift_eligible(cell):
-			_pending.erase(cell)
+			drop.append(cell)
+			continue
+		var tile: OutsideTile = _tile_at(cell)
+		if tile == null or tile.element_presentation == OutsideTile.ElementPresentation.REALITY:
+			drop.append(cell)
+	for cell in drop:
+		_pending.erase(cell)
+	for cell in _reality_coverage_cells():
+		if _pending.has(cell):
+			continue
+		if not is_reality_drift_eligible(cell):
+			continue
+		var tile: OutsideTile = _tile_at(cell)
+		if tile == null:
 			continue
 		if tile.element_presentation == OutsideTile.ElementPresentation.REALITY:
-			_pending.erase(cell)
-			continue
-		if _pending.has(cell):
 			continue
 		var delay: float = _rng.randf_range(delay_min, maxf(delay_min, delay_max))
 		_pending[cell] = _now() + delay
-	var stale: Array = []
-	for cell in _pending.keys():
-		if not seen.has(cell):
-			stale.append(cell)
-	for cell in stale:
-		_pending.erase(cell)
+	if _is_host() and not _pending.is_empty():
+		set_physics_process(true)
+
+func _reality_coverage_cells() -> Array[Vector2i]:
+	var seen: Dictionary = {}
+	var cells: Array[Vector2i] = []
+	var tree := get_tree()
+	if tree == null:
+		return cells
+	var reality: Node = tree.get_first_node_in_group("RealityZone")
+	if reality == null:
+		return cells
+	_append_rect_cells(seen, cells, reality.home_rect)
+	if "claim" in reality:
+		for pocket in reality.claim.pockets:
+			if typeof(pocket) != TYPE_DICTIONARY:
+				continue
+			_append_rect_cells(seen, cells, pocket.get("rect", Rect2i()))
+	return cells
+
+func _append_rect_cells(seen: Dictionary, cells: Array[Vector2i], rect: Rect2i) -> void:
+	if rect.size.x <= 0 or rect.size.y <= 0:
+		return
+	for y in range(rect.position.y, rect.end.y):
+		for x in range(rect.position.x, rect.end.x):
+			var cell := Vector2i(x, y)
+			if seen.has(cell):
+				continue
+			seen[cell] = true
+			cells.append(cell)
 
 func is_reality_drift_eligible(cell: Vector2i) -> bool:
-	var center: Vector2 = DungeonGrid.to_world_center(cell)
-	if _is_dungeon_center(center, cell):
+	if _dungeon_rect.size.x > 0 and _dungeon_rect.size.y > 0 and _dungeon_rect.has_point(cell):
 		return false
+	if _dungeon_rect.size.x <= 0:
+		_refresh_dungeon_rect()
+		if _dungeon_rect.size.x > 0 and _dungeon_rect.size.y > 0 and _dungeon_rect.has_point(cell):
+			return false
 	if _tile_at(cell) == null:
 		return false
 	return drift_claim_for_cell(cell) == CLAIM_REALITY
@@ -92,11 +143,9 @@ func drift_claim_for_cell(cell: Vector2i) -> int:
 		return CLAIM_NONE
 	var reality: Node = tree.get_first_node_in_group("RealityZone")
 	var fantasy: Node = tree.get_first_node_in_group("FantasyZone")
-	var reality_pocket := _zone_pocket_covers(reality, cell)
-	var fantasy_pocket := _zone_pocket_covers(fantasy, cell)
-	if reality_pocket:
+	if _zone_pocket_covers(reality, cell):
 		return CLAIM_REALITY
-	if fantasy_pocket:
+	if _zone_pocket_covers(fantasy, cell):
 		return CLAIM_FANTASY
 	var reality_home := _zone_home_covers(reality, cell)
 	var fantasy_home := _zone_home_covers(fantasy, cell)
@@ -125,37 +174,43 @@ func _zone_home_covers(zone: Node, cell: Vector2i) -> bool:
 	var rect: Rect2i = zone.home_rect
 	return rect.size.x > 0 and rect.size.y > 0 and rect.has_point(cell)
 
-func _is_dungeon_center(_center: Vector2, cell: Vector2i) -> bool:
+func _refresh_dungeon_rect() -> void:
 	var level: Node = _level()
 	if level and level.has_method("dungeon_cell_bounds"):
 		var dungeon: Rect2i = level.dungeon_cell_bounds()
 		if dungeon.size.x > 0 and dungeon.size.y > 0:
-			return dungeon.has_point(cell)
+			_dungeon_rect = dungeon
+			return
 	var manager: Node = get_node_or_null("/root/DungeonGenerationManager")
 	if manager and manager.has_method("get_dungeon_cell_bounds"):
 		var dgm: Rect2i = manager.get_dungeon_cell_bounds()
 		if dgm.size.x > 0 and dgm.size.y > 0:
-			return dgm.has_point(cell)
-	return false
+			_dungeon_rect = dgm
+			return
+	_dungeon_rect = Rect2i()
 
 func _fire_due() -> void:
 	var now: float = _now()
-	var due: Array[Vector2i] = []
+	var best_cell: Vector2i = Vector2i(2147483647, 2147483647)
+	var best_time: float = INF
+	var found := false
 	for cell in _pending.keys():
-		if float(_pending[cell]) <= now:
-			due.append(cell)
-	due.sort_custom(func(a: Vector2i, b: Vector2i) -> bool:
-		if a.y == b.y:
-			return a.x < b.x
-		return a.y < b.y
-	)
-	var converted := 0
-	for cell in due:
-		if converted >= MAX_CONVERTS_PER_FRAME:
-			break
-		_pending.erase(cell)
-		if _convert_cell(cell):
-			converted += 1
+		var fire_at: float = float(_pending[cell])
+		if fire_at > now:
+			continue
+		if not found or fire_at < best_time or (fire_at == best_time and _cell_before(cell, best_cell)):
+			best_cell = cell
+			best_time = fire_at
+			found = true
+	if not found:
+		return
+	_pending.erase(best_cell)
+	_convert_cell(best_cell)
+
+func _cell_before(a: Vector2i, b: Vector2i) -> bool:
+	if a.y == b.y:
+		return a.x < b.x
+	return a.y < b.y
 
 func _convert_cell(cell: Vector2i) -> bool:
 	var tile: OutsideTile = _tile_at(cell)
@@ -181,24 +236,12 @@ func _convert_cell(cell: Vector2i) -> bool:
 func play_convert_puff(cell: Vector2i) -> void:
 	if not puff_enabled:
 		return
-	if not ResourceLoader.exists(PUFF_PATH):
-		return
-	var tex: Texture2D = load(PUFF_PATH) as Texture2D
-	if tex == null:
+	var frames: SpriteFrames = _ensure_puff_frames()
+	if frames == null:
 		return
 	var parent: Node = _level()
 	if parent == null:
 		parent = self
-	var frames := SpriteFrames.new()
-	frames.add_animation("puff")
-	frames.set_animation_loop("puff", false)
-	frames.set_animation_speed("puff", PUFF_FPS)
-	var frame_count: int = maxi(1, int(tex.get_width()) / PUFF_FRAME_PX)
-	for i in range(frame_count):
-		var atlas := AtlasTexture.new()
-		atlas.atlas = tex
-		atlas.region = Rect2(i * PUFF_FRAME_PX, 0, PUFF_FRAME_PX, PUFF_FRAME_PX)
-		frames.add_frame("puff", atlas)
 	var sprite := AnimatedSprite2D.new()
 	sprite.name = "RealityDriftPuff"
 	sprite.sprite_frames = frames
@@ -213,12 +256,47 @@ func play_convert_puff(cell: Vector2i) -> void:
 			sprite.queue_free()
 	)
 
+func _ensure_puff_frames() -> SpriteFrames:
+	if _puff_frames != null:
+		return _puff_frames
+	if _puff_frames_tried:
+		return null
+	_puff_frames_tried = true
+	if not ResourceLoader.exists(PUFF_PATH):
+		return null
+	var tex: Texture2D = load(PUFF_PATH) as Texture2D
+	if tex == null:
+		return null
+	var frames := SpriteFrames.new()
+	frames.add_animation("puff")
+	frames.set_animation_loop("puff", false)
+	frames.set_animation_speed("puff", PUFF_FPS)
+	var frame_count: int = maxi(1, int(tex.get_width()) / PUFF_FRAME_PX)
+	for i in range(frame_count):
+		var atlas := AtlasTexture.new()
+		atlas.atlas = tex
+		atlas.region = Rect2(i * PUFF_FRAME_PX, 0, PUFF_FRAME_PX, PUFF_FRAME_PX)
+		frames.add_frame("puff", atlas)
+	_puff_frames = frames
+	return _puff_frames
+
 func _broadcast_presentation(cell: Vector2i, presentation: int) -> void:
 	var level: Node = _level()
 	if level and level.has_method("broadcast_outside_presentation"):
 		level.broadcast_outside_presentation(cell, presentation)
 
 func _tile_at(cell: Vector2i) -> OutsideTile:
+	var cached: Variant = _tiles_by_cell.get(cell, null)
+	if cached is OutsideTile and is_instance_valid(cached):
+		return cached as OutsideTile
+	var level: Node = _level()
+	if level:
+		var parent: Node = level.get_node_or_null("OutsideTiles")
+		if parent:
+			var child: Node = parent.get_node_or_null(("out_%d_%d" % [cell.x, cell.y]).validate_node_name())
+			if child is OutsideTile and is_instance_valid(child):
+				_tiles_by_cell[cell] = child
+				return child as OutsideTile
 	var tree := get_tree()
 	if tree == null:
 		return null
@@ -226,6 +304,7 @@ func _tile_at(cell: Vector2i) -> OutsideTile:
 		if not (node is OutsideTile) or not is_instance_valid(node):
 			continue
 		if DungeonGrid.from_world((node as OutsideTile).position) == cell:
+			_tiles_by_cell[cell] = node
 			return node as OutsideTile
 	return null
 

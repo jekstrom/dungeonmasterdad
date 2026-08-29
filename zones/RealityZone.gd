@@ -19,6 +19,8 @@ var _pocket_overlay_texture: Texture2D = null
 
 func _ready() -> void:
 	super._ready()
+	if not is_in_group("RealityZone"):
+		add_to_group("RealityZone")
 	_sync_claim_home()
 	_initialize_spawn_points()
 	if not SignalBus.respawn_location_selected.is_connected(_on_respawn_location_selected):
@@ -31,6 +33,7 @@ func _ready() -> void:
 		multiplayer.peer_connected.connect(_on_claim_peer_connected)
 	_rebuild_west_strip_spawns()
 	_rebuild_home_overlay()
+	SignalBus.reality_claim_changed.emit()
 
 func _initialize_spawn_points() -> void:
 	"""Set up spawn point data structures and generate default points if needed"""

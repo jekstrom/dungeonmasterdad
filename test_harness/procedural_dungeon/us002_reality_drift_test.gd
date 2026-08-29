@@ -21,15 +21,17 @@ func _ready() -> void:
 		push_error("US-002: RealityTileDrift missing")
 		get_tree().quit(1)
 		return
-	drift.set_physics_process(false)
 	drift.delay_min = 0.0
 	drift.delay_max = 0.0
+	drift.set_physics_process(false)
 	drift.clear_schedules()
 
 	var reality: RealityZone = load("res://zones/reality_zone.tscn").instantiate()
 	reality.add_to_group("RealityZone")
 	add_child(reality)
+	drift.set_physics_process(false)
 	await get_tree().process_frame
+	drift.set_physics_process(false)
 
 	var home_cell: Vector2i = reality.home_rect.position
 	var home_tile: OutsideTile = _outside_at(home_cell)

@@ -288,20 +288,30 @@ func _rpc_set_outside_presentation(cell_x: int, cell_y: int, presentation: int) 
 	apply_outside_presentation(Vector2i(cell_x, cell_y), presentation)
 
 func apply_outside_presentation(cell: Vector2i, presentation: int) -> void:
+	var tile: OutsideTile = _outside_tile_at(cell)
+	if tile == null:
+		return
+	tile.element_presentation = presentation
+	if presentation == int(OutsideTile.ElementPresentation.REALITY):
+		var drift: Node = get_node_or_null("RealityTileDrift")
+		if drift and drift.has_method("play_convert_puff"):
+			drift.play_convert_puff(cell)
+
+func _outside_tile_at(cell: Vector2i) -> OutsideTile:
+	var parent: Node = get_node_or_null("OutsideTiles")
+	if parent:
+		var child: Node = parent.get_node_or_null(("out_%d_%d" % [cell.x, cell.y]).validate_node_name())
+		if child is OutsideTile:
+			return child as OutsideTile
 	var tree := get_tree()
 	if tree == null:
-		return
+		return null
 	for node in tree.get_nodes_in_group("outside_tiles"):
 		if not (node is OutsideTile) or not is_instance_valid(node):
 			continue
-		if DungeonGrid.from_world((node as OutsideTile).position) != cell:
-			continue
-		(node as OutsideTile).element_presentation = presentation
-		if presentation == int(OutsideTile.ElementPresentation.REALITY):
-			var drift: Node = get_node_or_null("RealityTileDrift")
-			if drift and drift.has_method("play_convert_puff"):
-				drift.play_convert_puff(cell)
-		return
+		if DungeonGrid.from_world((node as OutsideTile).position) == cell:
+			return node as OutsideTile
+	return null
 
 func rebuild_cliff_ring() -> void:
 	var parent: Node2D = _cliff_tiles_parent()

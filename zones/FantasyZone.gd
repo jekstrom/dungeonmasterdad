@@ -20,6 +20,7 @@ func _ready() -> void:
 	if not multiplayer.peer_connected.is_connected(_on_claim_peer_connected):
 		multiplayer.peer_connected.connect(_on_claim_peer_connected)
 	_rebuild_home_overlay()
+	SignalBus.fantasy_claim_changed.emit()
 
 func is_position_within_zone(pos: Vector2) -> bool:
 	return is_claimed_world(pos)
