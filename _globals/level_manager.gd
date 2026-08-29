@@ -81,6 +81,29 @@ func get_map_bounds() -> MapBounds:
 func clamp_world_to_interior(world: Vector2) -> Vector2:
 	return map_bounds.clamp_world_to_interior(world)
 
+func _dungeon_occupied_cells() -> Dictionary:
+	var occupied: Dictionary = {}
+	var manager: Node = get_node_or_null("/root/DungeonGenerationManager")
+	if manager and manager.has_method("get_dungeon_occupied_cells"):
+		var from_layout: Variant = manager.get_dungeon_occupied_cells()
+		if typeof(from_layout) == TYPE_DICTIONARY and not from_layout.is_empty():
+			return from_layout
+	var tree := get_tree()
+	if tree == null:
+		return occupied
+	for node in tree.get_nodes_in_group("generated_dungeon_tiles"):
+		if not (node is Node2D) or not is_instance_valid(node):
+			continue
+		occupied[DungeonGrid.from_world((node as Node2D).position)] = true
+	return occupied
+
+func _is_dungeon_cell_for_overworld(cell: Vector2i, occupied: Dictionary, dungeon: Rect2i) -> bool:
+	if occupied.has(cell):
+		return true
+	if occupied.is_empty() and dungeon.size.x > 0 and dungeon.size.y > 0 and dungeon.has_point(cell):
+		return true
+	return false
+
 func dungeon_cell_bounds() -> Rect2i:
 	if _overworld_dungeon_aabb.size.x > 0 and _overworld_dungeon_aabb.size.y > 0:
 		return _overworld_dungeon_aabb
@@ -274,6 +297,7 @@ func rebuild_outside_fill() -> void:
 	if _outside_scene == null:
 		return
 	var dungeon: Rect2i = dungeon_cell_bounds()
+	var occupied: Dictionary = _dungeon_occupied_cells()
 	var rng := RandomNumberGenerator.new()
 	rng.seed = _outside_fill_seed(map_bounds.get_interior(), dungeon)
 	var interior: Rect2i = map_bounds.get_interior()
@@ -282,7 +306,7 @@ func rebuild_outside_fill() -> void:
 			var cell := Vector2i(x, y)
 			if map_bounds.is_cliff_cell(cell):
 				continue
-			if dungeon.size.x > 0 and dungeon.size.y > 0 and dungeon.has_point(cell):
+			if _is_dungeon_cell_for_overworld(cell, occupied, dungeon):
 				continue
 			var tile: Node2D = _outside_scene.instantiate() as Node2D
 			if tile == null:
@@ -307,6 +331,7 @@ func remove_outside_tile_at_cell(cell: Vector2i) -> void:
 
 func strip_outside_tiles_from_dungeon_cells() -> void:
 	var dungeon: Rect2i = dungeon_cell_bounds()
+	var occupied: Dictionary = _dungeon_occupied_cells()
 	var tree := get_tree()
 	if tree == null:
 		return
@@ -318,7 +343,7 @@ func strip_outside_tiles_from_dungeon_cells() -> void:
 		var blocked := false
 		if map_bounds.has_committed_bounds() and map_bounds.is_cliff_cell(cell):
 			blocked = true
-		if dungeon.size.x > 0 and dungeon.size.y > 0 and dungeon.has_point(cell):
+		if _is_dungeon_cell_for_overworld(cell, occupied, dungeon):
 			blocked = true
 		if blocked:
 			doomed.append(node)

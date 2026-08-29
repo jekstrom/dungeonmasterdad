@@ -200,6 +200,17 @@ func _release_contract_session(success: bool) -> void:
 func get_dungeon_cell_bounds() -> Rect2i:
 	return _dungeon_cell_bounds
 
+func get_dungeon_occupied_cells() -> Dictionary:
+	var occupied: Dictionary = {}
+	if active_layout_id.is_empty() or not layouts_by_id.has(active_layout_id):
+		return occupied
+	var layout: DungeonLayoutData = layouts_by_id[active_layout_id]
+	if layout == null:
+		return occupied
+	for placement in layout.tile_placements:
+		occupied[DungeonGrid.cell_from(placement.get("position", {}))] = true
+	return occupied
+
 func _translate_layout_flush_east(layout_data: DungeonLayoutData) -> void:
 	var current: Rect2i = _bounds_from_walkable(layout_data.walkable_cells)
 	var delta: Vector2i = MapBounds.cell_translation_for_east_flush(current)

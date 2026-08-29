@@ -142,5 +142,41 @@ func _ready() -> void:
 		get_tree().quit(1)
 		return
 
+	var occupied_cell := Vector2i(5, 2)
+	if not dungeon.has_point(occupied_cell):
+		push_error("US-024 T011: occupancy fixture must sit in dungeon AABB")
+		get_tree().quit(1)
+		return
+	var dungeon_tile: Node2D = load("res://level/floor.tscn").instantiate() as Node2D
+	dungeon_tile.position = DungeonGrid.to_world(occupied_cell)
+	dungeon_tile.add_to_group("generated_dungeon_tiles")
+	add_child(dungeon_tile)
+	await get_tree().process_frame
+	level.rebuild_outside_fill()
+	await get_tree().process_frame
+	var hole := Vector2i(dungeon.position.x, dungeon.position.y)
+	if hole == occupied_cell:
+		hole = Vector2i(dungeon.position.x + 1, dungeon.position.y)
+	var saw_hole := false
+	var saw_occupied := false
+	for child in parent.get_children():
+		var cell: Vector2i = DungeonGrid.from_world(child.position)
+		if cell == hole:
+			saw_hole = true
+			if child.scene_file_path == "res://level/floor.tscn":
+				push_error("US-024 T011: AABB hole used dungeon floor as overworld")
+				get_tree().quit(1)
+				return
+		if cell == occupied_cell:
+			saw_occupied = true
+	if not saw_hole:
+		push_error("US-024 T011: dungeon AABB hole %s must get Neutral outside" % hole)
+		get_tree().quit(1)
+		return
+	if saw_occupied:
+		push_error("US-024 T011: outside tile painted on dungeon tile cell")
+		get_tree().quit(1)
+		return
+
 	print("US-024 T011 outside fill test passed")
 	get_tree().quit(0)
