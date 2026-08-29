@@ -161,6 +161,9 @@ func _assert_live_snapshot_and_expire() -> bool:
 		return _fail("US-017 T008: inside factory remaining should scale 2x, got %s" % inside_pack.get("remaining"))
 	if absf(float(outside_pack.get("interval", 0.0)) - outside_baseline) > 0.001:
 		return _fail("US-017 T008: outside factory snapshot must stay baseline, got %s" % outside_pack.get("interval"))
+	print("US-017 T008 late-join payload unlocks=%s pocket=%s slows=%s slowed=%s factories=%s" % [
+		snap.get("unlocks", {}), packed_pocket, slows, slowed, factories
+	])
 
 	var fresh: Dictionary = snap.duplicate(true)
 	DmUnlocks.reset_unlocks()
