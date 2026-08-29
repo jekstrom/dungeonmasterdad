@@ -5,6 +5,7 @@ extends Node
 ## Cast pocket + slow is T005 — this test must not plant a Fantasy pocket.
 
 const Catalog = preload("res://dm/dm_ability_catalog.gd")
+const BajaBossScript = preload("res://monsters/baja_boss.gd")
 const BOSS_SCENE := "res://monsters/baja_boss.tscn"
 const BAJA_CAN := "res://pickups/bajablast/bajablast.tres"
 const BAJA_TEX := "res://pickups/bajablast/bajablast.png"
@@ -66,7 +67,7 @@ func _assert_boss_death_unlock_and_can() -> bool:
 	add_child(boss)
 	await get_tree().process_frame
 	await get_tree().process_frame
-	if not (boss is BajaBoss):
+	if not (boss is BajaBossScript):
 		_fail("US-017 T004: instantiated node is not BajaBoss")
 		return false
 	if not multiplayer.is_server():

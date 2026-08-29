@@ -7,6 +7,7 @@ const ENTRANCE := Vector2i(2, 2)
 const EXIT_CELL := Vector2i(16, 16)
 
 func _ready() -> void:
+	DmUnlocks.reset_unlocks()
 	var manager: Node = get_node_or_null("/root/DungeonGenerationManager")
 	if manager == null or not manager.has_method("generate_dungeon_contract"):
 		_fail("US-017 T001: DungeonGenerationManager missing")
@@ -120,10 +121,14 @@ func _assert_boss_scene() -> bool:
 	if not multiplayer.is_server():
 		_fail("US-017 T001: offline peer must be server for die()")
 		return false
+	boss.set("grant_blizzard_on_death", false)
 	boss.call("die")
 	await get_tree().process_frame
 	if not bool(boss.get("_dying")):
 		_fail("US-017 T001: die() must set _dying on the host")
+		return false
+	if bool(DmUnlocks.dm_unlocks.get("bemidji_blizzard", false)):
+		_fail("US-017 T001: die() must not unlock bemidji_blizzard")
 		return false
 	return true
 

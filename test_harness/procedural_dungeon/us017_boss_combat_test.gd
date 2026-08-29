@@ -9,6 +9,7 @@ const ENTRANCE := Vector2i(2, 2)
 const EXIT_CELL := Vector2i(16, 16)
 
 func _ready() -> void:
+	DmUnlocks.reset_unlocks()
 	if not await _assert_boss_combat():
 		return
 	if not _assert_spawn_contract():
@@ -78,10 +79,14 @@ func _assert_boss_combat() -> bool:
 		_fail("US-017 T003: host hp should still be 12 before die, got %s" % boss.get("hp"))
 		return false
 	boss.set("hp", 0)
+	boss.set("grant_blizzard_on_death", false)
 	boss.call("die")
 	await get_tree().process_frame
 	if not bool(boss.get("_dying")):
 		_fail("US-017 T003: die() must set _dying on the host")
+		return false
+	if bool(DmUnlocks.dm_unlocks.get("bemidji_blizzard", false)):
+		_fail("US-017 T003: die() must not unlock bemidji_blizzard")
 		return false
 	if sm.process_mode != Node.PROCESS_MODE_DISABLED:
 		_fail("US-017 T003: SM must be disabled after die")

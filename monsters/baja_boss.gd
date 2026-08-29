@@ -23,6 +23,7 @@ var home_cell: Vector2i = Vector2i.ZERO
 var combat_cooldown: float = 0.0
 var _home_cell_captured: bool = false
 var _blizzard_rewards_granted: bool = false
+@export var grant_blizzard_on_death: bool = true
 
 func _init() -> void:
 	max_hp = 12
@@ -142,6 +143,9 @@ func _set_hurtbox_size(large: bool) -> void:
 func _grant_blizzard_unlock_and_can() -> void:
 	# Host-authored unlock + can drop. Do not call from play_death (clients).
 	# user_stories/tasks/US-017/T004-death-unlock-can.md
+	# Spawn/combat tests set grant_blizzard_on_death false so die() stays isolated.
+	if not grant_blizzard_on_death:
+		return
 	if _blizzard_rewards_granted:
 		return
 	if not multiplayer.is_server():
