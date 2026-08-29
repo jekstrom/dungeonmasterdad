@@ -1,6 +1,6 @@
 extends Node
 
-## US-017 T001/T002: one Baja Blast boss at the exit room, skip-boss, south placeholder, host die.
+## US-017 T001/T002: one Baja Blast boss at the exit room, skip-boss, 3x5 sheet, host die.
 
 const BOSS_SCENE := "res://monsters/baja_boss.tscn"
 const ENTRANCE := Vector2i(2, 2)
@@ -104,6 +104,9 @@ func _assert_boss_scene() -> bool:
 		return false
 	if sprite.hframes != 3:
 		_fail("US-017 T002: hframes must be 3, got %d" % sprite.hframes)
+		return false
+	if sprite.vframes != 5:
+		_fail("US-017 T002: vframes must be 5, got %d" % sprite.vframes)
 		return false
 	if sprite.scale != Vector2.ONE:
 		_fail("US-017 T002: scale must be Vector2.ONE, got %s" % sprite.scale)
