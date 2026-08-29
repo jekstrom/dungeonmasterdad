@@ -107,12 +107,12 @@ func _ready() -> void:
 		push_error("US-024 T002: must not reuse cubicle_stone_wall.png")
 		get_tree().quit(1)
 		return
-	if atlas_tex == null or atlas_tex.get_width() != 1152 or atlas_tex.get_height() != 128:
-		push_error("US-024 T003: cliff atlas must be 1152x128 (9x128 frames)")
+	if atlas_tex == null or atlas_tex.get_width() != 1024 or atlas_tex.get_height() != 128:
+		push_error("US-024 T003: cliff atlas must be 1024x128 (8x128 frames)")
 		get_tree().quit(1)
 		return
-	if atlas_path.find("cliff_edge.png") == -1:
-		push_error("US-024 T003: cliff tile must use sprites/cliff_edge.png")
+	if atlas_path.find("cliff_edges.png") == -1:
+		push_error("US-024 T003: cliff tile must use sprites/cliff_edges.png")
 		get_tree().quit(1)
 		return
 	var shape_a: CollisionShape2D = body.get_node_or_null("CollisionShape2D")

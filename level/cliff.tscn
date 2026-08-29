@@ -1,7 +1,7 @@
 [gd_scene format=3 uid="uid://dn4731v78i45y"]
 
 [ext_resource type="Script" uid="uid://drcmlbsdn3ywx" path="res://level/cliff.gd" id="1_script"]
-[ext_resource type="Texture2D" uid="uid://dw1ln8wxfdv5d" path="res://sprites/cliff_edge.png" id="2_tex"]
+[ext_resource type="Texture2D" uid="uid://dw7j86ey68g64" path="res://sprites/cliff_edges.png" id="2_tex"]
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_whair"]
 resource_local_to_scene = true

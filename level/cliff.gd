@@ -60,7 +60,8 @@ func _update_visual() -> void:
 func _apply_frame_crops() -> void:
 	var grass: float = DungeonGrid.CLIFF_GRASS_MARGIN
 	var stone: float = 128.0 - grass
-	var atlas_x: float = float(clampi(int(cliff_frame), 0, int(CliffFrame.VOID))) * 128.0
+	# New sheet is 8 cells (0-7). VOID has no atlas cell.
+	var atlas_x: float = float(clampi(int(cliff_frame), 0, 7)) * 128.0
 	match cliff_frame:
 		CliffFrame.N:
 			_crop_sprite(sprite_2d, atlas_x, Rect2(0, 0, 128, stone), true)
@@ -95,7 +96,7 @@ func _apply_frame_crops() -> void:
 			_crop_sprite(stone_b, atlas_x, Rect2(grass, 0, stone, 128), true)
 			_crop_sprite(grass_sprite, atlas_x, Rect2(0, 0, grass, grass), true)
 		CliffFrame.VOID:
-			_crop_sprite(sprite_2d, atlas_x, Rect2(0, 0, 128, 128), true)
+			_crop_sprite(sprite_2d, atlas_x, Rect2(), false)
 			_crop_sprite(grass_sprite, atlas_x, Rect2(), false)
 			_crop_sprite(stone_b, atlas_x, Rect2(), false)
 		_:
