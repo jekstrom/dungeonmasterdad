@@ -658,7 +658,13 @@ func _tree_sync_items() -> Array:
 		var tree_type := -1
 		if "tree_type" in child:
 			tree_type = int(child.tree_type)
-		items.append({"x": cell.x, "y": cell.y, "t": tree_type})
+		var hits := 0
+		if "hits_taken" in child:
+			hits = int(child.hits_taken)
+		var stump := 0
+		if "is_stump" in child and bool(child.is_stump):
+			stump = 1
+		items.append({"x": cell.x, "y": cell.y, "t": tree_type, "h": hits, "s": stump})
 	return items
 
 func _apply_cliffs_from_payload(items: Variant) -> void:
@@ -699,7 +705,7 @@ func _apply_trees_from_payload(items: Variant) -> void:
 		if typeof(item) != TYPE_DICTIONARY:
 			continue
 		var cell := Vector2i(int(item.get("x", 0)), int(item.get("y", 0)))
-		_place_tree_at(parent, cell, int(item.get("t", 0)))
+		_place_tree_at(parent, cell, int(item.get("t", 0)), int(item.get("h", 0)), bool(item.get("s", 0)))
 
 func _place_cliff_at(parent: Node2D, cell: Vector2i, frame: int) -> void:
 	if _cliff_scene == null:
@@ -733,7 +739,7 @@ func _place_outside_at(parent: Node2D, cell: Vector2i, ground_kind: int, variety
 	if "element_presentation" in tile:
 		tile.element_presentation = presentation
 
-func _place_tree_at(parent: Node2D, cell: Vector2i, tree_type: int) -> void:
+func _place_tree_at(parent: Node2D, cell: Vector2i, tree_type: int, hits_taken: int = 0, is_stump: bool = false) -> void:
 	if _tree_scene == null:
 		return
 	var doodad: Node2D = _tree_scene.instantiate() as Node2D
@@ -746,6 +752,8 @@ func _place_tree_at(parent: Node2D, cell: Vector2i, tree_type: int) -> void:
 	doodad.add_to_group("scattered_trees")
 	_strip_tile_sync(doodad)
 	parent.add_child(doodad)
+	if doodad.has_method("apply_replicated_harvest_state"):
+		doodad.apply_replicated_harvest_state(hits_taken, is_stump)
 
 func _strip_tile_sync(node: Node) -> void:
 	var sync := node.get_node_or_null("MultiplayerSynchronizer")

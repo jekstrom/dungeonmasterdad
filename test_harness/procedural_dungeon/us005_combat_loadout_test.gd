@@ -7,6 +7,13 @@ func _ready() -> void:
 	PlayerHud.turn_on()
 	await get_tree().process_frame
 
+	if PlayerHud.build_smoke_factory_button.focus_mode != Control.FOCUS_NONE:
+		_fail("US-005: smoke factory HUD button must not steal Space (ui_accept)")
+		return
+	if PlayerHud.build_paper_factory_button.focus_mode != Control.FOCUS_NONE:
+		_fail("US-005: paper factory HUD button must not steal Space (ui_accept)")
+		return
+
 	var icon: TextureRect = PlayerHud.get_node_or_null("%StapleIcon") as TextureRect
 	var label: Label = PlayerHud.get_node_or_null("%StapleCount") as Label
 	if icon == null or label == null:

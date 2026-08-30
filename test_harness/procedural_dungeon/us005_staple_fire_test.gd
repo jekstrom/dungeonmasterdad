@@ -102,6 +102,23 @@ func _ready() -> void:
 	if player.staple_count != mag_before_melee:
 		_fail("US-005: melee must not spend staples")
 		return
+	player._melee_swing_active = true
+	var mag_during_swing: int = player.staple_count
+	var spawned_during: int = _staple_count()
+	player._host_fire_staple(Vector2.RIGHT)
+	if player.staple_count != mag_during_swing or _staple_count() != spawned_during:
+		_fail("US-005: staple fire must not go through during an active melee pulse")
+		return
+	await player.get_tree().create_timer(0.2).timeout
+	if player._melee_swing_active:
+		_fail("US-005: melee pulse must clear _melee_swing_active so LMB can fire after harvest")
+		return
+	var mag_after_swing: int = player.staple_count
+	var spawned_after: int = _staple_count()
+	player._host_fire_staple(Vector2.RIGHT)
+	if player.staple_count != mag_after_swing - 1 or _staple_count() != spawned_after + 1:
+		_fail("US-005: LMB staple fire must work after melee/harvest swing ends")
+		return
 	await get_tree().physics_frame
 	await get_tree().process_frame
 
