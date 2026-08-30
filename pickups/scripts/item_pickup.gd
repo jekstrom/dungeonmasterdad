@@ -163,11 +163,7 @@ func update_client():
 	if not visible:
 		return
 	
-	# Use the same disable function as server for consistency
 	_disable_pickup()
-	
-	# Use call_deferred to ensure RPC processing completes before deletion
-	call_deferred("_safe_queue_free")
 
 func update_texture() -> void:
 	if item_data != null and sprite_2d != null:
@@ -242,10 +238,11 @@ func _find_nearest_player() -> Node:
 	return nearest_player
 
 func _safe_queue_free():
+	if not multiplayer.is_server():
+		_disable_pickup()
+		return
 	if is_inside_tree() and not is_queued_for_deletion():
 		ItemPickupPool.return_to_pool(self)
-	else:
-		print("ItemPickup: _safe_queue_free called but node already invalid")
 
 func _on_grace_period_ended() -> void:
 	"""Called when the grace period expires - enables pickup"""

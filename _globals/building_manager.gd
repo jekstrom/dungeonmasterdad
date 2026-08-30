@@ -1,5 +1,25 @@
 extends Node
 
+func placement_origin(world: Vector2) -> Vector2:
+	return world
+
+func can_place(building_id: String, origin: Vector2, player_id: int) -> bool:
+	var data: BuildingData = BuildingDatabase.get_building(building_id)
+	if data == null:
+		return false
+	if data.unique_building and _has_enabled_unique(data):
+		return false
+	if not _can_afford(player_id, data):
+		return false
+	return is_area_clear(origin, Vector2(data.size))
+
+func _can_afford(player_id: int, data: BuildingData) -> bool:
+	if data == null or data.cost_qty <= 0:
+		return true
+	if multiplayer.is_server():
+		return PlayerManager.has_resources(player_id, data.cost_item, data.cost_qty)
+	return PlayerManager.carried_count(player_id, data.cost_item) >= data.cost_qty
+
 @rpc("any_peer", "reliable")
 func request_placement(building_id: String, pos: Vector2, check_pos: Vector2):
 	if not multiplayer.is_server(): 
@@ -11,21 +31,20 @@ func request_placement(building_id: String, pos: Vector2, check_pos: Vector2):
 	var data: BuildingData = BuildingDatabase.get_building(building_id)
 	if data == null:
 		return
-	var building_root = get_tree().get_first_node_in_group("building_root")
-	if data.unique_building and _has_enabled_unique(data):
+	var origin: Vector2 = pos
+	if not can_place(building_id, origin, sender_id):
 		return
-	if PlayerManager.has_resources(sender_id, data.cost_item, data.cost_qty) and is_area_clear(check_pos, Vector2(data.size)):
-		PlayerManager.consume_resources(sender_id, data.cost_item, data.cost_qty)
-		
-		if building_root:
-			var building = data.scene.instantiate()
-			building.position = pos
-			building_root.add_child(building, true)
-			building.global_position = pos
-			building.enable()
-		else:
-			print("no building root found")
-			assert(false, "no building root")
+	var building_root = get_tree().get_first_node_in_group("building_root")
+	PlayerManager.consume_resources(sender_id, data.cost_item, data.cost_qty)
+	if building_root:
+		var building = data.scene.instantiate()
+		building.position = origin
+		building_root.add_child(building, true)
+		building.global_position = origin
+		building.enable()
+	else:
+		print("no building root found")
+		assert(false, "no building root")
 
 func _has_enabled_unique(data: BuildingData) -> bool:
 	if data == null or not data.unique_building:
@@ -55,6 +74,14 @@ func is_area_clear(pos: Vector2, size: Vector2, _unused_radius = 0, _unused_pos:
 	query.shape = shape
 	query.transform = Transform2D(0, pos)
 	query.collision_mask = 1 | 16
+	var tree := get_tree()
+	if tree:
+		for node in tree.get_nodes_in_group("players"):
+			if node is CollisionObject2D:
+				query.exclude.append((node as CollisionObject2D).get_rid())
+		for node in tree.get_nodes_in_group("dm"):
+			if node is CollisionObject2D:
+				query.exclude.append((node as CollisionObject2D).get_rid())
 	
 	var space_state = get_tree().root.world_2d.direct_space_state
 	

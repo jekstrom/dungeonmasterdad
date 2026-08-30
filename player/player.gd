@@ -169,28 +169,47 @@ func setup_building(building: String):
 	current_building_data = load("res://buildings/buildables/" + building + ".tres") as BuildingData
 	if current_building_data == null:
 		return
-	if ghost_building:
-		remove_child(ghost_building)
-		ghost_building = null
+	_clear_ghost_building()
 	ghost_building = current_building_data.scene.instantiate()
-	ghost_building.name = "ghost"
-	var collision = ghost_building.get_node_or_null("CollisionShape2D")
+	_prepare_ghost_building(ghost_building)
+	add_child(ghost_building)
+	if ghost_building.has_method("set_ghost"):
+		ghost_building.set_ghost()
+
+func _prepare_ghost_building(node: Node) -> void:
+	node.name = "ghost"
+	node.set_scene_file_path("")
+	var sync := node.get_node_or_null("MultiplayerSynchronizer")
+	if sync:
+		node.remove_child(sync)
+		sync.free()
+	var collision := node.get_node_or_null("CollisionShape2D") as CollisionShape2D
 	if collision:
 		collision.disabled = true
-	
-	add_child(ghost_building)
-	ghost_building.set_ghost()
-	
-func update_ghost(pos: Vector2):
+	if node is CollisionObject2D:
+		(node as CollisionObject2D).collision_layer = 0
+		(node as CollisionObject2D).collision_mask = 0
+
+func _clear_ghost_building() -> void:
 	if ghost_building == null:
 		return
-	var valid_placement = BuildingManager.is_area_clear(pos, Vector2(BuildingData.building_size, BuildingData.building_size))
-	if !valid_placement:
-		ghost_building.modulate = Color(1, 0, 0, 0.7)
-	else:
+	var ghost: Node = ghost_building
+	ghost_building = null
+	if is_instance_valid(ghost):
+		if ghost.get_parent() == self:
+			remove_child(ghost)
+		ghost.queue_free()
+	
+func update_ghost(pos: Vector2):
+	if ghost_building == null or current_building_data == null:
+		return
+	var origin: Vector2 = BuildingManager.placement_origin(pos)
+	ghost_building.global_position = origin
+	var valid_placement: bool = BuildingManager.can_place(current_building_data.resource_path, origin, _inventory_id())
+	if valid_placement:
 		ghost_building.modulate = Color(0, 1, 0, 0.7)
-	@warning_ignore("integer_division")
-	ghost_building.global_position = Vector2(pos.x, pos.y + BuildingData.building_size / 2)
+	else:
+		ghost_building.modulate = Color(1, 0, 0, 0.7)
 
 func _physics_process(_delta: float) -> void:
 	if !is_multiplayer_authority(): return
@@ -1036,17 +1055,15 @@ func _input(event: InputEvent) -> void:
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("primary_click"):
-		if current_building_data:
+		if current_building_data and ghost_building:
 			var place_id: String = current_building_data.resource_path
 			var place_at: Vector2 = ghost_building.global_position
-			var check_at: Vector2 = get_global_mouse_position()
 			if multiplayer.is_server():
-				BuildingManager.request_placement(place_id, place_at, check_at)
+				BuildingManager.request_placement(place_id, place_at, place_at)
 			else:
-				BuildingManager.request_placement.rpc_id(1, place_id, place_at, check_at)
-			remove_child(ghost_building)
+				BuildingManager.request_placement.rpc_id(1, place_id, place_at, place_at)
 			current_building_data = null
-			ghost_building = null
+			_clear_ghost_building()
 
 # =============================================================================
 # DEATH SYSTEM INTEGRATION

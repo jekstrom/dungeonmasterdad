@@ -27,6 +27,8 @@ func _ready() -> void:
 func _physics_process(delta: float) -> void:
 	if _consumed:
 		return
+	if not _is_host():
+		return
 	if speed != 0.0:
 		global_position += direction * speed * delta
 	if global_position.distance_to(_origin) >= max_range:
@@ -85,6 +87,11 @@ func _exited_map_interior() -> bool:
 		return false
 	return true
 
+func _is_host() -> bool:
+	if not is_inside_tree() or multiplayer == null:
+		return true
+	return multiplayer.is_server()
+
 func consume() -> void:
 	if _consumed:
 		return
@@ -95,4 +102,7 @@ func consume() -> void:
 		body_entered.disconnect(_on_body_entered)
 	set_deferred("monitoring", false)
 	set_deferred("monitorable", false)
-	queue_free()
+	visible = false
+	if not _is_host():
+		return
+	call_deferred("queue_free")

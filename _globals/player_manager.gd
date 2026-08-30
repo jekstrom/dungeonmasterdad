@@ -365,7 +365,6 @@ func has_resources(player_id, resource_id, cost) -> bool:
 	if !inventory.has(resource_id):
 		return false
 	var x = inventory[resource_id] >= cost
-	print("player has resources? ", x)
 	return x
 	
 @rpc("authority", "reliable")
