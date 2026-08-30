@@ -7,7 +7,8 @@ func _enter_tree() -> void:
 	add_to_group("irs")
 
 func _ready() -> void:
-	if _is_world_building() and is_ghost:
+	super._ready()
+	if _is_world_building() and is_ghost and not destroyed:
 		enable()
 
 func _is_world_building() -> bool:
@@ -18,6 +19,8 @@ func _is_world_building() -> bool:
 
 func is_fileable() -> bool:
 	if str(name) == "ghost":
+		return false
+	if destroyed:
 		return false
 	if _is_world_building():
 		return true

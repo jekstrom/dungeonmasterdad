@@ -32,6 +32,12 @@ properties/6/replication_mode = 1
 properties/7/path = NodePath(".:is_ghost")
 properties/7/spawn = true
 properties/7/replication_mode = 1
+properties/8/path = NodePath(".:hitpoints")
+properties/8/spawn = true
+properties/8/replication_mode = 2
+properties/9/path = NodePath(".:destroyed")
+properties/9/spawn = true
+properties/9/replication_mode = 2
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_k0ohe"]
 atlas = ExtResource("2_sj170")
@@ -153,6 +159,8 @@ _data = {
 y_sort_enabled = true
 script = ExtResource("1_kt0lt")
 interval = 3.0
+max_hitpoints = 8
+hitpoints = 8
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
 y_sort_enabled = true

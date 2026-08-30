@@ -264,18 +264,24 @@ func _update_interact_marker(marker: Control, player: Player) -> void:
 
 func _sync_mine_markers(scene_tree: SceneTree) -> void:
 	var seen: Dictionary = {}
-	for node in scene_tree.get_nodes_in_group("mines"):
-		if not (node is MineDoodad) or not is_instance_valid(node) or not node.is_inside_tree():
+	var nodes: Array = []
+	nodes.append_array(scene_tree.get_nodes_in_group("mines"))
+	nodes.append_array(scene_tree.get_nodes_in_group("harvest_nodes"))
+	for node in nodes:
+		if not is_instance_valid(node) or not node.is_inside_tree():
 			continue
-		var mine: MineDoodad = node
-		var id: int = mine.get_instance_id()
+		if not node.has_method("shows_harvest_progress"):
+			continue
+		var id: int = node.get_instance_id()
+		if seen.has(id):
+			continue
 		seen[id] = true
 		var marker: Control = _mine_markers.get(id)
 		if marker == null:
 			marker = _make_mine_marker()
 			add_child(marker)
 			_mine_markers[id] = marker
-		_update_mine_marker(marker, mine)
+		_update_mine_marker(marker, node)
 	_free_stale_markers(_mine_markers, seen)
 
 func _free_stale_markers(store: Dictionary, seen: Dictionary) -> void:
@@ -289,14 +295,14 @@ func _free_stale_markers(store: Dictionary, seen: Dictionary) -> void:
 		if is_instance_valid(old):
 			old.queue_free()
 
-func mine_bar_visible(mine: MineDoodad) -> bool:
+func mine_bar_visible(mine: Node) -> bool:
 	var marker: Control = _mine_marker_of(mine)
 	if marker == null:
 		return false
 	var fill: ColorRect = marker.get_node_or_null("BarFill") as ColorRect
 	return marker.visible and fill != null and fill.visible
 
-func mine_bar_fill_width(mine: MineDoodad) -> float:
+func mine_bar_fill_width(mine: Node) -> float:
 	var marker: Control = _mine_marker_of(mine)
 	if marker == null:
 		return 0.0
@@ -310,7 +316,7 @@ func _marker_of(factory: PaperFactory) -> Control:
 		return null
 	return _markers.get(factory.get_instance_id()) as Control
 
-func _mine_marker_of(mine: MineDoodad) -> Control:
+func _mine_marker_of(mine: Node) -> Control:
 	if mine == null:
 		return null
 	return _mine_markers.get(mine.get_instance_id()) as Control
@@ -456,12 +462,15 @@ func _make_mine_marker() -> Control:
 	root.add_child(bar_fill)
 	return root
 
-func _update_mine_marker(marker: Control, mine: MineDoodad) -> void:
-	var show_bar: bool = mine.shows_harvest_progress()
+func _update_mine_marker(marker: Control, mine: Node) -> void:
+	var show_bar: bool = bool(mine.call("shows_harvest_progress"))
 	marker.visible = show_bar
 	var bar_fill: ColorRect = marker.get_node("BarFill") as ColorRect
 	bar_fill.visible = show_bar
-	var screen: Vector2 = mine.get_global_transform_with_canvas() * MINE_WORLD_LIFT
+	var lift: Vector2 = MINE_WORLD_LIFT
+	if mine is Building:
+		lift = WORLD_LIFT
+	var screen: Vector2 = (mine as Node2D).get_global_transform_with_canvas() * lift
 	marker.position = screen - Vector2(BAR_WIDTH * 0.5, BAR_HEIGHT * 0.5)
 	if show_bar:
-		bar_fill.size = Vector2(BAR_WIDTH * mine.harvest_progress(), BAR_HEIGHT)
+		bar_fill.size = Vector2(BAR_WIDTH * float(mine.call("harvest_progress")), BAR_HEIGHT)

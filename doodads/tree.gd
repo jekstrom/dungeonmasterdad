@@ -251,7 +251,7 @@ func _is_under_building() -> bool:
 		for child in root.get_children():
 			if not is_instance_valid(child):
 				continue
-			if child is Building and child.is_ghost:
+			if child is Building and (child.is_ghost or not child.is_operating()):
 				continue
 			if not (child is Node2D):
 				continue

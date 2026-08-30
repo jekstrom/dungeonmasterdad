@@ -58,7 +58,7 @@ func _has_enabled_unique(data: BuildingData) -> bool:
 	for child in root.get_children():
 		if not is_instance_valid(child):
 			continue
-		if child is Building and (child as Building).is_ghost:
+		if child is Building and ((child as Building).is_ghost or not (child as Building).is_operating()):
 			continue
 		if want != "" and str(child.scene_file_path) == want:
 			return true

@@ -405,6 +405,8 @@ func set_player_pos(new_pos: Vector2) -> void:
 func set_player_health(hp: int, max_hp: int) -> void:
 	player.max_hp = max_hp
 	player.hitpoints = hp
+	if player.has_method("sync_hitpoints") and multiplayer.is_server():
+		player.sync_hitpoints.rpc(hp)
 	#DmHud.update_hp(hp, max_hp)
 
 func set_as_parent(p: Node2D) -> void:
@@ -478,8 +480,9 @@ func respawn_player(player_id: int) -> void:
 	if level and level.has_method("enforce_body_interior"):
 		level.enforce_body_interior(player_node)
 	
-	# Reset player health
 	player_node.hitpoints = player_node.max_hp
+	if player_node.has_method("sync_hitpoints"):
+		player_node.sync_hitpoints.rpc(player_node.hitpoints)
 	
 	# Reset player state to idle (exit snake mode if active)
 	if player_node.has_method("force_idle_state"):

@@ -22,6 +22,7 @@ var aggro_target: Node2D = null
 		_refresh_health_bar()
 @export var aggro_faction: AggroFaction = AggroFaction.DM
 @export var melee_range_px: float = 128.0
+@export var raids_buildings: bool = false
 @export var health_bar_title: String = ""
 var _dying: bool = false
 var _health_bar: Node2D
@@ -50,6 +51,8 @@ func _ready() -> void:
 	if hitbox and hitbox.has_signal("Damaged"):
 		hitbox.Damaged.connect(_take_damage)
 	collision_mask = collision_mask | 16
+	if raids_buildings:
+		collision_mask = collision_mask | 1
 
 func _process(_delta: float) -> void:
 	pass
@@ -84,6 +87,8 @@ func screen_spot_range() -> float:
 	if viewport == null:
 		return 160.0
 	var size: Vector2 = viewport.get_visible_rect().size
+	if size.x <= 1.0 or size.y <= 1.0:
+		return 160.0
 	var zoom: float = 1.0
 	var camera := viewport.get_camera_2d()
 	if camera:
@@ -121,8 +126,13 @@ func can_damage_dm() -> bool:
 func is_melee_close_to(node: Node2D) -> bool:
 	if node == null or not is_instance_valid(node):
 		return false
-	if global_position.distance_to(node.global_position) > melee_range_px:
+	var origin: Vector2 = node.global_position
+	if node is Building:
+		origin = (node as Building).factory_origin()
+	if global_position.distance_to(origin) > melee_range_px:
 		return false
+	if node is Building:
+		return true
 	var self_cell: Vector2i = DungeonGridScript.from_world(global_position)
 	var other_cell: Vector2i = DungeonGridScript.from_world(node.global_position)
 	return DungeonGridScript.chebyshev(self_cell, other_cell) <= 1
@@ -131,15 +141,23 @@ func is_melee_close_to(node: Node2D) -> bool:
 func _closest_aggro_candidate() -> Node2D:
 	var best: Node2D = null
 	var best_dist: float = screen_spot_range()
-	for candidate in _aggro_candidates():
+	for candidate in _character_aggro_candidates():
 		var dist: float = global_position.distance_to(candidate.global_position)
 		if dist <= best_dist:
 			best_dist = dist
 			best = candidate
-	return best
+	if best != null:
+		return best
+	if raids_buildings:
+		return _closest_raid_building()
+	return null
 
 
 func _aggro_candidates() -> Array[Node2D]:
+	return _character_aggro_candidates()
+
+
+func _character_aggro_candidates() -> Array[Node2D]:
 	var candidates: Array[Node2D] = []
 	if aggro_faction != AggroFaction.PLAYERS:
 		if DmManager.dm != null and is_instance_valid(DmManager.dm) and DmManager.dm.is_inside_tree():
@@ -151,6 +169,43 @@ func _aggro_candidates() -> Array[Node2D]:
 				if node is Node2D and is_instance_valid(node) and node.is_inside_tree():
 					candidates.append(node)
 	return candidates
+
+
+func _closest_raid_building() -> Node2D:
+	var best_factory: Node2D = null
+	var best_factory_dist: float = INF
+	var best_other: Node2D = null
+	var best_other_dist: float = INF
+	for building in _raid_building_candidates():
+		var origin: Vector2 = building.factory_origin()
+		var dist: float = global_position.distance_to(origin)
+		if _is_factory_building(building):
+			if dist < best_factory_dist:
+				best_factory_dist = dist
+				best_factory = building
+		elif dist < best_other_dist:
+			best_other_dist = dist
+			best_other = building
+	if best_factory:
+		return best_factory
+	return best_other
+
+
+func _raid_building_candidates() -> Array[Building]:
+	var result: Array[Building] = []
+	var tree := get_tree()
+	if tree == null:
+		return result
+	for node in tree.get_nodes_in_group("buildings"):
+		if node is Building and (node as Building).is_raidable():
+			result.append(node as Building)
+	return result
+
+
+func _is_factory_building(node: Node) -> bool:
+	if node is SmokeFactory or node is PaperFactory:
+		return true
+	return node.is_in_group("factories")
 
 
 @warning_ignore("unused_parameter")

@@ -34,6 +34,12 @@ properties/6/replication_mode = 1
 properties/7/path = NodePath(".:cycle_paid")
 properties/7/spawn = true
 properties/7/replication_mode = 1
+properties/8/path = NodePath(".:hitpoints")
+properties/8/spawn = true
+properties/8/replication_mode = 2
+properties/9/path = NodePath(".:destroyed")
+properties/9/spawn = true
+properties/9/replication_mode = 2
 
 [sub_resource type="Animation" id="Animation_vtusx"]
 resource_name = "RESET"
@@ -100,6 +106,8 @@ _data = {
 y_sort_enabled = true
 script = ExtResource("1_xwhl0")
 interval = 6.0
+max_hitpoints = 12
+hitpoints = 12
 
 [node name="Sprite2D" type="Sprite2D" parent="." unique_id=28000666]
 y_sort_enabled = true

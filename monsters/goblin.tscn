@@ -8,12 +8,17 @@
 [ext_resource type="AudioStream" uid="uid://dyanohy44dnan" path="res://monsters/hit_00.wav" id="6_yl8ja"]
 [ext_resource type="Script" uid="uid://dsgyho2x63okl" path="res://monsters/states/enemy_state_wander.gd" id="7_ck5xr"]
 [ext_resource type="Script" uid="uid://dfm3rswj3txub" path="res://monsters/states/enemy_state_stun.gd" id="7_gv1kj"]
+[ext_resource type="Script" uid="uid://w7ukoihj82nw" path="res://monsters/states/enemy_state_aggro.gd" id="8_aggro"]
 [ext_resource type="Texture2D" uid="uid://dt4icgcs5dbex" path="res://monsters/DestroySmoke.png" id="16_2bbdt"]
+[ext_resource type="PackedScene" uid="uid://cmhep8oix5sk6" path="res://hurtbox.tscn" id="16_hurt"]
 [ext_resource type="PackedScene" uid="uid://c1c212xev4n6e" path="res://hitbox.tscn" id="17_hit"]
 
 [sub_resource type="CapsuleShape2D" id="CapsuleShape2D_57eei"]
 radius = 6.0
 height = 18.0
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_melee"]
+radius = 18.0
 
 [sub_resource type="Animation" id="Animation_6326o"]
 length = 0.001
@@ -517,9 +522,11 @@ properties/3/replication_mode = 1
 
 [node name="Goblin2" type="CharacterBody2D" unique_id=276733849]
 collision_layer = 256
-collision_mask = 16
+collision_mask = 17
+motion_mode = 1
 script = ExtResource("1_x5s1r")
 aggro_faction = 1
+raids_buildings = true
 
 [node name="Sprite2D" type="Sprite2D" parent="." unique_id=1746817978]
 position = Vector2(0, -15)
@@ -545,13 +552,19 @@ autoplay = &"idle_down"
 [node name="EnemyStateMachine" type="Node" parent="." unique_id=183023580]
 script = ExtResource("5_ypyf5")
 
-[node name="idle" type="Node" parent="EnemyStateMachine" unique_id=354581941 node_paths=PackedStringArray("next_state")]
+[node name="idle" type="Node" parent="EnemyStateMachine" unique_id=354581941 node_paths=PackedStringArray("next_state", "attack_state")]
 script = ExtResource("6_ck5xr")
 next_state = NodePath("../wander")
+attack_state = NodePath("../aggro")
 
-[node name="wander" type="Node" parent="EnemyStateMachine" unique_id=362637644 node_paths=PackedStringArray("next_state")]
+[node name="wander" type="Node" parent="EnemyStateMachine" unique_id=362637644 node_paths=PackedStringArray("next_state", "attack_state")]
 script = ExtResource("7_ck5xr")
 next_state = NodePath("../idle")
+attack_state = NodePath("../aggro")
+
+[node name="aggro" type="Node" parent="EnemyStateMachine" node_paths=PackedStringArray("wander_state")]
+script = ExtResource("8_aggro")
+wander_state = NodePath("../wander")
 
 [node name="stun" type="Node" parent="EnemyStateMachine" unique_id=87160628 node_paths=PackedStringArray("next_state")]
 script = ExtResource("7_gv1kj")
@@ -578,3 +591,12 @@ collision_layer = 8
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Hitbox"]
 position = Vector2(0, -4)
 shape = SubResource("CapsuleShape2D_57eei")
+
+[node name="Hurtbox" parent="." instance=ExtResource("16_hurt")]
+collision_mask = 34
+monitoring = false
+damage = 1
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Hurtbox"]
+position = Vector2(0, -8)
+shape = SubResource("CircleShape2D_melee")

@@ -17,6 +17,7 @@ func _enter_tree() -> void:
 	add_to_group("paper_factories")
 
 func _ready() -> void:
+	super._ready()
 	if animation_player and animation_player.has_animation("paper"):
 		var paper_anim: Animation = animation_player.get_animation("paper")
 		if paper_anim:
@@ -25,7 +26,7 @@ func _ready() -> void:
 func try_deposit_wood(player_id: int) -> bool:
 	if not multiplayer.is_server():
 		return false
-	if is_ghost:
+	if is_ghost or destroyed or not is_operating():
 		return false
 	if stored_wood >= stored_wood_cap:
 		return false
@@ -116,6 +117,8 @@ func _complete_cycle() -> void:
 		return
 	cycle_paid = false
 	timer = 0.0
+	if not is_operating():
+		return
 	if stored_wood < wood_consume_amt:
 		return
 	stored_wood -= wood_consume_amt
@@ -131,13 +134,16 @@ func _sync_work_animation() -> void:
 		animation_player.play("RESET")
 
 func _process(delta: float) -> void:
-	if is_ghost:
+	if not is_operating():
 		_sync_work_animation()
 		return
 	if multiplayer.is_server():
 		sync_blizzard_interval()
 		if not cycle_paid:
 			_try_begin_cycle()
+		if not is_operating():
+			_sync_work_animation()
+			return
 		if cycle_paid:
 			timer += delta
 			if timer >= interval:

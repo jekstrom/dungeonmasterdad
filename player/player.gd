@@ -8,8 +8,11 @@ var cardinal_direction: Vector2 = Vector2.DOWN
 var direction: Vector2 = Vector2.ZERO
 var prev_direction: Vector2 = Vector2.ZERO
 var invulnerable: bool = false
-var hitpoints: int = 6
-var max_hp: int = 6
+@export var max_hp: int = 6
+@export var hitpoints: int = 6:
+	set(value):
+		hitpoints = clampi(value, 0, maxi(1, max_hp) if max_hp > 0 else maxi(0, value))
+		_refresh_health_bar()
 
 @onready var camera_2d: PlayerCamera = get_node_or_null("Camera2D")
 @onready var label: Label = get_node_or_null("Label")
@@ -59,6 +62,9 @@ const TEX_SWORD_FALLBACK: Texture2D = preload("res://player/sprites/PlayerSprite
 
 signal staple_count_changed(count: int)
 
+const HEALTH_BAR_SCENE: PackedScene = preload("res://monsters/enemy_health_bar.tscn")
+var _health_bar: Node2D
+
 @export var sync_name: String:
 	set(val):
 		sync_name = val
@@ -96,6 +102,8 @@ func _ready() -> void:
 			camera_2d.enabled = false
 		
 	_ensure_combat_visuals()
+	_spawn_health_bar()
+	_configure_hp_replication()
 	if state_machine:
 		state_machine.Initialize(self)
 	staple_count = staple_magazine_max
@@ -763,6 +771,11 @@ func can_prompt_tree_harvest() -> bool:
 	for node in scene_tree.get_nodes_in_group("mines"):
 		if node.has_method("is_harvest_prompt_target") and node.is_harvest_prompt_target(self):
 			return true
+	for node in scene_tree.get_nodes_in_group("harvest_nodes"):
+		if node is MineDoodad:
+			continue
+		if node.has_method("is_harvest_prompt_target") and node.is_harvest_prompt_target(self):
+			return true
 	return false
 
 func _ensure_interact_hints() -> void:
@@ -1083,6 +1096,8 @@ func _on_player_respawn_completed(player_id: int, respawn_position: Vector2) -> 
 	velocity = Vector2.ZERO
 	hitpoints = max_hp
 	invulnerable = false
+	if multiplayer.is_server():
+		sync_hitpoints.rpc(hitpoints)
 	
 	# The death state Exit() method will handle restoring visibility and collisions
 	# This ensures consistency between all death/respawn pathways
@@ -1094,11 +1109,60 @@ func _on_player_respawn_completed(player_id: int, respawn_position: Vector2) -> 
 	else:
 		force_idle_state()
 
+func health_ratio() -> float:
+	return float(hitpoints) / float(maxi(1, max_hp))
+
 func take_damage(_hurt_box: Hurtbox) -> void:
-	if not multiplayer.is_server(): return
-	if invulnerable: return
+	if not multiplayer.is_server():
+		return
+	if invulnerable:
+		return
 	cancel_fill()
-	DeathSystem.request_player_death(int(name), position)
+	var dmg: int = 1
+	if _hurt_box:
+		dmg = maxi(1, _hurt_box.damage)
+	hitpoints = hitpoints - dmg
+	sync_hitpoints.rpc(hitpoints)
+	if hitpoints <= 0:
+		DeathSystem.request_player_death(int(name), position)
+
+@rpc("any_peer", "call_local", "reliable")
+func sync_hitpoints(hp: int) -> void:
+	if not multiplayer.is_server():
+		if multiplayer.get_remote_sender_id() != 1:
+			return
+	hitpoints = hp
+
+func _spawn_health_bar() -> void:
+	if HEALTH_BAR_SCENE == null:
+		return
+	if get_node_or_null("HealthBar") != null:
+		_health_bar = get_node("HealthBar") as Node2D
+		_refresh_health_bar()
+		return
+	_health_bar = HEALTH_BAR_SCENE.instantiate() as Node2D
+	_health_bar.name = "HealthBar"
+	_health_bar.position = Vector2(0.0, -86.0)
+	add_child(_health_bar)
+	_refresh_health_bar()
+
+func _refresh_health_bar() -> void:
+	if _health_bar == null or not is_instance_valid(_health_bar):
+		_health_bar = get_node_or_null("HealthBar") as Node2D
+	if _health_bar == null or not is_instance_valid(_health_bar):
+		return
+	_health_bar.visible = hitpoints > 0
+	if _health_bar.has_method("set_health_ratio"):
+		_health_bar.call("set_health_ratio", health_ratio())
+
+func _configure_hp_replication() -> void:
+	var sync := get_node_or_null("MultiplayerSynchronizer")
+	if sync == null or sync.replication_config == null:
+		return
+	var config: SceneReplicationConfig = sync.replication_config
+	var path := NodePath(".:hitpoints")
+	if config.has_property(path):
+		config.remove_property(path)
 
 
 func _ensure_combat_visuals() -> void:
