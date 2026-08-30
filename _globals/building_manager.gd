@@ -74,6 +74,8 @@ func is_area_clear(pos: Vector2, size: Vector2, _unused_radius = 0, _unused_pos:
 	query.shape = shape
 	query.transform = Transform2D(0, pos)
 	query.collision_mask = 1 | 16
+	query.collide_with_areas = false
+	query.collide_with_bodies = true
 	var tree := get_tree()
 	if tree:
 		for node in tree.get_nodes_in_group("players"):
@@ -82,13 +84,28 @@ func is_area_clear(pos: Vector2, size: Vector2, _unused_radius = 0, _unused_pos:
 		for node in tree.get_nodes_in_group("dm"):
 			if node is CollisionObject2D:
 				query.exclude.append((node as CollisionObject2D).get_rid())
+		for group_name in ["RealityZone", "FantasyZone", "claim_zone"]:
+			for node in tree.get_nodes_in_group(group_name):
+				if node is CollisionObject2D:
+					query.exclude.append((node as CollisionObject2D).get_rid())
+		for node in tree.get_nodes_in_group("buildings"):
+			if node is Building and bool(node.is_ghost) and node is CollisionObject2D:
+				query.exclude.append((node as CollisionObject2D).get_rid())
 	
 	var space_state = get_tree().root.world_2d.direct_space_state
 	
 	var result = space_state.intersect_shape(query)
-	
+	var blocked := false
+	for hit in result:
+		var collider: Variant = hit.get("collider")
+		if collider is Area2D:
+			continue
+		if collider is Building and bool((collider as Building).is_ghost):
+			continue
+		blocked = true
+		break
 	var footprint := Rect2(pos.x - size.x / 2.0, pos.y - size.y / 2.0, size.x, size.y)
-	return result.is_empty() and _footprint_inside_reality(footprint) and _footprint_on_outside_tiles(footprint) and not _footprint_intersects_fantasy(footprint)
+	return not blocked and _footprint_inside_reality(footprint) and _footprint_on_outside_tiles(footprint) and not _footprint_intersects_fantasy(footprint)
 
 func _footprint_inside_reality(footprint: Rect2) -> bool:
 	var zone = get_tree().get_first_node_in_group("RealityZone")

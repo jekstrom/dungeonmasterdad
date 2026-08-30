@@ -34,6 +34,8 @@ static func cell_world_rect(cell_rect: Rect2i) -> Rect2:
 
 func _ready() -> void:
 	visible = true
+	collision_layer = 0
+	collision_mask = 0
 	if not is_in_group("claim_zone"):
 		add_to_group("claim_zone")
 	if is_reality:
