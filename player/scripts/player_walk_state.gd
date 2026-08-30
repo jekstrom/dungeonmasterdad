@@ -18,7 +18,7 @@ func Process(_delta: float) -> PlayerState:
 	if player.direction == Vector2.ZERO:
 		return idle
 	if not DewSlickScript.any_covers_world(player.global_position):
-		player.velocity = player.direction * move_speed * player.blizzard_slow_factor()
+		player.velocity = player.direction * player.get_move_speed()
 
 	if player.is_ranged_fire_playing():
 		return null

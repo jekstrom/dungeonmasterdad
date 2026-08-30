@@ -4,7 +4,7 @@
 **Branch**: `017-baja-blast-blizzard`  
 **Status**: Todo
 
-One Baja Blast boss at the dungeon **exit**. Death unlocks `bemidji_blizzard` and grants the can. Cast plants a US-003 Fantasy pocket (~8s), slows PP move ~50% in the rect, and doubles factory intervals. Paper Pushers **walk** the pocket (US-003 T011). No push-out.
+One Baja Blast boss at the dungeon **exit**. Death unlocks `bemidji_blizzard` and grants the can. The **spell body** (cast, pocket, slow, factory interval, HUD ice) is **[US-031](../../US-031.md)**. T005–T009 below were the first pass of that spell; keep them green, but new spell work lives on `031-bemidji-blizzard`.
 
 ## Order
 

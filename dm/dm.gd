@@ -13,6 +13,8 @@ const RESPAWN_DELAY_SEC: float = 10.0
 var _dead: bool = false
 var _respawn_remaining: float = 0.0
 
+const BlizzardIceDrawScript = preload("res://spells/blizzard/blizzard_ice_draw.gd")
+
 @export var targeting_scene: PackedScene
 @export var fireball_spell: PackedScene
 var current_targeting: Node
@@ -65,32 +67,28 @@ func setup_targeting(spell_id: String):
 		collision.disabled = true
 	if spell_id == AbilityCatalog.BEMIDJI_BLIZZARD:
 		_size_blizzard_reticle(current_targeting)
-		current_targeting.modulate = Color(0.45, 0.85, 1.0, 0.55)
+		current_targeting.modulate = Color.WHITE
 	add_child(current_targeting)
 
+func _blizzard_aim_origin(world: Vector2) -> Vector2i:
+	var size: Vector2i = DmManager.BLIZZARD_POCKET_CELLS
+	var cell: Vector2i = DungeonGrid.from_world(world)
+	return cell - Vector2i(int(size.x / 2), int(size.y / 2))
+
 func _size_blizzard_reticle(reticle: Node) -> void:
-	var world_size: Vector2 = Vector2(DmManager.BLIZZARD_POCKET_CELLS) * DungeonGrid.CELL_PX
-	var overlay := ColorRect.new()
-	overlay.name = "BlizzardRect"
-	overlay.size = world_size
-	overlay.position = -world_size * 0.5
-	overlay.color = Color(0.45, 0.85, 1.0, 0.35)
-	overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	reticle.add_child(overlay)
+	var size: Vector2i = DmManager.BLIZZARD_POCKET_CELLS
+	var world_size: Vector2 = Vector2(size) * DungeonGrid.CELL_PX
 	var reticle_sprite: Sprite2D = reticle.get_node_or_null("Sprite2D") as Sprite2D
-	if reticle_sprite and reticle_sprite.texture:
-		var tex_size: Vector2 = Vector2(reticle_sprite.texture.get_size())
-		if tex_size.x > 0.0 and tex_size.y > 0.0:
-			reticle_sprite.scale = world_size / tex_size
+	if reticle_sprite:
+		reticle_sprite.visible = false
+	BlizzardIceDrawScript.attach_grid(reticle, -world_size * 0.5, size, 2)
 
 func update_target(pos):
 	if current_targeting == null:
 		return
 	if _targeting_spell_id == AbilityCatalog.BEMIDJI_BLIZZARD:
-		var cell: Vector2i = DungeonGrid.from_world(pos)
-		current_targeting.global_position = DungeonGrid.to_world_center(cell)
-	else:
-		current_targeting.global_position = pos
+		current_targeting.set_meta("blizzard_origin", _blizzard_aim_origin(pos))
+	current_targeting.global_position = pos
 
 func _process(delta: float) -> void:
 	if _dead:
@@ -363,8 +361,10 @@ func confirm_targeted_spell() -> void:
 	}
 	if spell_id == AbilityCatalog.BEMIDJI_BLIZZARD:
 		var size: Vector2i = DmManager.BLIZZARD_POCKET_CELLS
-		var cell: Vector2i = DungeonGrid.from_world(target)
-		spell_data["origin"] = cell - Vector2i(int(size.x / 2), int(size.y / 2))
+		var origin: Vector2i = _blizzard_aim_origin(target)
+		if current_targeting.has_meta("blizzard_origin"):
+			origin = current_targeting.get_meta("blizzard_origin")
+		spell_data["origin"] = origin
 		spell_data["size"] = size
 		spell_data["duration"] = DmManager.BLIZZARD_DURATION
 		spell_data["slow_factor"] = DmManager.BLIZZARD_SLOW_FACTOR

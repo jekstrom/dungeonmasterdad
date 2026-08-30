@@ -154,10 +154,11 @@ func launch_blizzard(spell_data: Dictionary) -> bool:
 	var clipped: Rect2i = fantasy.clip_pocket_rect(proposed)
 	if clipped.size.x <= 0 or clipped.size.y <= 0:
 		return false
-	if not try_cast(AbilityCatalog.BEMIDJI_BLIZZARD):
-		return false
 	var pocket_id: int = fantasy.spawn_pocket(clipped.position, clipped.size, duration, "blizzard")
 	if pocket_id < 0:
+		return false
+	if not try_cast(AbilityCatalog.BEMIDJI_BLIZZARD):
+		fantasy.expire_pocket(pocket_id)
 		return false
 	var pocket: Dictionary = fantasy.get_pocket(pocket_id)
 	var rect: Rect2i = clipped
@@ -165,9 +166,14 @@ func launch_blizzard(spell_data: Dictionary) -> bool:
 	if not pocket.is_empty():
 		rect = pocket["rect"]
 		expires_at = float(pocket["expires_at"])
+	var world_rect: Rect2 = _blizzard_patch_from_spell(spell_data, rect)
+	if not pocket.is_empty():
+		pocket["world_rect"] = world_rect
+		fantasy._rebuild_home_overlay()
 	_blizzard_effects.append({
 		"pocket_id": pocket_id,
 		"rect": rect,
+		"world_rect": world_rect,
 		"expires_at": expires_at,
 		"slow_factor": slow_factor,
 	})
@@ -177,6 +183,8 @@ func launch_blizzard(spell_data: Dictionary) -> bool:
 
 func _can_try_cast(ability_id: String) -> bool:
 	if not multiplayer.is_server():
+		return false
+	if dm and dm.has_method("is_downed") and bool(dm.call("is_downed")):
 		return false
 	if not AbilityCatalog.is_known(ability_id):
 		return false
@@ -221,13 +229,27 @@ func _blizzard_world_rect(cell_rect: Rect2i) -> Rect2:
 		Vector2(cell_rect.size) * DungeonGrid.CELL_PX
 	)
 
+func _blizzard_patch_from_spell(spell_data: Dictionary, cell_rect: Rect2i) -> Rect2:
+	var world_size: Vector2 = Vector2(cell_rect.size) * DungeonGrid.CELL_PX
+	if world_size.x <= 0.0 or world_size.y <= 0.0:
+		world_size = Vector2(BLIZZARD_POCKET_CELLS) * DungeonGrid.CELL_PX
+	if spell_data.get("target") is Vector2:
+		var center: Vector2 = spell_data["target"]
+		return Rect2(center - world_size * 0.5, world_size)
+	return _blizzard_world_rect(cell_rect)
+
+func _effect_world_rect(effect: Dictionary) -> Rect2:
+	if effect.get("world_rect") is Rect2:
+		var world_rect: Rect2 = effect["world_rect"]
+		if world_rect.size.x > 0.0 and world_rect.size.y > 0.0:
+			return world_rect
+	var cell_rect: Rect2i = effect.get("rect", Rect2i())
+	return _blizzard_world_rect(cell_rect)
+
 func blizzard_slow_factor_at(world: Vector2) -> float:
 	var factor: float = 1.0
 	for effect in _blizzard_effects:
-		var cell_rect: Rect2i = effect["rect"]
-		if cell_rect.size.x <= 0 or cell_rect.size.y <= 0:
-			continue
-		if _blizzard_world_rect(cell_rect).has_point(world):
+		if _effect_world_rect(effect).has_point(world):
 			factor = minf(factor, float(effect["slow_factor"]))
 	return factor
 
@@ -235,10 +257,7 @@ func is_in_blizzard_slow_rect(world: Vector2, ignore_pocket_id: int = -1) -> boo
 	for effect in _blizzard_effects:
 		if ignore_pocket_id >= 0 and int(effect["pocket_id"]) == ignore_pocket_id:
 			continue
-		var cell_rect: Rect2i = effect["rect"]
-		if cell_rect.size.x <= 0 or cell_rect.size.y <= 0:
-			continue
-		if _blizzard_world_rect(cell_rect).has_point(world):
+		if _effect_world_rect(effect).has_point(world):
 			return true
 	return false
 
@@ -306,12 +325,17 @@ func pack_blizzard_slows(now: float = -1.0) -> Array:
 		var cell_rect: Rect2i = effect["rect"]
 		if cell_rect.size.x <= 0 or cell_rect.size.y <= 0:
 			continue
+		var world_rect: Rect2 = _effect_world_rect(effect)
 		packed.append({
 			"pocket_id": int(effect["pocket_id"]),
 			"x": cell_rect.position.x,
 			"y": cell_rect.position.y,
 			"w": cell_rect.size.x,
 			"h": cell_rect.size.y,
+			"wx": world_rect.position.x,
+			"wy": world_rect.position.y,
+			"ww": world_rect.size.x,
+			"wh": world_rect.size.y,
 			"remaining": remaining,
 			"slow_factor": float(effect["slow_factor"]),
 		})
@@ -337,9 +361,18 @@ func apply_blizzard_slows(packed: Array, now: float = -1.0) -> void:
 		var slow_factor: float = float(item.get("slow_factor", BLIZZARD_SLOW_FACTOR))
 		if slow_factor <= 0.0:
 			slow_factor = BLIZZARD_SLOW_FACTOR
+		var world_rect := Rect2(
+			float(item.get("wx", 0.0)),
+			float(item.get("wy", 0.0)),
+			float(item.get("ww", 0.0)),
+			float(item.get("wh", 0.0))
+		)
+		if world_rect.size.x <= 0.0 or world_rect.size.y <= 0.0:
+			world_rect = _blizzard_world_rect(cell_rect)
 		effects.append({
 			"pocket_id": int(item.get("pocket_id", 0)),
 			"rect": cell_rect,
+			"world_rect": world_rect,
 			"expires_at": t + remaining,
 			"slow_factor": slow_factor,
 		})

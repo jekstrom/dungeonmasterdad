@@ -16,8 +16,26 @@ var _home_overlay_texture: Texture2D = null
 var _queued_rect_collision: Vector2 = Vector2.ZERO
 var _rect_collision_queued: bool = false
 static var _resolving_homes: bool = false
+static var debug_claim_overlays: bool = false
+
+static func overlay_world_rect(cell_rect: Rect2i) -> Rect2:
+	if cell_rect.size.x <= 0 or cell_rect.size.y <= 0:
+		return Rect2()
+	var origin := DungeonGrid.to_world(cell_rect.position) + Vector2(
+		-DungeonGrid.SPRITE_HALF_X,
+		SPRITE_GRID_Y - DungeonGrid.SPRITE_HALF_X
+	)
+	return Rect2(origin, Vector2(cell_rect.size) * DungeonGrid.CELL_PX)
+
+static func cell_world_rect(cell_rect: Rect2i) -> Rect2:
+	if cell_rect.size.x <= 0 or cell_rect.size.y <= 0:
+		return Rect2()
+	return Rect2(DungeonGrid.to_world(cell_rect.position), Vector2(cell_rect.size) * DungeonGrid.CELL_PX)
 
 func _ready() -> void:
+	visible = true
+	if not is_in_group("claim_zone"):
+		add_to_group("claim_zone")
 	if is_reality:
 		if not PlayerManager.reality_level_changed.is_connected(on_level_changed):
 			PlayerManager.reality_level_changed.connect(on_level_changed)
@@ -286,9 +304,9 @@ func _rebuild_home_overlay() -> void:
 		return
 	for y in range(home_rect.position.y, home_rect.end.y):
 		for x in range(home_rect.position.x, home_rect.end.x):
-			_place_overlay_sprite(_home_overlay_root, _home_overlay_texture, Vector2i(x, y), 0)
+			_place_overlay_sprite(_home_overlay_root, _home_overlay_texture, Vector2i(x, y), 0, true)
 
-func _place_overlay_sprite(parent: Node2D, texture: Texture2D, cell: Vector2i, z: int) -> void:
+func _place_overlay_sprite(parent: Node2D, texture: Texture2D, cell: Vector2i, z: int, debug_only: bool = true, overlay_material: Material = null, snap_cell_center: bool = false, world_pos: Vector2 = Vector2(INF, INF)) -> void:
 	if parent == null or texture == null:
 		return
 	var sprite := Sprite2D.new()
@@ -296,8 +314,38 @@ func _place_overlay_sprite(parent: Node2D, texture: Texture2D, cell: Vector2i, z
 	sprite.centered = true
 	sprite.z_as_relative = false
 	sprite.z_index = z
-	sprite.position = DungeonGrid.to_world(cell) - global_position + Vector2(0.0, SPRITE_GRID_Y)
+	if is_finite(world_pos.x) and is_finite(world_pos.y):
+		sprite.position = world_pos - global_position
+	elif snap_cell_center:
+		sprite.position = DungeonGrid.to_world_center(cell) - global_position
+	else:
+		sprite.position = DungeonGrid.to_world(cell) - global_position + Vector2(0.0, SPRITE_GRID_Y)
+	sprite.set_meta("debug_claim_overlay", debug_only)
+	sprite.visible = (not debug_only) or debug_claim_overlays
+	if overlay_material:
+		sprite.material = overlay_material
 	parent.add_child(sprite)
+
+func apply_debug_claim_overlay_visibility() -> void:
+	for root_name in ["HomeOverlay", "PocketOverlay"]:
+		var root: Node = get_node_or_null(root_name)
+		if root == null:
+			continue
+		for child in root.get_children():
+			if not (child is CanvasItem):
+				continue
+			var item: CanvasItem = child
+			var debug_only: bool = bool(item.get_meta("debug_claim_overlay", true))
+			item.visible = (not debug_only) or debug_claim_overlays
+
+static func set_debug_claim_overlays(on: bool) -> void:
+	debug_claim_overlays = on
+	var tree := Engine.get_main_loop() as SceneTree
+	if tree == null:
+		return
+	for node in tree.get_nodes_in_group("claim_zone"):
+		if node.has_method("apply_debug_claim_overlay_visibility"):
+			node.apply_debug_claim_overlay_visibility()
 
 func _clear_overlay_children(parent: Node2D) -> void:
 	if parent == null or not is_instance_valid(parent):

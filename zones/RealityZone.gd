@@ -248,11 +248,11 @@ func _rebuild_home_overlay() -> void:
 			for x in range(home_rect.position.x, home_rect.end.x):
 				var cell := Vector2i(x, y)
 				if claim.overlay_kind_for_cell(cell) == "home":
-					_place_overlay_sprite(_home_overlay_root, _home_overlay_texture, cell, 0)
+					_place_overlay_sprite(_home_overlay_root, _home_overlay_texture, cell, 0, true)
 	if _pocket_overlay_texture:
 		for cell in claim.pocket_cells():
 			if claim.overlay_kind_for_cell(cell) == "pocket":
-				_place_overlay_sprite(_pocket_overlay_root, _pocket_overlay_texture, cell, 1)
+				_place_overlay_sprite(_pocket_overlay_root, _pocket_overlay_texture, cell, 1, true)
 
 func _ensure_pocket_overlay_root() -> void:
 	if _pocket_overlay_root != null and is_instance_valid(_pocket_overlay_root):

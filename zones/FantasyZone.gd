@@ -3,11 +3,14 @@ class_name FantasyZone extends Zone
 const DEFAULT_POCKET_DURATION := 8.0
 const POCKET_OVERLAY_PATH := "res://sprites/fantasy_pocket_overlay.png"
 const BLIZZARD_OVERLAY_PATH := "res://sprites/blizzard_overlay.png"
+const BLIZZARD_FALL_VFX := preload("res://spells/blizzard/blizzard_fall_vfx.tscn")
+const BlizzardIceDrawScript = preload("res://spells/blizzard/blizzard_ice_draw.gd")
 
 var claim: FantasyClaim = FantasyClaim.new()
 var _pocket_overlay_root: Node2D = null
 var _pocket_overlay_texture: Texture2D = null
 var _blizzard_overlay_texture: Texture2D = null
+var _blizzard_fall_vfx: Dictionary = {}
 
 func _ready() -> void:
 	super._ready()
@@ -154,19 +157,96 @@ func _rebuild_home_overlay() -> void:
 			for x in range(home_rect.position.x, home_rect.end.x):
 				var cell := Vector2i(x, y)
 				if claim.overlay_kind_for_cell(cell) == "home":
-					_place_overlay_sprite(_home_overlay_root, _home_overlay_texture, cell, 0)
+					_place_overlay_sprite(_home_overlay_root, _home_overlay_texture, cell, 0, true)
 	for cell in claim.pocket_cells():
 		if claim.overlay_kind_for_cell(cell) != "pocket":
 			continue
 		var tex: Texture2D = _overlay_texture_for_pocket_cell(cell)
-		if tex:
-			_place_overlay_sprite(_pocket_overlay_root, tex, cell, 1)
+		if tex == null or tex == _blizzard_overlay_texture:
+			continue
+		_place_overlay_sprite(_pocket_overlay_root, tex, cell, 1, true)
+	for pocket in claim.pockets:
+		if str(pocket.get("overlay", "")) == "blizzard":
+			_place_blizzard_ice_wash(pocket)
+	_sync_blizzard_fall_vfx()
+
+func _sync_blizzard_fall_vfx() -> void:
+	var live: Dictionary = {}
+	for pocket in claim.pockets:
+		if str(pocket.get("overlay", "")) != "blizzard":
+			continue
+		var pocket_id: int = int(pocket["id"])
+		var cell_rect: Rect2i = pocket["rect"]
+		if cell_rect.size.x <= 0 or cell_rect.size.y <= 0:
+			continue
+		live[pocket_id] = cell_rect
+	var stale: Array = []
+	for pocket_id in _blizzard_fall_vfx.keys():
+		if not live.has(pocket_id):
+			stale.append(pocket_id)
+	for pocket_id in stale:
+		var node: Node = _blizzard_fall_vfx[pocket_id]
+		_blizzard_fall_vfx.erase(pocket_id)
+		if is_instance_valid(node):
+			if node.get_parent():
+				node.get_parent().remove_child(node)
+			node.queue_free()
+	for pocket_id in live.keys():
+		var cell_rect: Rect2i = live[pocket_id]
+		var world: Rect2 = _pocket_visual_rect(get_pocket(pocket_id), cell_rect)
+		var node: Node = _blizzard_fall_vfx.get(pocket_id, null)
+		if node == null or not is_instance_valid(node):
+			node = BLIZZARD_FALL_VFX.instantiate()
+			node.name = "BlizzardFall_%d" % pocket_id
+			_blizzard_vfx_host().add_child(node)
+			_blizzard_fall_vfx[pocket_id] = node
+		if node.has_method("configure"):
+			node.call("configure", world)
+
+func _blizzard_vfx_host() -> Node:
+	var tree := get_tree()
+	if tree:
+		var level: Node = tree.get_first_node_in_group("level_manager")
+		if level:
+			return level
+	return self
+
+func live_blizzard_fall_count() -> int:
+	var n: int = 0
+	for pocket_id in _blizzard_fall_vfx.keys():
+		var node: Node = _blizzard_fall_vfx[pocket_id]
+		if is_instance_valid(node):
+			n += 1
+	return n
 
 func _overlay_texture_for_pocket_cell(cell: Vector2i) -> Texture2D:
 	var pocket: Dictionary = get_pocket(claim.winning_pocket_id(cell))
 	if not pocket.is_empty() and str(pocket.get("overlay", "")) == "blizzard":
 		return _blizzard_overlay_texture
 	return _pocket_overlay_texture
+
+func _pocket_visual_rect(pocket: Dictionary, cell_rect: Rect2i = Rect2i()) -> Rect2:
+	if pocket.get("world_rect") is Rect2:
+		var world_rect: Rect2 = pocket["world_rect"]
+		if world_rect.size.x > 0.0 and world_rect.size.y > 0.0:
+			return world_rect
+	var rect: Rect2i = cell_rect
+	if pocket.get("rect") is Rect2i:
+		rect = pocket["rect"]
+	return cell_world_rect(rect)
+
+func _place_blizzard_ice_wash(pocket: Dictionary) -> void:
+	if _pocket_overlay_root == null:
+		return
+	var visual: Rect2 = _pocket_visual_rect(pocket)
+	if visual.size.x <= 0.0 or visual.size.y <= 0.0:
+		return
+	var cells: Vector2i = DmManager.BLIZZARD_POCKET_CELLS
+	if pocket.get("rect") is Rect2i:
+		var pocket_rect: Rect2i = pocket["rect"]
+		if pocket_rect.size.x > 0 and pocket_rect.size.y > 0:
+			cells = pocket_rect.size
+	BlizzardIceDrawScript.attach_grid(_pocket_overlay_root, visual.position - global_position, cells, 1)
 
 func _ensure_pocket_overlay_root() -> void:
 	if _pocket_overlay_root != null and is_instance_valid(_pocket_overlay_root):
@@ -176,6 +256,9 @@ func _ensure_pocket_overlay_root() -> void:
 		_pocket_overlay_root = Node2D.new()
 		_pocket_overlay_root.name = "PocketOverlay"
 		add_child(_pocket_overlay_root)
+	_pocket_overlay_root.visible = true
+	_pocket_overlay_root.z_as_relative = false
+	_pocket_overlay_root.y_sort_enabled = false
 
 func _on_map_bounds_cleared() -> void:
 	super._on_map_bounds_cleared()

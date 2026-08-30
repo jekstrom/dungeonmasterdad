@@ -1,6 +1,25 @@
 extends Label
 
 @export var enabled: bool = false
+@export var claim_overlays: bool = false:
+	set(value):
+		claim_overlays = value
+		if Engine.get_main_loop() != null:
+			Zone.set_debug_claim_overlays(claim_overlays)
+
+func _ready() -> void:
+	Zone.set_debug_claim_overlays(claim_overlays)
+
+func _unhandled_input(event: InputEvent) -> void:
+	if not (event is InputEventKey):
+		return
+	var key := event as InputEventKey
+	if not key.pressed or key.echo:
+		return
+	if key.keycode != KEY_F3:
+		return
+	claim_overlays = not claim_overlays
+	get_viewport().set_input_as_handled()
 
 func _process(_delta):
 	if !enabled: return

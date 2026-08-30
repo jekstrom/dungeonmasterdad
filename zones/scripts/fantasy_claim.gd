@@ -105,7 +105,7 @@ func to_sync_dict(now: float) -> Dictionary:
 	for pocket in pockets:
 		var rect: Rect2i = pocket["rect"]
 		var remaining: float = maxf(0.0, float(pocket["expires_at"]) - now)
-		packed.append({
+		var packed_pocket := {
 			"id": int(pocket["id"]),
 			"x": rect.position.x,
 			"y": rect.position.y,
@@ -115,7 +115,14 @@ func to_sync_dict(now: float) -> Dictionary:
 			"duration": float(pocket["duration"]),
 			"seq": int(pocket["seq"]),
 			"overlay": str(pocket.get("overlay", "")),
-		})
+		}
+		if pocket.get("world_rect") is Rect2:
+			var world_rect: Rect2 = pocket["world_rect"]
+			packed_pocket["wx"] = world_rect.position.x
+			packed_pocket["wy"] = world_rect.position.y
+			packed_pocket["ww"] = world_rect.size.x
+			packed_pocket["wh"] = world_rect.size.y
+		packed.append(packed_pocket)
 	return {
 		"home_x": home_rect.position.x,
 		"home_y": home_rect.position.y,
@@ -148,14 +155,23 @@ func apply_sync_dict(payload: Dictionary, now: float) -> void:
 		)
 		if rect.size.x <= 0 or rect.size.y <= 0:
 			continue
-		pockets.append({
+		var pocket := {
 			"id": int(item.get("id", 0)),
 			"rect": rect,
 			"duration": float(item.get("duration", remaining)),
 			"expires_at": now + remaining,
 			"seq": int(item.get("seq", 0)),
 			"overlay": str(item.get("overlay", "")),
-		})
+		}
+		var world_rect := Rect2(
+			float(item.get("wx", 0.0)),
+			float(item.get("wy", 0.0)),
+			float(item.get("ww", 0.0)),
+			float(item.get("wh", 0.0))
+		)
+		if world_rect.size.x > 0.0 and world_rect.size.y > 0.0:
+			pocket["world_rect"] = world_rect
+		pockets.append(pocket)
 	_next_id = int(payload.get("next_id", _next_id))
 	_next_seq = int(payload.get("next_seq", _next_seq))
 
