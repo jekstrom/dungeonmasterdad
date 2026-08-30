@@ -12,7 +12,9 @@ func request_placement(building_id: String, pos: Vector2, check_pos: Vector2):
 	if data == null:
 		return
 	var building_root = get_tree().get_first_node_in_group("building_root")
-	if PlayerManager.has_resources(sender_id, data.cost_item, data.cost_qty) and is_area_clear(check_pos, data.size):
+	if data.unique_building and _has_enabled_unique(data):
+		return
+	if PlayerManager.has_resources(sender_id, data.cost_item, data.cost_qty) and is_area_clear(check_pos, Vector2(data.size)):
 		PlayerManager.consume_resources(sender_id, data.cost_item, data.cost_qty)
 		
 		if building_root:
@@ -24,6 +26,26 @@ func request_placement(building_id: String, pos: Vector2, check_pos: Vector2):
 		else:
 			print("no building root found")
 			assert(false, "no building root")
+
+func _has_enabled_unique(data: BuildingData) -> bool:
+	if data == null or not data.unique_building:
+		return false
+	var want := ""
+	if data.scene:
+		want = data.scene.resource_path
+	var root = get_tree().get_first_node_in_group("building_root")
+	if root == null:
+		return false
+	for child in root.get_children():
+		if not is_instance_valid(child):
+			continue
+		if child is Building and (child as Building).is_ghost:
+			continue
+		if want != "" and str(child.scene_file_path) == want:
+			return true
+		if child is IrsBuilding and want == "" and (child as Building).is_operating():
+			return true
+	return false
 
 func is_area_clear(pos: Vector2, size: Vector2, _unused_radius = 0, _unused_pos: Vector2 = Vector2.ZERO) -> bool:
 	var query = PhysicsShapeQueryParameters2D.new()

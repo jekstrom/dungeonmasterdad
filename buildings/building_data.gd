@@ -5,5 +5,6 @@ class_name BuildingData extends Resource
 @export var cost_item: String
 @export var cost_qty: int
 @export var size: Vector2i = Vector2i(1, 1) # Size in grid cells
+@export var unique_building: bool = false
 
 const building_size: int = 100

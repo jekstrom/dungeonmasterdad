@@ -14,6 +14,13 @@ var player_spawned: bool = false
 @export var max_smoke_amt: int = 5
 @export var max_paper_amt: int = 99
 @export var smoke_amt: int = 0
+@export var standard_form_rl: int = 15
+@export var tax_file_rl: int = 50
+const PAPER_ITEM := "res://pickups/paper.tres"
+const BLANK_FORM_ITEM := "res://pickups/blank_form.tres"
+const FILLED_FORM_ITEM := "res://pickups/filled_form.tres"
+const TAX_FORM_ITEM := "res://pickups/tax_form.tres"
+const PAPER_FACTORY_RL := 10
 signal reality_level_changed(new_reality_level: int)
 signal smoke_amt_changed(new_smoke_amt: int)
 
@@ -84,6 +91,26 @@ func add_item_to_inventory(player_id: int, item_data: ItemData, amount: int = 1)
 		_push_inventory(player_id, inventory)
 		return true
 	return false
+
+func create_form(player_id: int) -> bool:
+	if not multiplayer.is_server():
+		return false
+	if not players_data.has(player_id):
+		return false
+	if not has_resources(player_id, PAPER_ITEM, 1):
+		return false
+	var blank: ItemData = ItemDatabase.get_item(BLANK_FORM_ITEM)
+	if blank == null:
+		blank = load(BLANK_FORM_ITEM) as ItemData
+	if blank == null:
+		return false
+	consume_resources(player_id, PAPER_ITEM, 1)
+	var drop_at := Vector2.ZERO
+	var body: Node = get_player_node_by_id(player_id)
+	if body is Node2D:
+		drop_at = (body as Node2D).global_position
+	grant_item_or_drop(player_id, blank, 1, drop_at)
+	return true
 
 func grant_item_or_drop(player_id: int, item_data: ItemData, amount: int, drop_position: Vector2) -> void:
 	if not multiplayer.is_server():

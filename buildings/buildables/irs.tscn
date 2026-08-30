@@ -1,0 +1,36 @@
+[gd_scene format=3 uid="uid://oq5ilqykdy1e"]
+
+[ext_resource type="Script" path="res://buildings/buildables/irs.gd" id="1_irs"]
+[ext_resource type="Texture2D" uid="uid://bqvnawpm4u1vk" path="res://sprites/irs_building.png" id="2_tex"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_body"]
+size = Vector2(116, 69)
+
+[sub_resource type="SceneReplicationConfig" id="SceneReplicationConfig_irs"]
+properties/0/path = NodePath(".:position")
+properties/0/spawn = true
+properties/0/replication_mode = 1
+properties/1/path = NodePath("CollisionShape2D:disabled")
+properties/1/spawn = true
+properties/1/replication_mode = 2
+properties/2/path = NodePath(".:is_ghost")
+properties/2/spawn = true
+properties/2/replication_mode = 1
+
+[node name="Irs" type="StaticBody2D"]
+y_sort_enabled = true
+script = ExtResource("1_irs")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+y_sort_enabled = true
+position = Vector2(0, -55)
+texture = ExtResource("2_tex")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+position = Vector2(5, -35)
+shape = SubResource("RectangleShape2D_body")
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="."]
+
+[node name="MultiplayerSynchronizer" type="MultiplayerSynchronizer" parent="."]
+replication_config = SubResource("SceneReplicationConfig_irs")

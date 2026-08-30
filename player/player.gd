@@ -10,8 +10,8 @@ var invulnerable: bool = false
 var hitpoints: int = 6
 var max_hp: int = 6
 
-@onready var camera_2d: PlayerCamera = $Camera2D
-@onready var label: Label = $Label
+@onready var camera_2d: PlayerCamera = get_node_or_null("Camera2D")
+@onready var label: Label = get_node_or_null("Label")
 
 var current_building_data: BuildingData
 var ghost_building: Node2D
@@ -19,10 +19,10 @@ var ghost_building: Node2D
 @export var num_shadows: int = 0
 @export var shadow_scene: PackedScene
 
-@onready var hitbox: Hitbox = $Hitbox
-@onready var animation_player: AnimationPlayer = $AnimationPlayer
-@onready var sprite: Sprite2D = $Sprite2D
-@onready var attack_hurtbox: Hurtbox = $AttackHurtbox
+@onready var hitbox: Hitbox = get_node_or_null("Hitbox")
+@onready var animation_player: AnimationPlayer = get_node_or_null("AnimationPlayer")
+@onready var sprite: Sprite2D = get_node_or_null("Sprite2D")
+@onready var attack_hurtbox: Hurtbox = get_node_or_null("AttackHurtbox")
 
 @export var melee_damage: int = 1
 @export var staple_magazine_max: int = 20
@@ -36,6 +36,17 @@ var _melee_pulse_id: int = 0
 var _queued_staple_fire: bool = false
 var _hint_e: Label
 var _hint_space: Label
+var _hint_fill: Label
+var _fill_bar_back: ColorRect
+var _fill_bar: ColorRect
+var _filling: bool = false
+var _fill_type: String = ""
+var _fill_elapsed: float = 0.0
+var _fill_token: int = 0
+var _fill_origin: Vector2 = Vector2.ZERO
+@export var fill_move_cancel_px: float = 4.0
+@export var standard_fill_sec: float = 3.0
+@export var tax_fill_sec: float = 6.0
 
 const TEX_STAPLE_GUN: Texture2D = preload("res://player/sprites/player_staple_gun.png")
 const TEX_PENCIL_MELEE: Texture2D = preload("res://player/sprites/player_pencil_melee.png")
@@ -58,7 +69,7 @@ signal staple_count_changed(count: int)
 		if name_label:
 			name_label.self_modulate = val
 			
-@onready var state_machine: PlayerStateMachine = $PlayerStateMachine
+@onready var state_machine: PlayerStateMachine = get_node_or_null("PlayerStateMachine")
 signal DirectionChanged(new_direction: Vector2)
 
 func _enter_tree() -> void:
@@ -74,31 +85,37 @@ func _enter_tree() -> void:
 func _ready() -> void:
 	z_index = DungeonConstants.WALL_Z_INDEX
 	y_sort_enabled = false
-	if is_multiplayer_authority():
-		camera_2d.make_current()
-	else:
-		camera_2d.enabled = false
+	if camera_2d:
+		if is_multiplayer_authority():
+			camera_2d.make_current()
+		else:
+			camera_2d.enabled = false
 		
 	_ensure_combat_visuals()
-	state_machine.Initialize(self)
+	if state_machine:
+		state_machine.Initialize(self)
 	staple_count = staple_magazine_max
 	_refresh_staple_hud()
 	if is_multiplayer_authority():
 		_ensure_interact_hints()
 	SignalBus.build_smoke_building_pressed.connect(setup_building)
 	SignalBus.build_paper_building_pressed.connect(setup_building)
+	if not SignalBus.build_irs_building_pressed.is_connected(setup_building):
+		SignalBus.build_irs_building_pressed.connect(setup_building)
 	SignalBus.on_dm_unlock.connect(dm_unlock_listener)
 	SignalBus.on_dm_lock.connect(dm_lock_listener)
 
 	await get_tree().process_frame
 	if not multiplayer.is_server() and is_multiplayer_authority():
 		request_name_fix.rpc_id(1)
-	label.text = sync_name
-	label.self_modulate = sync_color
+	if label:
+		label.text = sync_name
+		label.self_modulate = sync_color
 	
 	# Connect to death system signals for respawn handling
 	SignalBus.player_respawn_completed.connect(_on_player_respawn_completed)
-	hitbox.Damaged.connect(take_damage)
+	if hitbox and not hitbox.Damaged.is_connected(take_damage):
+		hitbox.Damaged.connect(take_damage)
 	
 func dm_unlock_listener(unlock_name: String) -> void:
 	if unlock_name == "shadow_zone" and DmUnlocks.dm_unlocks.get("shadow_zone"):
@@ -131,6 +148,8 @@ func update_client_name(n, c):
 	sync_color = c
 	
 func _process(_delta: float) -> void:
+	if multiplayer.is_server():
+		tick_fill(_delta)
 	if !is_multiplayer_authority():
 		if _hint_e:
 			_hint_e.visible = false
@@ -138,12 +157,15 @@ func _process(_delta: float) -> void:
 			_hint_space.visible = false
 		return
 	_update_interact_hints()
+	_update_fill_bar()
 	if current_building_data:
 		update_ghost(get_global_mouse_position())
 		queue_redraw()
 
 func setup_building(building: String):
-	current_building_data = load("res://buildings/buildables/" + building + ".tres")
+	current_building_data = load("res://buildings/buildables/" + building + ".tres") as BuildingData
+	if current_building_data == null:
+		return
 	if ghost_building:
 		remove_child(ghost_building)
 		ghost_building = null
@@ -169,7 +191,7 @@ func update_ghost(pos: Vector2):
 
 func _physics_process(_delta: float) -> void:
 	if !is_multiplayer_authority(): return
-	if state_machine.current_state == null: return
+	if state_machine == null or state_machine.current_state == null: return
 	var state_name: String = state_machine.current_state.name
 	if state_name == "death":
 		_queued_staple_fire = false
@@ -281,9 +303,17 @@ func set_direction() -> bool:
 func set_direction_from_vector(vec: Vector2) -> bool:
 	return apply_aim(vec)
 
+func handle_form_input(event: InputEvent) -> void:
+	if event.is_action_pressed("create_form"):
+		try_create_form()
+	elif event.is_action_pressed("fill_standard"):
+		try_begin_fill("standard")
+	elif event.is_action_pressed("fill_tax"):
+		try_begin_fill("tax")
+
 func try_interact() -> void:
 	if multiplayer.is_server():
-		_host_try_deposit_wood()
+		_host_try_interact()
 	else:
 		request_interact.rpc_id(1)
 
@@ -294,7 +324,174 @@ func request_interact() -> void:
 	var sender: int = multiplayer.get_remote_sender_id()
 	if sender != 0 and sender != get_multiplayer_authority():
 		return
+	_host_try_interact()
+
+func _host_try_interact() -> void:
+	if _host_try_file_tax():
+		return
 	_host_try_deposit_wood()
+
+func _host_try_file_tax() -> bool:
+	var player_id: int = _inventory_id()
+	var scene_tree := get_tree()
+	if scene_tree == null:
+		return false
+	var nearest: IrsBuilding = null
+	var best := INF
+	for node in scene_tree.get_nodes_in_group("irs"):
+		if not (node is IrsBuilding):
+			continue
+		var irs: IrsBuilding = node
+		var dist: float = global_position.distance_to(irs.factory_origin())
+		if dist < best:
+			best = dist
+			nearest = irs
+	if nearest == null:
+		return false
+	return nearest.try_file_tax(player_id)
+
+func _inventory_id() -> int:
+	var player_id: int = get_multiplayer_authority()
+	if player_id <= 0 and name.is_valid_int():
+		player_id = int(name)
+	return player_id
+
+func try_create_form() -> void:
+	if is_combat_locked():
+		return
+	if multiplayer.is_server():
+		PlayerManager.create_form(_inventory_id())
+	else:
+		request_create_form.rpc_id(1)
+
+@rpc("any_peer", "reliable")
+func request_create_form() -> void:
+	if not multiplayer.is_server():
+		return
+	var sender: int = multiplayer.get_remote_sender_id()
+	if sender != 0 and sender != get_multiplayer_authority():
+		return
+	if is_combat_locked():
+		return
+	PlayerManager.create_form(_inventory_id())
+
+func try_begin_fill(fill_type: String) -> void:
+	if multiplayer.is_server():
+		begin_fill(fill_type)
+	else:
+		request_begin_fill.rpc_id(1, fill_type)
+
+@rpc("any_peer", "reliable")
+func request_begin_fill(fill_type: String) -> void:
+	if not multiplayer.is_server():
+		return
+	var sender: int = multiplayer.get_remote_sender_id()
+	if sender != 0 and sender != get_multiplayer_authority():
+		return
+	begin_fill(fill_type)
+
+func _is_host() -> bool:
+	if not is_inside_tree() or multiplayer == null:
+		return true
+	return multiplayer.is_server()
+
+func begin_fill(fill_type: String) -> bool:
+	if not _is_host():
+		return false
+	if is_combat_locked():
+		return false
+	if _filling:
+		return false
+	if fill_type != "standard" and fill_type != "tax":
+		return false
+	var player_id: int = _inventory_id()
+	if not PlayerManager.has_resources(player_id, PlayerManager.BLANK_FORM_ITEM, 1):
+		return false
+	_filling = true
+	_fill_type = fill_type
+	_fill_elapsed = 0.0
+	_fill_token += 1
+	_fill_origin = global_position
+	if is_inside_tree():
+		_sync_fill_state.rpc(_filling, _fill_type, 0.0, _fill_duration())
+	return true
+
+func cancel_fill() -> void:
+	if not _filling:
+		return
+	_filling = false
+	_fill_elapsed = 0.0
+	_fill_type = ""
+	if _is_host() and is_inside_tree():
+		_sync_fill_state.rpc(false, "", 0.0, 1.0)
+
+func tick_fill(delta: float) -> void:
+	if not _is_host():
+		return
+	if not _filling:
+		return
+	if is_combat_locked():
+		cancel_fill()
+		return
+	if global_position.distance_to(_fill_origin) > fill_move_cancel_px:
+		cancel_fill()
+		return
+	_fill_elapsed += delta
+	if _fill_elapsed + 0.0001 >= _fill_duration():
+		_complete_fill(_fill_token)
+
+func _fill_duration() -> float:
+	if _fill_type == "tax":
+		return tax_fill_sec
+	return standard_fill_sec
+
+func fill_progress() -> float:
+	var dur: float = _fill_duration()
+	if dur <= 0.0:
+		return 1.0
+	return clampf(_fill_elapsed / dur, 0.0, 1.0)
+
+func is_filling() -> bool:
+	return _filling
+
+func _complete_fill(token: int) -> void:
+	if not _is_host():
+		return
+	if token != _fill_token:
+		return
+	if not _filling:
+		return
+	var kind: String = _fill_type
+	_filling = false
+	_fill_elapsed = 0.0
+	_fill_type = ""
+	var player_id: int = _inventory_id()
+	if not PlayerManager.has_resources(player_id, PlayerManager.BLANK_FORM_ITEM, 1):
+		if is_inside_tree():
+			_sync_fill_state.rpc(false, "", 0.0, 1.0)
+		return
+	var out_path: String = PlayerManager.FILLED_FORM_ITEM
+	if kind == "tax":
+		out_path = PlayerManager.TAX_FORM_ITEM
+	var out_item: ItemData = ItemDatabase.get_item(out_path)
+	if out_item == null:
+		out_item = load(out_path) as ItemData
+	if out_item == null:
+		if is_inside_tree():
+			_sync_fill_state.rpc(false, "", 0.0, 1.0)
+		return
+	PlayerManager.consume_resources(player_id, PlayerManager.BLANK_FORM_ITEM, 1)
+	PlayerManager.grant_item_or_drop(player_id, out_item, 1, global_position)
+	if kind == "standard":
+		PlayerManager.update_reality_level(PlayerManager.standard_form_rl)
+	if is_inside_tree():
+		_sync_fill_state.rpc(false, "", 0.0, 1.0)
+
+@rpc("authority", "call_remote", "reliable")
+func _sync_fill_state(filling: bool, fill_type: String, elapsed: float, _duration: float) -> void:
+	_filling = filling
+	_fill_type = fill_type
+	_fill_elapsed = elapsed
 
 func _host_try_deposit_wood() -> void:
 	var player_id: int = get_multiplayer_authority()
@@ -325,6 +522,9 @@ func can_prompt_building_interact() -> bool:
 	for node in scene_tree.get_nodes_in_group("paper_factories"):
 		if node is PaperFactory and (node as PaperFactory).can_prompt_deposit(self):
 			return true
+	for node in scene_tree.get_nodes_in_group("irs"):
+		if node is IrsBuilding and (node as IrsBuilding).can_prompt_file(self):
+			return true
 	return false
 
 func can_prompt_tree_harvest() -> bool:
@@ -348,6 +548,35 @@ func _ensure_interact_hints() -> void:
 	_hint_space = _make_hint_label("SPACE", Vector2(-32, -128), Vector2(64, 20))
 	add_child(_hint_e)
 	add_child(_hint_space)
+	_ensure_fill_bar()
+
+func _ensure_fill_bar() -> void:
+	if _fill_bar != null:
+		return
+	_fill_bar_back = ColorRect.new()
+	_fill_bar_back.name = "FillBarBack"
+	_fill_bar_back.position = Vector2(-18, -140)
+	_fill_bar_back.size = Vector2(36, 5)
+	_fill_bar_back.color = Color(0.08, 0.08, 0.08, 0.95)
+	_fill_bar_back.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_fill_bar_back.visible = false
+	add_child(_fill_bar_back)
+	_fill_bar = ColorRect.new()
+	_fill_bar.name = "FillBar"
+	_fill_bar.position = Vector2(-18, -140)
+	_fill_bar.size = Vector2(0, 5)
+	_fill_bar.color = Color(1.0, 0.95, 0.55, 1)
+	_fill_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_fill_bar.visible = false
+	add_child(_fill_bar)
+
+func _update_fill_bar() -> void:
+	_ensure_fill_bar()
+	var show_bar: bool = _filling
+	_fill_bar_back.visible = show_bar
+	_fill_bar.visible = show_bar
+	if show_bar:
+		_fill_bar.size = Vector2(36.0 * fill_progress(), 5.0)
 
 func _make_hint_label(text: String, pos: Vector2, size: Vector2) -> Label:
 	var hint := Label.new()
@@ -670,6 +899,7 @@ func _on_player_respawn_completed(player_id: int, respawn_position: Vector2) -> 
 func take_damage(_hurt_box: Hurtbox) -> void:
 	if not multiplayer.is_server(): return
 	if invulnerable: return
+	cancel_fill()
 	DeathSystem.request_player_death(int(name), position)
 
 

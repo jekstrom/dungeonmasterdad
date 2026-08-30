@@ -82,7 +82,7 @@ y_sort_enabled = true
 script = ExtResource("13_yjl7g")
 
 [node name="BuildingSpawner" type="MultiplayerSpawner" parent="Buildings" unique_id=1840442100]
-_spawnable_scenes = PackedStringArray("uid://d05hkhchi8k3x", "uid://dgm12ubgivyq7")
+_spawnable_scenes = PackedStringArray("uid://d05hkhchi8k3x", "uid://dgm12ubgivyq7", "uid://cirsbuilding001")
 spawn_path = NodePath("..")
 script = ExtResource("25_building")
 

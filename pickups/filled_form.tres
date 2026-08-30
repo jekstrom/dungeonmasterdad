@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="ItemData" format=3 uid="uid://bujwifljr32ya"]
+
+[ext_resource type="Script" uid="uid://doufrhqnamgde" path="res://pickups/scripts/item_effect.gd" id="1_effect"]
+[ext_resource type="Script" uid="uid://cvwjr6lvvdlry" path="res://pickups/scripts/item_data.gd" id="2_data"]
+[ext_resource type="Texture2D" uid="uid://d1bp6gx1j5dd5" path="res://pickups/forms/filled_form.png" id="4_tex"]
+
+[resource]
+script = ExtResource("2_data")
+name = "Filled Form"
+description = "A completed standard form"
+pickup_char = "player_only"
+texture = ExtResource("4_tex")
+metadata/_custom_type_script = "uid://cvwjr6lvvdlry"

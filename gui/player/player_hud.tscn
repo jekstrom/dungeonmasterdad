@@ -1,10 +1,12 @@
-[gd_scene load_steps=6 format=3 uid="uid://bglfuu7ga823v"]
+[gd_scene load_steps=8 format=3 uid="uid://bglfuu7ga823v"]
 
 [ext_resource type="Script" uid="uid://m8460fk6uai3" path="res://gui/player/player_hud.gd" id="1_3thna"]
 [ext_resource type="Texture2D" uid="uid://b3lnqh3d8v2xs" path="res://sprites/build_smoke_factory_icon.png" id="1_ou2ku"]
 [ext_resource type="Texture2D" uid="uid://c5mf5evjbeddt" path="res://sprites/build_smoke_factory_icon_pressed.png" id="2_5etht"]
 [ext_resource type="PackedScene" uid="uid://dnejfv6x8ws6j" path="res://player/inventory/inventory_ui.tscn" id="4_ynrnu"]
 [ext_resource type="Texture2D" path="res://sprites/staple_hud_icon.png" id="5_staple"]
+[ext_resource type="Texture2D" uid="uid://bulf3288537ng" path="res://sprites/irs_icon.png" id="6_irs"]
+[ext_resource type="Texture2D" uid="uid://cxemk1f6c785b" path="res://sprites/irs_icon_pressed.png" id="7_irs_pressed"]
 
 [node name="PlayerHud" type="CanvasLayer"]
 script = ExtResource("1_3thna")
@@ -66,6 +68,25 @@ texture_normal = ExtResource("1_ou2ku")
 texture_pressed = ExtResource("2_5etht")
 stretch_mode = 0
 metadata/_edit_use_anchors_ = true
+
+[node name="ColorRect3" type="ColorRect" parent="MarginContainer/HBoxContainer"]
+custom_minimum_size = Vector2(75, 75)
+layout_mode = 2
+size_flags_horizontal = 4
+color = Color(0.25, 0.28, 0.38, 1)
+
+[node name="TextureButton" type="TextureButton" parent="MarginContainer/HBoxContainer/ColorRect3"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+focus_mode = 0
+tooltip_text = "Build IRS"
+texture_normal = ExtResource("6_irs")
+texture_pressed = ExtResource("7_irs_pressed")
+stretch_mode = 0
 
 [node name="ResourceContainer" type="MarginContainer" parent="."]
 anchors_preset = 1

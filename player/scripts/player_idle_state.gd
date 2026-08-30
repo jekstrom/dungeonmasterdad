@@ -40,5 +40,5 @@ func HandleInput(_event: InputEvent) -> PlayerState:
 		return null
 	if _event.is_action_pressed("interact"):
 		player.try_interact()
-		
+	player.handle_form_input(_event)
 	return null
