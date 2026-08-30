@@ -10,6 +10,7 @@ script = ExtResource("2_data")
 name = "Wood"
 description = "Logs for the paper factory"
 pickup_char = "player_only"
+inventory_row = "static"
 pickup_sound = ExtResource("3_sound")
 texture = ExtResource("4_tex")
 metadata/_custom_type_script = "uid://cvwjr6lvvdlry"

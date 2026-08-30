@@ -28,7 +28,7 @@ Keep `us006_run_harness.sh`, `us007_run_harness.sh`, and `us009_run_harness.sh` 
 
 ## Headless checks
 
-- Wood/paper/metal **static**; blank form **active** + `channel_use`.
+- Wood/metal **static**; paper **active** (use creates a blank form); blank form **active** + `channel_use`.
 - Grant wood → static cell; blank → active cell; fifth unique active drops.
 - Two wood grants stack in one static cell.
 - HUD: 8 cells, QERT on top row, different row colors.
@@ -38,7 +38,7 @@ Keep `us006_run_harness.sh`, `us007_run_harness.sh`, and `us009_run_harness.sh` 
 - Swap two active cells; cross-row swap rejected.
 - Snapshot preserves index 2; foreign swap rejected.
 
-Independent scripted: register PP → add paper (static) + blank (active) → use/hold blank slot → filled or tax per type → swap two actives → drag static onto active fails.
+Independent scripted: register PP → add paper (active) + wood (static) → use paper slot creates blank → use/hold blank slot → filled or tax per type → swap two actives → drag static onto active fails.
 
 ## Play pass (host)
 

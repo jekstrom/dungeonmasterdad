@@ -1,6 +1,6 @@
 [gd_resource type="Resource" script_class="BuildingData" format=3 uid="uid://dy41ruqb0k501"]
 
-[ext_resource type="PackedScene" uid="uid://cirsbuilding001" path="res://buildings/buildables/irs.tscn" id="1_scene"]
+[ext_resource type="PackedScene" uid="uid://oq5ilqykdy1e" path="res://buildings/buildables/irs.tscn" id="1_scene"]
 [ext_resource type="Script" uid="uid://dlerv2lp0i1v8" path="res://buildings/building_data.gd" id="2_data"]
 
 [resource]

@@ -16,10 +16,10 @@ Every `ItemData` declares **active** (usable in the top row) or **static** (ingr
 
 | Row | Paths |
 |---|---|
-| Active | `blank_form.tres`, `filled_form.tres`, `tax_form.tres`, `mtdew.tres`, `d6.tres`, `d20.tres`, `cloak.tres`, `code_red.tres`, `bajablast/bajablast.tres` |
-| Static | `wood.tres`, `paper.tres`, `metal.tres`, `coal.tres`, `stone.tres` |
+| Active | `paper.tres`, `blank_form.tres`, `filled_form.tres`, `tax_form.tres`, `mtdew.tres`, `d6.tres`, `d20.tres`, `cloak.tres`, `code_red.tres`, `bajablast/bajablast.tres` |
+| Static | `wood.tres`, `metal.tres`, `coal.tres`, `stone.tres` |
 
-- `test_harness/procedural_dungeon/us030_item_row_flags_test.gd` (+ `.tscn`) — load each path; assert row; blank form `channel_use`; wood/paper/metal static.
+- `test_harness/procedural_dungeon/us030_item_row_flags_test.gd` (+ `.tscn`) — load each path; assert row; blank form `channel_use`; wood/metal static; paper active.
 
 ## Requirements
 
@@ -31,7 +31,8 @@ Every `ItemData` declares **active** (usable in the top row) or **static** (ingr
 ## Acceptance
 
 - **Given** `ItemData`, **When** a `.tres` is loaded, **Then** `inventory_row` is `"active"` or `"static"`.
-- **Given** wood, paper, and metal, **When** read, **Then** they are **static**.
+- **Given** wood and metal, **When** read, **Then** they are **static**.
+- **Given** paper, **When** read, **Then** it is **active** (use creates a blank form).
 - **Given** blank form, **When** read, **Then** it is **active** and `channel_use` is true.
 
 ## Notes

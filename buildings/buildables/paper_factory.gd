@@ -119,7 +119,6 @@ func _complete_cycle() -> void:
 	if stored_wood < wood_consume_amt:
 		return
 	stored_wood -= wood_consume_amt
-	PlayerManager.update_reality_level(10)
 	_emit_paper()
 
 func _sync_work_animation() -> void:

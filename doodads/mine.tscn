@@ -13,17 +13,17 @@ size = Vector2(56, 48)
 
 [node name="Mine" type="Node2D" unique_id=701054494]
 y_sort_enabled = true
+position = Vector2(1, -1)
 script = ExtResource("1_mine")
 
-[node name="Shadow" type="Sprite2D" parent="."]
+[node name="Shadow" type="Sprite2D" parent="." unique_id=1922509867]
 modulate = Color(0.20511743, 0.20511743, 0.20511743, 1)
 z_index = -1
 position = Vector2(0, 20)
 scale = Vector2(1.25, 1.25)
 texture = ExtResource("4_shadow")
 
-[node name="Sprite2D" type="Sprite2D" parent="."]
-y_sort_enabled = false
+[node name="Sprite2D" type="Sprite2D" parent="." unique_id=352759927]
 scale = Vector2(2.5, 2.5)
 texture = ExtResource("2_active")
 

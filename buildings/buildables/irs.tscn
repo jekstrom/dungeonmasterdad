@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://oq5ilqykdy1e"]
 
-[ext_resource type="Script" path="res://buildings/buildables/irs.gd" id="1_irs"]
+[ext_resource type="Script" uid="uid://b2ribcoxtguae" path="res://buildings/buildables/irs.gd" id="1_irs"]
 [ext_resource type="Texture2D" uid="uid://bqvnawpm4u1vk" path="res://sprites/irs_building.png" id="2_tex"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_body"]
@@ -17,7 +17,7 @@ properties/2/path = NodePath(".:is_ghost")
 properties/2/spawn = true
 properties/2/replication_mode = 1
 
-[node name="Irs" type="StaticBody2D"]
+[node name="Irs" type="StaticBody2D" groups=["irs"]]
 y_sort_enabled = true
 script = ExtResource("1_irs")
 

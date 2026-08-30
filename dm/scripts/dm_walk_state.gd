@@ -33,4 +33,8 @@ func HandleInput(_event: InputEvent) -> DmState:
 		return attack
 	if _event.is_action_pressed("interact"):
 		DmManager.interact_pressed.emit()
+	for i in 4:
+		if _event.is_action_pressed("inv_slot_%d" % i):
+			PlayerManager.use_instant_slot(dm.get_multiplayer_authority(), i)
+			break
 	return null

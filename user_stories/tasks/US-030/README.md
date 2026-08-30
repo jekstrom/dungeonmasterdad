@@ -29,7 +29,7 @@ T001 (row flags on `.tres`) can run with T004 (InputMap rebind). Host slots (T00
 ## Out of scope (stay in other stories)
 
 - Form fill **outcomes** and IRS file (US-009). T005/T006 only **start/hold** fill via the blank-form cell. Do not retune +15 / +50 RL.
-- Create-form from paper (US-009 **F**). Paper is **static**. Move that key off QERT (T004); do not make paper an active use.
+- Create-form from paper (US-009). Paper is **active**: using its QERT cell creates a blank form. Dedicated create-form must not stay on F if interact is F.
 - Factory / IRS **interact** (deposit/file). Stays the `interact` action after it leaves **E**.
 - Office Max (US-010), gremlins (US-013).
 - Drag-off-HUD world drop. Snap back to source cell.

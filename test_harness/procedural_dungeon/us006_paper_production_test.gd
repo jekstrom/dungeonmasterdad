@@ -119,8 +119,8 @@ func _ready() -> void:
 	if PlayerManager.smoke_amt != smoke_mid_cycle:
 		_fail("US-006 T006: finishing must not consume smoke again, got %d" % PlayerManager.smoke_amt)
 		return
-	if PlayerManager.reality_level != 10:
-		_fail("US-006 T006: success must raise Reality by 10, got %d" % PlayerManager.reality_level)
+	if PlayerManager.reality_level != 0:
+		_fail("US-006 T006: paper production must not raise Reality, got %d" % PlayerManager.reality_level)
 		return
 	if drops.is_empty() or str(drops[0].get("item_type", "")) != PAPER_PATH:
 		_fail("US-006 T006: success must drop paper at the factory")

@@ -14,8 +14,8 @@ var player_spawned: bool = false
 @export var max_smoke_amt: int = 5
 @export var max_paper_amt: int = 99
 @export var smoke_amt: int = 0
-@export var standard_form_rl: int = 15
-@export var tax_file_rl: int = 50
+@export var standard_form_rl: int = 5
+@export var tax_file_rl: int = 10
 const PAPER_ITEM := "res://pickups/paper.tres"
 const BLANK_FORM_ITEM := "res://pickups/blank_form.tres"
 const FILLED_FORM_ITEM := "res://pickups/filled_form.tres"
@@ -24,9 +24,13 @@ const PAPER_FACTORY_RL := 10
 signal reality_level_changed(new_reality_level: int)
 signal smoke_amt_changed(new_smoke_amt: int)
 
-# Structure: { peer_id: { "inventory": { "item_id": quantity } } }
+# Structure: { peer_id: { "inventory": { path: qty }, "slots": Array[8] } }
+# slots[0..3] active, slots[4..7] static. Each entry is {} or { "path": String, "qty": int }.
+const SLOT_COUNT := 8
+const ACTIVE_SLOT_COUNT := 4
 var players_data = {}
 var local_inventory: Dictionary = {}
+var local_slots: Array = []
 
 func _ready() -> void:
 	add_player_instance()
@@ -42,6 +46,7 @@ func register_player(id: int, player_name: String):
 	# Initialize empty data for new player
 	players_data[id] = {
 		"inventory": {},
+		"slots": _new_slots(),
 		"name": player_name,
 	}
 	print("Player ", id, " registered in Global Manager with name ", player_name)
@@ -71,6 +76,51 @@ func unregister_player(id: int):
 		SignalBus.player_unregistered.emit(id)
 		print("Player ", id, " fully unregistered and cleaned up")
 		
+func _new_slots() -> Array:
+	var slots: Array = []
+	slots.resize(SLOT_COUNT)
+	for i in SLOT_COUNT:
+		slots[i] = {}
+	return slots
+
+func _ensure_slots(player_id: int) -> Array:
+	if not players_data.has(player_id):
+		return _new_slots()
+	if not players_data[player_id].has("slots"):
+		players_data[player_id]["slots"] = _new_slots()
+	var slots: Array = players_data[player_id]["slots"]
+	if slots.size() != SLOT_COUNT:
+		var grown: Array = _new_slots()
+		for i in mini(slots.size(), SLOT_COUNT):
+			grown[i] = slots[i]
+		players_data[player_id]["slots"] = grown
+		slots = grown
+	return slots
+
+func _slot_row_start(item_data: ItemData) -> int:
+	if item_data != null and item_data.is_active_row():
+		return 0
+	return ACTIVE_SLOT_COUNT
+
+func _rebuild_inventory_dict(player_id: int) -> Dictionary:
+	var counts: Dictionary = {}
+	var slots: Array = _ensure_slots(player_id)
+	for slot in slots:
+		if typeof(slot) != TYPE_DICTIONARY:
+			continue
+		var path := str(slot.get("path", ""))
+		var qty := int(slot.get("qty", 0))
+		if path.is_empty() or qty <= 0:
+			continue
+		counts[path] = int(counts.get(path, 0)) + qty
+	players_data[player_id]["inventory"] = counts
+	return counts
+
+func get_slots(player_id: int) -> Array:
+	if not players_data.has(player_id):
+		return _new_slots()
+	return _ensure_slots(player_id).duplicate(true)
+
 func add_item_to_inventory(player_id: int, item_data: ItemData, amount: int = 1) -> bool:
 	if not multiplayer.is_server():
 		return false
@@ -78,19 +128,88 @@ func add_item_to_inventory(player_id: int, item_data: ItemData, amount: int = 1)
 		return false
 	if !players_data.has(player_id):
 		return false
+	if amount <= 0:
+		return false
 
-	var item_id = item_data.resource_path
-	var inventory = players_data[player_id]["inventory"]
+	var item_id: String = item_data.resource_path
+	var slots: Array = _ensure_slots(player_id)
+	var start: int = _slot_row_start(item_data)
+	var end: int = start + ACTIVE_SLOT_COUNT
+	var remaining: int = amount
+	for i in range(start, end):
+		var slot: Dictionary = slots[i] if typeof(slots[i]) == TYPE_DICTIONARY else {}
+		if str(slot.get("path", "")) == item_id and int(slot.get("qty", 0)) > 0:
+			slot["qty"] = int(slot.get("qty", 0)) + remaining
+			slots[i] = slot
+			remaining = 0
+			break
+	if remaining > 0:
+		for i in range(start, end):
+			var slot: Dictionary = slots[i] if typeof(slots[i]) == TYPE_DICTIONARY else {}
+			if str(slot.get("path", "")) == "" or int(slot.get("qty", 0)) <= 0:
+				slots[i] = {"path": item_id, "qty": remaining}
+				remaining = 0
+				break
+	if remaining > 0:
+		return false
+	players_data[player_id]["slots"] = slots
+	_push_inventory(player_id, _rebuild_inventory_dict(player_id))
+	_notify_item_gain(player_id, item_id)
+	return true
 
-	if inventory.has(item_id):
-		inventory[item_id] += amount
-		_push_inventory(player_id, inventory)
+func swap_slots(player_id: int, from_index: int, to_index: int) -> bool:
+	if not multiplayer.is_server():
+		return false
+	if not players_data.has(player_id):
+		return false
+	if from_index == to_index:
 		return true
-	if inventory.keys().size() < max_inv_slots:
-		inventory[item_id] = amount
-		_push_inventory(player_id, inventory)
-		return true
-	return false
+	if from_index < 0 or to_index < 0 or from_index >= SLOT_COUNT or to_index >= SLOT_COUNT:
+		return false
+	var from_row: int = 0 if from_index < ACTIVE_SLOT_COUNT else 1
+	var to_row: int = 0 if to_index < ACTIVE_SLOT_COUNT else 1
+	if from_row != to_row:
+		return false
+	var slots: Array = _ensure_slots(player_id)
+	var tmp = slots[from_index]
+	slots[from_index] = slots[to_index]
+	slots[to_index] = tmp
+	players_data[player_id]["slots"] = slots
+	_push_inventory(player_id, _rebuild_inventory_dict(player_id))
+	return true
+
+func use_instant_slot(player_id: int, index: int) -> bool:
+	if not multiplayer.is_server():
+		return false
+	if index < 0 or index >= ACTIVE_SLOT_COUNT:
+		return false
+	if not players_data.has(player_id):
+		return false
+	var slots: Array = _ensure_slots(player_id)
+	var entry: Dictionary = slots[index] if typeof(slots[index]) == TYPE_DICTIONARY else {}
+	var path := str(entry.get("path", ""))
+	var qty := int(entry.get("qty", 0))
+	if path.is_empty() or qty <= 0:
+		return false
+	var item: ItemData = ItemDatabase.get_item(path)
+	if item == null:
+		return false
+	if item.channel_use:
+		return false
+	if path == PAPER_ITEM:
+		return create_form(player_id)
+	if item.use():
+		consume_resources(player_id, path, 1)
+	return true
+
+@rpc("any_peer", "reliable")
+func request_swap_slots(from_index: int, to_index: int) -> void:
+	if not multiplayer.is_server():
+		return
+	var sender: int = multiplayer.get_remote_sender_id()
+	if sender == 0:
+		sender = multiplayer.get_unique_id()
+	swap_slots(sender, from_index, to_index)
 
 func create_form(player_id: int) -> bool:
 	if not multiplayer.is_server():
@@ -125,13 +244,87 @@ func grant_item_or_drop(player_id: int, item_data: ItemData, amount: int, drop_p
 			"position": drop_position,
 		})
 
+func _notify_item_gain(player_id: int, item_path: String) -> void:
+	_spawn_item_gain(player_id, item_path)
+	if multiplayer == null:
+		return
+	for peer in multiplayer.get_peers():
+		show_item_gain.rpc_id(peer, player_id, item_path)
+
+@rpc("authority", "reliable")
+func show_item_gain(player_id: int, item_path: String) -> void:
+	_spawn_item_gain(player_id, item_path)
+
+func _spawn_item_gain(player_id: int, item_path: String) -> void:
+	if item_path.is_empty():
+		return
+	var item: ItemData = ItemDatabase.get_item(item_path)
+	if item == null:
+		item = load(item_path) as ItemData
+	if item == null or item.texture == null:
+		return
+	var body: Node2D = _body_for_inventory(player_id)
+	if body == null:
+		return
+	ItemGainPopup.spawn_on(body, item.texture)
+
+func _body_for_inventory(player_id: int) -> Node2D:
+	var node: Node = get_player_node_by_id(player_id)
+	if node is Node2D:
+		return node as Node2D
+	var tree := get_tree()
+	if tree == null:
+		return null
+	for n in tree.get_nodes_in_group("dm"):
+		if not (n is Node2D):
+			continue
+		if int(n.get_multiplayer_authority()) == player_id:
+			return n as Node2D
+		if n.name.is_valid_int() and int(n.name) == player_id:
+			return n as Node2D
+	if DmManager != null and DmManager.dm is Node2D:
+		var dm: Node2D = DmManager.dm
+		if int(dm.get_multiplayer_authority()) == player_id:
+			return dm
+	return null
+
 func _push_inventory(player_id: int, inventory: Dictionary) -> void:
-	update_client_inventory.rpc_id(player_id, inventory)
+	var slots: Array = get_slots(player_id)
+	if player_id == multiplayer.get_unique_id() or multiplayer.get_peers().has(player_id):
+		update_client_inventory.rpc_id(player_id, inventory, slots)
+	else:
+		update_client_inventory(inventory, slots)
 	SignalBus.on_item_pickup.emit(player_id)
+
+func tax_form_path_in_bag(player_id: int) -> String:
+	for slot in get_slots(player_id):
+		if typeof(slot) != TYPE_DICTIONARY:
+			continue
+		var path := str(slot.get("path", ""))
+		var qty := int(slot.get("qty", 0))
+		if path.is_empty() or qty <= 0:
+			continue
+		if path == TAX_FORM_ITEM:
+			return path
+		var item: ItemData = ItemDatabase.get_item(path)
+		if item != null and item.name == "Tax Form":
+			return path
+	if local_inventory.has(TAX_FORM_ITEM) and int(local_inventory[TAX_FORM_ITEM]) >= 1:
+		return TAX_FORM_ITEM
+	for path in local_inventory.keys():
+		if int(local_inventory[path]) <= 0:
+			continue
+		if str(path) == TAX_FORM_ITEM:
+			return str(path)
+		var local_item: ItemData = ItemDatabase.get_item(str(path))
+		if local_item != null and local_item.name == "Tax Form":
+			return str(path)
+	return ""
 
 func get_item_count(player_id: int, item_id: String) -> int:
 	if !players_data.has(player_id):
 		return 0
+	_rebuild_inventory_dict(player_id)
 	var inventory = players_data[player_id]["inventory"]
 	if !inventory.has(item_id):
 		return 0
@@ -145,16 +338,20 @@ func carried_count(player_id: int, item_id: String) -> int:
 	return maxi(from_data, from_local)
 
 @rpc("authority", "call_local", "reliable")
-func update_client_inventory(new_items: Dictionary):
+func update_client_inventory(new_items: Dictionary, slots: Array = []):
 	local_inventory = new_items.duplicate()
+	if slots.is_empty():
+		local_slots = _new_slots()
+	else:
+		local_slots = slots.duplicate(true)
 	var display_list = []
 	for id in new_items.keys():
 		var resource = ItemDatabase.get_item(id)
 		if resource:
 			var quantity = new_items[id]
 			display_list.append({"data": resource, "quantity": quantity})
-	
 	SignalBus.emit_signal("inventory_updated", display_list)
+	SignalBus.inventory_slots_changed.emit()
 
 @rpc("authority", "reliable")
 func has_resources(player_id, resource_id, cost) -> bool:
@@ -163,6 +360,7 @@ func has_resources(player_id, resource_id, cost) -> bool:
 	if !players_data.has(player_id): 
 		return false
 	
+	_rebuild_inventory_dict(player_id)
 	var inventory = players_data[player_id]["inventory"]
 	if !inventory.has(resource_id):
 		return false
@@ -177,13 +375,25 @@ func consume_resources(player_id, resource_id, cost) -> void:
 	if !players_data.has(player_id): 
 		return
 			
-	var inventory = players_data[player_id]["inventory"]
-	if !inventory.has(resource_id):
-		return
-	inventory[resource_id] -= cost
-	if inventory[resource_id] <= 0:
-		inventory.erase(resource_id)
-	update_client_inventory.rpc_id(player_id, inventory)
+	var left: int = int(cost)
+	var slots: Array = _ensure_slots(player_id)
+	for i in SLOT_COUNT:
+		if left <= 0:
+			break
+		var slot: Dictionary = slots[i] if typeof(slots[i]) == TYPE_DICTIONARY else {}
+		if str(slot.get("path", "")) != str(resource_id):
+			continue
+		var qty: int = int(slot.get("qty", 0))
+		var take: int = mini(qty, left)
+		qty -= take
+		left -= take
+		if qty <= 0:
+			slots[i] = {}
+		else:
+			slot["qty"] = qty
+			slots[i] = slot
+	players_data[player_id]["slots"] = slots
+	_push_inventory(player_id, _rebuild_inventory_dict(player_id))
 
 func add_player_instance() -> void:
 	pass

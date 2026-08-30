@@ -16,6 +16,7 @@ name = "D20"
 description = "Raises Dungeon Master Fantasy Level"
 auto_use = true
 pickup_char = "dm_only"
+inventory_row = "active"
 pickup_sound = ExtResource("4_sound")
 texture = ExtResource("5_tex")
 effects = Array[ExtResource("1_effect")]([SubResource("Resource_fl")])

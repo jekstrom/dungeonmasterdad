@@ -6,13 +6,8 @@ func _init() -> void:
 	connect_slots()
 	SignalBus.inventory_updated.connect(on_inventory_changed)
 	
-func on_inventory_changed(items):
-	for i in slots.size():
-		slots[i] = null
+func on_inventory_changed(_items):
 	SignalBus.inventory_slots_changed.emit()
-
-	for item_qty in items:
-		add_item(item_qty["data"], item_qty["quantity"])
 
 func add_item(_item: ItemData, _quantity: int = 1) -> bool:
 	for i in slots.size():

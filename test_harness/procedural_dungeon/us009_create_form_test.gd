@@ -2,7 +2,6 @@ extends Node
 
 const PAPER := "res://pickups/paper.tres"
 const BLANK := "res://pickups/blank_form.tres"
-const COAL := "res://pickups/coal.tres"
 
 func _ready() -> void:
 	PlayerManager.players_data.clear()
@@ -31,16 +30,17 @@ func _ready() -> void:
 		drops.append(data)
 	)
 	PlayerManager.players_data.clear()
-	PlayerManager.max_inv_slots = 1
+	PlayerManager.max_inv_slots = 8
 	PlayerManager.register_player(1, "Paper Pusher")
-	var coal: ItemData = load(COAL) as ItemData
-	PlayerManager.add_item_to_inventory(1, coal, 1)
-	PlayerManager.players_data[1]["inventory"][PAPER] = 1
+	PlayerManager.add_item_to_inventory(1, paper, 2)
+	PlayerManager.add_item_to_inventory(1, load("res://pickups/cloak.tres") as ItemData, 1)
+	PlayerManager.add_item_to_inventory(1, load("res://pickups/d6.tres") as ItemData, 1)
+	PlayerManager.add_item_to_inventory(1, load("res://pickups/d20.tres") as ItemData, 1)
 	if not PlayerManager.create_form(1):
 		_fail("US-009 T002: overflow create must still consume paper")
 		return
-	if PlayerManager.get_item_count(1, PAPER) != 0:
-		_fail("US-009 T002: overflow must consume paper")
+	if PlayerManager.get_item_count(1, PAPER) != 1:
+		_fail("US-009 T002: overflow must consume 1 paper")
 		return
 	if PlayerManager.get_item_count(1, BLANK) != 0:
 		_fail("US-009 T002: full unique inventory must drop the blank")

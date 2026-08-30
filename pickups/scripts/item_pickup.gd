@@ -71,7 +71,14 @@ func on_body_entered(_body) -> void:
 		return
 	
 	if _body is DM and item_data != null and (item_data.pickup_char.is_empty() or item_data.pickup_char == "dm_only"):
-		handle_pickup(1, item_data)
+		var dm_id: int = 1
+		if _body.has_method("get_multiplayer_authority"):
+			var auth: int = int(_body.get_multiplayer_authority())
+			if auth > 0:
+				dm_id = auth
+		if not PlayerManager.players_data.has(dm_id):
+			PlayerManager.register_player(dm_id, "Dungeon Master")
+		handle_pickup(dm_id, item_data)
 	elif _body is Player and item_data != null and (item_data.pickup_char.is_empty() or item_data.pickup_char == "player_only"):
 		try_pick_up(item_data)
 

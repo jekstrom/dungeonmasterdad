@@ -9,5 +9,6 @@ script = ExtResource("2_data")
 name = "Tax Form"
 description = "File this at the IRS"
 pickup_char = "player_only"
+inventory_row = "active"
 texture = ExtResource("4_tex")
 metadata/_custom_type_script = "uid://cvwjr6lvvdlry"

@@ -34,6 +34,7 @@ position = Vector2(2048, 1024)
 base_radius = 256.0
 
 [node name="RealityZone" parent="." unique_id=1980413600 groups=["RealityZone"] instance=ExtResource("2_dk0co")]
+visible = false
 position = Vector2(128, 1024)
 base_radius = 256.0
 
@@ -82,7 +83,7 @@ y_sort_enabled = true
 script = ExtResource("13_yjl7g")
 
 [node name="BuildingSpawner" type="MultiplayerSpawner" parent="Buildings" unique_id=1840442100]
-_spawnable_scenes = PackedStringArray("uid://d05hkhchi8k3x", "uid://dgm12ubgivyq7", "uid://cirsbuilding001")
+_spawnable_scenes = PackedStringArray("uid://d05hkhchi8k3x", "uid://dgm12ubgivyq7", "uid://oq5ilqykdy1e")
 spawn_path = NodePath("..")
 script = ExtResource("25_building")
 

@@ -16,6 +16,7 @@ name = "Code Red"
 description = "Burns like fire"
 auto_use = true
 pickup_char = "dm_only"
+inventory_row = "active"
 pickup_sound = ExtResource("3_s6cwy")
 texture = ExtResource("5_n5cqj")
 effects = Array[ExtResource("1_le3f8")]([SubResource("Resource_3xf1x")])

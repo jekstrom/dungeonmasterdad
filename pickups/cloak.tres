@@ -16,6 +16,7 @@ name = "Coal"
 description = "Burns pretty well"
 auto_use = true
 pickup_char = "dm_only"
+inventory_row = "active"
 pickup_sound = ExtResource("2_gl0ox")
 texture = ExtResource("4_r0llc")
 effects = Array[ExtResource("1_r0llc")]([SubResource("Resource_o8qjx")])

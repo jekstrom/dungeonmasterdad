@@ -1,6 +1,7 @@
 class_name Player extends CharacterBody2D
 
 const DewSlickScript = preload("res://doodads/dew_slick.gd")
+const FormFillChoiceScript = preload("res://gui/player/form_fill_choice.gd")
 const DIR_4 = [Vector2.RIGHT, Vector2.DOWN, Vector2.LEFT, Vector2.UP]
 const BASE_MOVE_SPEED: float = 300.0
 var cardinal_direction: Vector2 = Vector2.DOWN
@@ -34,16 +35,19 @@ var empty_click_played: bool = false
 var _melee_swing_active: bool = false
 var _melee_pulse_id: int = 0
 var _queued_staple_fire: bool = false
-var _hint_e: Label
 var _hint_space: Label
 var _hint_fill: Label
-var _fill_bar_back: ColorRect
-var _fill_bar: ColorRect
 var _filling: bool = false
+var _fill_duration_sync: float = 0.0
 var _fill_type: String = ""
 var _fill_elapsed: float = 0.0
 var _fill_token: int = 0
 var _fill_origin: Vector2 = Vector2.ZERO
+var _fill_slot_index: int = 0
+var _fill_held: bool = false
+var _fill_require_hold: bool = false
+var _form_choice: CanvasLayer
+var _form_choice_slot: int = -1
 @export var fill_move_cancel_px: float = 4.0
 @export var standard_fill_sec: float = 3.0
 @export var tax_fill_sec: float = 6.0
@@ -150,14 +154,13 @@ func update_client_name(n, c):
 func _process(_delta: float) -> void:
 	if multiplayer.is_server():
 		tick_fill(_delta)
+	elif _filling:
+		_fill_elapsed += _delta
 	if !is_multiplayer_authority():
-		if _hint_e:
-			_hint_e.visible = false
 		if _hint_space:
 			_hint_space.visible = false
 		return
 	_update_interact_hints()
-	_update_fill_bar()
 	if current_building_data:
 		update_ghost(get_global_mouse_position())
 		queue_redraw()
@@ -306,10 +309,19 @@ func set_direction_from_vector(vec: Vector2) -> bool:
 func handle_form_input(event: InputEvent) -> void:
 	if event.is_action_pressed("create_form"):
 		try_create_form()
-	elif event.is_action_pressed("fill_standard"):
-		try_begin_fill("standard")
-	elif event.is_action_pressed("fill_tax"):
-		try_begin_fill("tax")
+		return
+	for i in 4:
+		var action := "inv_slot_%d" % i
+		if event.is_action_pressed(action):
+			try_use_active_slot(i)
+			return
+		if event.is_action_released(action):
+			if _filling and _fill_require_hold and _fill_slot_index == i:
+				if multiplayer.is_server():
+					cancel_fill()
+				else:
+					request_cancel_fill.rpc_id(1)
+			return
 
 func try_interact() -> void:
 	if multiplayer.is_server():
@@ -333,22 +345,52 @@ func _host_try_interact() -> void:
 
 func _host_try_file_tax() -> bool:
 	var player_id: int = _inventory_id()
-	var scene_tree := get_tree()
-	if scene_tree == null:
-		return false
-	var nearest: IrsBuilding = null
+	var nearest: Node = null
 	var best := INF
-	for node in scene_tree.get_nodes_in_group("irs"):
-		if not (node is IrsBuilding):
+	for node in _irs_nodes():
+		if not node.has_method("try_file_tax"):
 			continue
-		var irs: IrsBuilding = node
-		var dist: float = global_position.distance_to(irs.factory_origin())
+		if node.has_method("is_fileable") and not bool(node.is_fileable()):
+			continue
+		if node.has_method("in_file_range") and not bool(node.in_file_range(self)):
+			continue
+		var dist: float = _irs_distance(node)
 		if dist < best:
 			best = dist
-			nearest = irs
+			nearest = node
 	if nearest == null:
 		return false
-	return nearest.try_file_tax(player_id)
+	return bool(nearest.try_file_tax(player_id, self))
+
+func _irs_nodes() -> Array:
+	var out: Array = []
+	var scene_tree := get_tree()
+	if scene_tree == null:
+		return out
+	for node in scene_tree.get_nodes_in_group("irs"):
+		if is_instance_valid(node) and not out.has(node):
+			out.append(node)
+	var root: Node = scene_tree.get_first_node_in_group("building_root")
+	if root == null:
+		return out
+	for child in root.get_children():
+		if not is_instance_valid(child):
+			continue
+		var scene_path := str(child.scene_file_path)
+		if child.has_method("try_file_tax") or scene_path.ends_with("irs.tscn"):
+			if not out.has(child):
+				out.append(child)
+	return out
+
+func _irs_distance(node: Node) -> float:
+	var from: Vector2 = global_position
+	var best: float = from.distance_to(node.global_position)
+	if node.has_method("factory_origin"):
+		best = minf(best, from.distance_to(node.factory_origin()))
+	var sprite: Sprite2D = node.get_node_or_null("Sprite2D") as Sprite2D
+	if sprite:
+		best = minf(best, from.distance_to(sprite.global_position))
+	return best
 
 func _inventory_id() -> int:
 	var player_id: int = get_multiplayer_authority()
@@ -375,7 +417,147 @@ func request_create_form() -> void:
 		return
 	PlayerManager.create_form(_inventory_id())
 
+func try_use_active_slot(index: int) -> void:
+	if is_combat_locked():
+		return
+	if _form_choice != null:
+		return
+	var item := _item_in_active_slot(index)
+	if item != null and item.channel_use:
+		_open_form_fill_choice(index)
+		return
+	if multiplayer.is_server():
+		use_active_slot(index)
+		return
+	request_use_active_slot.rpc_id(1, index, "", true)
+
+func _item_in_active_slot(index: int) -> ItemData:
+	var slots: Array = PlayerManager.local_slots
+	if slots.is_empty():
+		slots = PlayerManager.get_slots(_inventory_id())
+	if index < 0 or index >= slots.size():
+		return null
+	var entry: Dictionary = slots[index] if typeof(slots[index]) == TYPE_DICTIONARY else {}
+	var path := str(entry.get("path", ""))
+	if path.is_empty() or int(entry.get("qty", 0)) <= 0:
+		return null
+	var item: ItemData = ItemDatabase.get_item(path)
+	if item == null:
+		item = load(path) as ItemData
+	return item
+
+func _open_form_fill_choice(index: int) -> void:
+	if _form_choice != null:
+		return
+	_form_choice_slot = index
+	_form_choice = FormFillChoiceScript.new()
+	_form_choice.connect("chosen", _on_form_fill_chosen)
+	if PlayerHud:
+		PlayerHud.add_child(_form_choice)
+	elif is_inside_tree():
+		get_tree().root.add_child(_form_choice)
+	else:
+		_form_choice = null
+
+func _on_form_fill_chosen(kind: String) -> void:
+	var slot: int = _form_choice_slot
+	_close_form_fill_choice()
+	if kind != "standard" and kind != "tax":
+		return
+	if is_combat_locked():
+		return
+	if _is_host():
+		use_active_slot(slot, kind, false)
+	else:
+		_predict_channel_use(slot, kind, false)
+		request_use_active_slot.rpc_id(1, slot, kind, false)
+
+func _close_form_fill_choice() -> void:
+	if _form_choice != null and is_instance_valid(_form_choice):
+		_form_choice.queue_free()
+	_form_choice = null
+	_form_choice_slot = -1
+
+func _predict_channel_use(index: int, fill_kind: String, require_hold: bool = true) -> void:
+	var slots: Array = PlayerManager.local_slots
+	if index < 0 or index >= slots.size():
+		return
+	var entry: Dictionary = slots[index] if typeof(slots[index]) == TYPE_DICTIONARY else {}
+	var path := str(entry.get("path", ""))
+	if path.is_empty():
+		return
+	var item: ItemData = ItemDatabase.get_item(path)
+	if item == null or not item.channel_use:
+		return
+	_filling = true
+	_fill_type = fill_kind if fill_kind == "tax" or fill_kind == "standard" else "standard"
+	_fill_elapsed = 0.0
+	_fill_duration_sync = tax_fill_sec if _fill_type == "tax" else standard_fill_sec
+	_fill_require_hold = require_hold
+	_fill_slot_index = index
+	_fill_held = not require_hold
+
+func _fill_kind_from_input() -> String:
+	return "standard"
+
+@rpc("any_peer", "reliable")
+func request_use_active_slot(index: int, fill_kind: String = "standard", require_hold: bool = true) -> void:
+	if not multiplayer.is_server():
+		return
+	var sender: int = multiplayer.get_remote_sender_id()
+	if sender != 0 and sender != get_multiplayer_authority():
+		return
+	use_active_slot(index, fill_kind, require_hold)
+
+@rpc("any_peer", "reliable")
+func request_cancel_fill() -> void:
+	if not multiplayer.is_server():
+		return
+	var sender: int = multiplayer.get_remote_sender_id()
+	if sender != 0 and sender != get_multiplayer_authority():
+		return
+	cancel_fill()
+
+func use_active_slot(index: int, fill_kind: String = "", require_hold: bool = true) -> bool:
+	if not _is_host():
+		return false
+	if index < 0 or index >= 4:
+		return false
+	if is_combat_locked():
+		return false
+	var player_id: int = _inventory_id()
+	var slots: Array = PlayerManager.get_slots(player_id)
+	if index >= slots.size():
+		return false
+	var entry: Dictionary = slots[index] if typeof(slots[index]) == TYPE_DICTIONARY else {}
+	var path := str(entry.get("path", ""))
+	var qty := int(entry.get("qty", 0))
+	if path.is_empty() or qty <= 0:
+		return false
+	var item: ItemData = ItemDatabase.get_item(path)
+	if item == null:
+		item = load(path) as ItemData
+	if item == null:
+		return false
+	if item.channel_use:
+		_fill_slot_index = index
+		_fill_require_hold = require_hold
+		_fill_held = not require_hold
+		var kind := fill_kind
+		if kind != "standard" and kind != "tax":
+			kind = "standard"
+		return begin_fill(kind)
+	if path == PlayerManager.PAPER_ITEM:
+		return PlayerManager.create_form(player_id)
+	if path == PlayerManager.TAX_FORM_ITEM or (item != null and item.name == "Tax Form"):
+		return _host_try_file_tax()
+	if item.use():
+		PlayerManager.consume_resources(player_id, path, 1)
+		return true
+	return true
+
 func try_begin_fill(fill_type: String) -> void:
+	_fill_require_hold = false
 	if multiplayer.is_server():
 		begin_fill(fill_type)
 	else:
@@ -410,10 +592,12 @@ func begin_fill(fill_type: String) -> bool:
 	_filling = true
 	_fill_type = fill_type
 	_fill_elapsed = 0.0
+	_fill_duration_sync = tax_fill_sec if fill_type == "tax" else standard_fill_sec
 	_fill_token += 1
 	_fill_origin = global_position
-	if is_inside_tree():
-		_sync_fill_state.rpc(_filling, _fill_type, 0.0, _fill_duration())
+	if not _fill_require_hold:
+		_fill_held = true
+	_broadcast_fill_state()
 	return true
 
 func cancel_fill() -> void:
@@ -422,8 +606,10 @@ func cancel_fill() -> void:
 	_filling = false
 	_fill_elapsed = 0.0
 	_fill_type = ""
-	if _is_host() and is_inside_tree():
-		_sync_fill_state.rpc(false, "", 0.0, 1.0)
+	_fill_duration_sync = 0.0
+	_fill_held = false
+	_fill_require_hold = false
+	_broadcast_fill_state()
 
 func tick_fill(delta: float) -> void:
 	if not _is_host():
@@ -436,11 +622,16 @@ func tick_fill(delta: float) -> void:
 	if global_position.distance_to(_fill_origin) > fill_move_cancel_px:
 		cancel_fill()
 		return
+	if _fill_require_hold and not _fill_held:
+		cancel_fill()
+		return
 	_fill_elapsed += delta
 	if _fill_elapsed + 0.0001 >= _fill_duration():
 		_complete_fill(_fill_token)
 
 func _fill_duration() -> float:
+	if _fill_duration_sync > 0.0:
+		return _fill_duration_sync
 	if _fill_type == "tax":
 		return tax_fill_sec
 	return standard_fill_sec
@@ -465,10 +656,12 @@ func _complete_fill(token: int) -> void:
 	_filling = false
 	_fill_elapsed = 0.0
 	_fill_type = ""
+	_fill_duration_sync = 0.0
+	_fill_held = false
+	_fill_require_hold = false
 	var player_id: int = _inventory_id()
 	if not PlayerManager.has_resources(player_id, PlayerManager.BLANK_FORM_ITEM, 1):
-		if is_inside_tree():
-			_sync_fill_state.rpc(false, "", 0.0, 1.0)
+		_broadcast_fill_state()
 		return
 	var out_path: String = PlayerManager.FILLED_FORM_ITEM
 	if kind == "tax":
@@ -477,21 +670,33 @@ func _complete_fill(token: int) -> void:
 	if out_item == null:
 		out_item = load(out_path) as ItemData
 	if out_item == null:
-		if is_inside_tree():
-			_sync_fill_state.rpc(false, "", 0.0, 1.0)
+		_broadcast_fill_state()
 		return
 	PlayerManager.consume_resources(player_id, PlayerManager.BLANK_FORM_ITEM, 1)
 	PlayerManager.grant_item_or_drop(player_id, out_item, 1, global_position)
 	if kind == "standard":
 		PlayerManager.update_reality_level(PlayerManager.standard_form_rl)
-	if is_inside_tree():
-		_sync_fill_state.rpc(false, "", 0.0, 1.0)
+	_broadcast_fill_state()
 
-@rpc("authority", "call_remote", "reliable")
-func _sync_fill_state(filling: bool, fill_type: String, elapsed: float, _duration: float) -> void:
+func _broadcast_fill_state() -> void:
+	if not is_inside_tree() or not _is_host():
+		return
+	var dur: float = _fill_duration() if _filling else 1.0
+	_sync_fill_state.rpc(_filling, _fill_type, _fill_elapsed, dur, _fill_require_hold, _fill_slot_index)
+
+@rpc("any_peer", "call_remote", "reliable")
+func _sync_fill_state(filling: bool, fill_type: String, elapsed: float, duration: float, require_hold: bool = false, slot_index: int = 0) -> void:
+	var sender: int = multiplayer.get_remote_sender_id()
+	if sender != 0 and sender != 1:
+		return
 	_filling = filling
 	_fill_type = fill_type
 	_fill_elapsed = elapsed
+	_fill_duration_sync = duration if filling else 0.0
+	_fill_require_hold = require_hold and filling
+	_fill_slot_index = slot_index
+	if filling:
+		_fill_held = true
 
 func _host_try_deposit_wood() -> void:
 	var player_id: int = get_multiplayer_authority()
@@ -522,8 +727,8 @@ func can_prompt_building_interact() -> bool:
 	for node in scene_tree.get_nodes_in_group("paper_factories"):
 		if node is PaperFactory and (node as PaperFactory).can_prompt_deposit(self):
 			return true
-	for node in scene_tree.get_nodes_in_group("irs"):
-		if node is IrsBuilding and (node as IrsBuilding).can_prompt_file(self):
+	for node in _irs_nodes():
+		if node.has_method("can_prompt_file") and bool(node.can_prompt_file(self)):
 			return true
 	return false
 
@@ -542,41 +747,10 @@ func can_prompt_tree_harvest() -> bool:
 	return false
 
 func _ensure_interact_hints() -> void:
-	if _hint_e != null:
+	if _hint_space != null:
 		return
-	_hint_e = _make_hint_label("E", Vector2(-18, -108), Vector2(36, 20))
 	_hint_space = _make_hint_label("SPACE", Vector2(-32, -128), Vector2(64, 20))
-	add_child(_hint_e)
 	add_child(_hint_space)
-	_ensure_fill_bar()
-
-func _ensure_fill_bar() -> void:
-	if _fill_bar != null:
-		return
-	_fill_bar_back = ColorRect.new()
-	_fill_bar_back.name = "FillBarBack"
-	_fill_bar_back.position = Vector2(-18, -140)
-	_fill_bar_back.size = Vector2(36, 5)
-	_fill_bar_back.color = Color(0.08, 0.08, 0.08, 0.95)
-	_fill_bar_back.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_fill_bar_back.visible = false
-	add_child(_fill_bar_back)
-	_fill_bar = ColorRect.new()
-	_fill_bar.name = "FillBar"
-	_fill_bar.position = Vector2(-18, -140)
-	_fill_bar.size = Vector2(0, 5)
-	_fill_bar.color = Color(1.0, 0.95, 0.55, 1)
-	_fill_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_fill_bar.visible = false
-	add_child(_fill_bar)
-
-func _update_fill_bar() -> void:
-	_ensure_fill_bar()
-	var show_bar: bool = _filling
-	_fill_bar_back.visible = show_bar
-	_fill_bar.visible = show_bar
-	if show_bar:
-		_fill_bar.size = Vector2(36.0 * fill_progress(), 5.0)
 
 func _make_hint_label(text: String, pos: Vector2, size: Vector2) -> Label:
 	var hint := Label.new()
@@ -595,9 +769,8 @@ func _make_hint_label(text: String, pos: Vector2, size: Vector2) -> Label:
 	return hint
 
 func _update_interact_hints() -> void:
-	if _hint_e == null:
+	if _hint_space == null:
 		_ensure_interact_hints()
-	_hint_e.visible = can_prompt_building_interact()
 	_hint_space.visible = can_prompt_tree_harvest()
 
 func start_melee_attack() -> void:
@@ -700,6 +873,8 @@ func combat_sheet_path() -> String:
 
 
 func is_combat_locked() -> bool:
+	if _form_choice != null and is_instance_valid(_form_choice):
+		return true
 	if current_building_data:
 		return true
 	var pid: int = get_multiplayer_authority()
@@ -862,7 +1037,13 @@ func _input(event: InputEvent) -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("primary_click"):
 		if current_building_data:
-			BuildingManager.request_placement.rpc_id(1, current_building_data.resource_path, ghost_building.global_position, get_global_mouse_position())
+			var place_id: String = current_building_data.resource_path
+			var place_at: Vector2 = ghost_building.global_position
+			var check_at: Vector2 = get_global_mouse_position()
+			if multiplayer.is_server():
+				BuildingManager.request_placement(place_id, place_at, check_at)
+			else:
+				BuildingManager.request_placement.rpc_id(1, place_id, place_at, check_at)
 			remove_child(ghost_building)
 			current_building_data = null
 			ghost_building = null

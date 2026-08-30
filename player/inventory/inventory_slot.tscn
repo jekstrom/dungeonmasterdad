@@ -8,7 +8,18 @@ offset_right = 64.0
 offset_bottom = 64.0
 size_flags_horizontal = 4
 size_flags_vertical = 4
+focus_mode = 0
 script = ExtResource("1_lrksu")
+
+[node name="Bg" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.22, 0.28, 0.38, 1)
 
 [node name="TextureRect" type="TextureRect" parent="."]
 custom_minimum_size = Vector2(32, 32)
@@ -18,14 +29,30 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Hotkey" type="Label" parent="."]
+layout_mode = 1
+offset_left = 2.0
+offset_top = 0.0
+offset_right = 24.0
+offset_bottom = 14.0
+theme_override_colors/font_color = Color(1, 1, 0.75, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 4
+theme_override_font_sizes/font_size = 10
+text = "Q"
 
 [node name="Label" type="Label" parent="."]
 layout_mode = 1
 anchors_preset = 1
 anchor_left = 1.0
 anchor_right = 1.0
-offset_left = -10.0
-offset_bottom = 12.0
+offset_left = -18.0
+offset_bottom = 16.0
 grow_horizontal = 0
-theme_override_font_sizes/font_size = 24
-text = "99"
+theme_override_font_sizes/font_size = 14
+text = ""
+horizontal_alignment = 2

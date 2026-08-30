@@ -68,8 +68,8 @@ func _ready() -> void:
 	if PlayerManager.smoke_amt != smoke_before - factory.smoke_consume_amt:
 		_fail("US-006 independent: production must consume smoke")
 		return
-	if PlayerManager.reality_level != reality_before + 10:
-		_fail("US-006 independent: production must raise Reality by 10")
+	if PlayerManager.reality_level != reality_before:
+		_fail("US-006 independent: paper production must not raise Reality")
 		return
 	var saw_paper := false
 	for drop in drops:

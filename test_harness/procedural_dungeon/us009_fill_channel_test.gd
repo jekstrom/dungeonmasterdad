@@ -65,6 +65,29 @@ func _ready() -> void:
 		_fail("US-009 T003: damage/cancel must stop fill")
 		return
 
+	add_child(player)
+	player.set_process(false)
+	player.set_physics_process(false)
+	await get_tree().process_frame
+	player.standard_fill_sec = 1.0
+	if not player.begin_fill("standard"):
+		_fail("US-009 T003: channel bar fill must start")
+		return
+	FactoryStatusHud._process(0.0)
+	if not FactoryStatusHud.fill_bar_visible(player):
+		_fail("US-009 T003: filling must show a channel bar above the player")
+		return
+	player.tick_fill(0.4)
+	FactoryStatusHud._process(0.0)
+	if absf(FactoryStatusHud.fill_bar_width(player) - FactoryStatusHud.BAR_WIDTH * 0.4) > 0.2:
+		_fail("US-009 T003: channel bar must match fill progress, width=%s" % FactoryStatusHud.fill_bar_width(player))
+		return
+	player.cancel_fill()
+	FactoryStatusHud._process(0.0)
+	if FactoryStatusHud.fill_bar_visible(player):
+		_fail("US-009 T003: cancelled fill must hide the channel bar")
+		return
+
 	print("US-009 T003 fill channel test passed")
 	get_tree().quit(0)
 

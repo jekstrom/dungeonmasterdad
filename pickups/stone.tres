@@ -17,6 +17,7 @@ name = "Stone"
 description = "Do the Dew!"
 auto_use = true
 pickup_char = "dm_only"
+inventory_row = "static"
 pickup_sound = ExtResource("3_aau02")
 texture = ExtResource("3_fc10j")
 effects = Array[ExtResource("1_qy3vx")]([SubResource("Resource_aau02")])

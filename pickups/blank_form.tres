@@ -9,5 +9,7 @@ script = ExtResource("2_data")
 name = "Blank Form"
 description = "An unfilled office form"
 pickup_char = "player_only"
+inventory_row = "active"
+channel_use = true
 texture = ExtResource("4_tex")
 metadata/_custom_type_script = "uid://cvwjr6lvvdlry"

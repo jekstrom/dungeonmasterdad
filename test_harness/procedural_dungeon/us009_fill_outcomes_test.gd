@@ -8,8 +8,8 @@ func _ready() -> void:
 	PlayerManager.players_data.clear()
 	PlayerManager.max_inv_slots = 8
 	PlayerManager.reality_level = 0
-	PlayerManager.standard_form_rl = 15
-	PlayerManager.tax_file_rl = 50
+	PlayerManager.standard_form_rl = 5
+	PlayerManager.tax_file_rl = 10
 	PlayerManager.register_player(1, "Paper Pusher")
 	var blank: ItemData = load(BLANK) as ItemData
 	PlayerManager.add_item_to_inventory(1, blank, 2)
@@ -21,8 +21,8 @@ func _ready() -> void:
 
 	player.begin_fill("standard")
 	player.tick_fill(0.05)
-	if PlayerManager.reality_level != 15:
-		_fail("US-009 T004: standard fill must grant +15 Reality, got %d" % PlayerManager.reality_level)
+	if PlayerManager.reality_level != 5:
+		_fail("US-009 T004: standard fill must grant +5 Reality, got %d" % PlayerManager.reality_level)
 		return
 	if PlayerManager.get_item_count(1, FILLED) != 1:
 		_fail("US-009 T004: standard fill must leave a filled form")
