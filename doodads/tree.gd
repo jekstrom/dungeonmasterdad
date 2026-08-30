@@ -4,10 +4,10 @@ class_name TreeDoodad extends Node2D
 const WOOD_ITEM := "res://pickups/wood.tres"
 const STUMP_TEXTURE: Texture2D = preload("res://sprites/tree_stump.png")
 const LIVING_SPRITE_SCALE := Vector2(5, 5)
-const LIVING_SPRITE_POS := Vector2(0, -80)
+const LIVING_SPRITE_OFFSET := Vector2(0, -16)
 const STUMP_SPRITE_SCALE := Vector2(1.6, 1.6)
-const STUMP_SPRITE_POS := Vector2(0, -26)
-const HARVEST_HINT_RANGE := 64.0
+const STUMP_SPRITE_OFFSET := Vector2(0, -16)
+const HARVEST_HINT_RANGE := 72.0
 
 @export var tree_type: int = -1: set = _set_tree_type
 @export var hits_required: int = 3
@@ -21,6 +21,8 @@ const HARVEST_HINT_RANGE := 64.0
 var _hit_hurtboxes: Dictionary = {}
 
 func _enter_tree() -> void:
+	y_sort_enabled = true
+	z_index = 0
 	if Engine.is_editor_hint():
 		_ensure_unique_texture()
 
@@ -42,6 +44,9 @@ func _update_texture() -> void:
 		return
 	if not _resolve_sprite():
 		return
+	sprite_2d.position = Vector2.ZERO
+	sprite_2d.offset = LIVING_SPRITE_OFFSET
+	sprite_2d.scale = LIVING_SPRITE_SCALE
 	if not sprite_2d.texture is AtlasTexture:
 		return
 	if tree_type < 0:
@@ -120,7 +125,31 @@ func is_harvest_prompt_target(striker: Node) -> bool:
 		return false
 	if not (striker is Node2D):
 		return false
-	return (striker as Node2D).global_position.distance_to(global_position) <= HARVEST_HINT_RANGE
+	var body: Node2D = striker as Node2D
+	if body.global_position.distance_to(global_position) > HARVEST_HINT_RANGE:
+		return false
+	return _swing_would_hit(body)
+
+func _swing_would_hit(striker: Node2D) -> bool:
+	var facing := Vector2.DOWN
+	if "cardinal_direction" in striker:
+		var dir: Vector2 = striker.cardinal_direction
+		if dir.length_squared() > 0.01:
+			facing = dir.normalized()
+	var melee_center: Vector2 = striker.global_position + Vector2(facing.x * 20.0, facing.y * 16.0 - 8.0)
+	const MELEE_RADIUS := 16.0
+	var hit_center: Vector2 = global_position + Vector2(0, -16)
+	var hit_radius := 72.0
+	if harvest_hitbox:
+		var shape_node: CollisionShape2D = harvest_hitbox.get_node_or_null("CollisionShape2D") as CollisionShape2D
+		if shape_node:
+			hit_center = shape_node.global_position
+			if shape_node.shape is CircleShape2D:
+				hit_radius = (shape_node.shape as CircleShape2D).radius
+			elif shape_node.shape is RectangleShape2D:
+				var half: Vector2 = (shape_node.shape as RectangleShape2D).size * 0.5
+				hit_radius = minf(half.x, half.y)
+	return melee_center.distance_to(hit_center) <= (MELEE_RADIUS + hit_radius)
 
 func apply_harvest_hit(striker: Node) -> bool:
 	if Engine.is_editor_hint():
@@ -162,7 +191,8 @@ func _apply_stump_visual() -> void:
 		return
 	sprite_2d.texture = STUMP_TEXTURE
 	sprite_2d.scale = STUMP_SPRITE_SCALE
-	sprite_2d.position = STUMP_SPRITE_POS
+	sprite_2d.position = Vector2.ZERO
+	sprite_2d.offset = STUMP_SPRITE_OFFSET
 
 func _grant_wood(striker: Node) -> void:
 	var lo: int = mini(wood_yield_min, wood_yield_max)

@@ -12,24 +12,23 @@ region = Rect2(0, 0, 32, 32)
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_52uuo"]
 size = Vector2(8, 9)
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_harvest"]
-size = Vector2(20, 20)
+[sub_resource type="CircleShape2D" id="CircleShape2D_harvest"]
+radius = 72.0
 
 [node name="Tree" type="Node2D"]
+y_sort_enabled = true
 script = ExtResource("1_26se8")
 
-[node name="Sprite2D" type="Sprite2D" parent="."]
-y_sort_enabled = true
-position = Vector2(0, -80)
-scale = Vector2(5, 5)
-texture = SubResource("AtlasTexture_p035c")
-
-[node name="Shadow" type="Sprite2D" parent="Sprite2D"]
+[node name="Shadow" type="Sprite2D" parent="."]
 modulate = Color(0.20511743, 0.20511743, 0.20511743, 1)
 z_index = -1
-position = Vector2(0, 16)
-scale = Vector2(0.5, 0.5)
+scale = Vector2(2.5, 2.5)
 texture = ExtResource("3_ioyue")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+scale = Vector2(5, 5)
+offset = Vector2(0, -16)
+texture = SubResource("AtlasTexture_p035c")
 
 [node name="StaticBody2D" type="StaticBody2D" parent="."]
 scale = Vector2(5.320001, 5)
@@ -46,5 +45,5 @@ monitoring = false
 monitorable = true
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Hitbox"]
-position = Vector2(0, -8)
-shape = SubResource("RectangleShape2D_harvest")
+position = Vector2(0, -16)
+shape = SubResource("CircleShape2D_harvest")

@@ -3,6 +3,8 @@ extends Node2D
 const TREE_TYPE_COUNT := 10
 
 @export var tree_scatter_density: float = 0.08
+@export var mine_scatter_count: int = 3
+var _mine_scene: PackedScene = preload("res://doodads/mine.tscn")
 
 var damage_numbers_scene: PackedScene = preload("res://spells/damage_number.tscn")
 var is_shadow_zone: bool = false
@@ -208,6 +210,7 @@ func apply_map_interior(interior: Rect2i, dungeon: Rect2i = Rect2i(), exit_cell:
 	rebuild_outside_fill()
 	strip_outside_tiles_from_dungeon_cells()
 	rebuild_tree_scatter()
+	rebuild_mine_scatter()
 
 func clear_map_interior() -> void:
 	if not Lobby.is_network_server():
@@ -232,6 +235,7 @@ func build_map_sync_payload() -> Dictionary:
 		"cliffs": _cliff_sync_items(),
 		"out": _outside_sync_items(),
 		"trees": _tree_sync_items(),
+		"mines": _mine_sync_items(),
 	}
 
 func apply_map_sync_payload(payload: Dictionary) -> void:
@@ -258,6 +262,7 @@ func apply_map_sync_payload(payload: Dictionary) -> void:
 	_apply_cliffs_from_payload(payload.get("cliffs", []))
 	_apply_outside_from_payload(payload.get("out", []))
 	_apply_trees_from_payload(payload.get("trees", []))
+	_apply_mines_from_payload(payload.get("mines", []))
 	strip_outside_tiles_from_dungeon_cells()
 	SignalBus.map_bounds_committed.emit(interior)
 
@@ -275,6 +280,7 @@ func _rpc_clear_map_interior() -> void:
 	rebuild_cliff_ring()
 	rebuild_outside_fill()
 	rebuild_tree_scatter()
+	rebuild_mine_scatter()
 	SignalBus.map_bounds_cleared.emit()
 
 func _on_map_peer_connected(peer_id: int) -> void:
@@ -480,6 +486,63 @@ func rebuild_tree_scatter() -> void:
 		parent.add_child(doodad)
 	strip_scattered_trees_from_blocked_cells()
 
+func rebuild_mine_scatter() -> void:
+	var parent: Node2D = _scattered_mines_parent()
+	_clear_named_tile_children(parent, "scattered_mines")
+	if not map_bounds.has_committed_bounds():
+		return
+	if _mine_scene == null:
+		return
+	var eligible: Array[Vector2i] = mine_scatter_eligible_cells()
+	if eligible.is_empty():
+		return
+	var rng := RandomNumberGenerator.new()
+	rng.seed = _mine_scatter_seed(map_bounds.get_interior(), dungeon_cell_bounds(), dungeon_exit_cell())
+	_shuffle_cells(eligible, rng)
+	var count: int = clampi(mine_scatter_count, 0, eligible.size())
+	if count < 1 and not eligible.is_empty():
+		count = 1
+	count = mini(count, eligible.size())
+	for i in range(count):
+		_place_mine_at(parent, eligible[i], 0, 0, false)
+
+func mine_scatter_eligible_cells() -> Array[Vector2i]:
+	var cells: Array[Vector2i] = []
+	var taken: Dictionary = {}
+	var tree_parent: Node = get_node_or_null("ScatteredTrees")
+	if tree_parent:
+		for child in tree_parent.get_children():
+			if child is Node2D:
+				taken[DungeonGrid.from_world((child as Node2D).position)] = true
+	var fantasy: Node = null
+	var scene_tree := get_tree()
+	if scene_tree:
+		fantasy = scene_tree.get_first_node_in_group("FantasyZone")
+	for cell in tree_scatter_eligible_cells():
+		if taken.has(cell):
+			continue
+		if fantasy and fantasy.has_method("is_claimed_cell") and bool(fantasy.is_claimed_cell(cell)):
+			continue
+		cells.append(cell)
+	return cells
+
+func _mine_scatter_seed(interior: Rect2i, dungeon: Rect2i, exit_cell: Vector2i) -> int:
+	return int(hash("mines|%d,%d,%d,%d|%d,%d,%d,%d|%d,%d" % [
+		interior.position.x, interior.position.y, interior.size.x, interior.size.y,
+		dungeon.position.x, dungeon.position.y, dungeon.size.x, dungeon.size.y,
+		exit_cell.x, exit_cell.y
+	]))
+
+func _scattered_mines_parent() -> Node2D:
+	var existing: Node = get_node_or_null("ScatteredMines")
+	if existing is Node2D:
+		return existing
+	var created := Node2D.new()
+	created.name = "ScatteredMines"
+	created.y_sort_enabled = true
+	add_child(created)
+	return created
+
 func tree_scatter_eligible_cells() -> Array[Vector2i]:
 	var dungeon: Rect2i = dungeon_cell_bounds()
 	var blocked: Dictionary = _tree_scatter_blocked_cells()
@@ -667,6 +730,27 @@ func _tree_sync_items() -> Array:
 		items.append({"x": cell.x, "y": cell.y, "t": tree_type, "h": hits, "s": stump})
 	return items
 
+func _mine_sync_items() -> Array:
+	var items: Array = []
+	var parent: Node = get_node_or_null("ScatteredMines")
+	if parent == null:
+		return items
+	for child in parent.get_children():
+		if not (child is Node2D):
+			continue
+		var cell: Vector2i = DungeonGrid.from_world((child as Node2D).position)
+		var hits := 0
+		var yields := 0
+		var depleted := 0
+		if "hits_taken" in child:
+			hits = int(child.hits_taken)
+		if "yields_taken" in child:
+			yields = int(child.yields_taken)
+		if "is_depleted" in child and bool(child.is_depleted):
+			depleted = 1
+		items.append({"x": cell.x, "y": cell.y, "h": hits, "ylds": yields, "d": depleted})
+	return items
+
 func _apply_cliffs_from_payload(items: Variant) -> void:
 	var parent: Node2D = _cliff_tiles_parent()
 	_clear_cliff_tiles(parent)
@@ -706,6 +790,31 @@ func _apply_trees_from_payload(items: Variant) -> void:
 			continue
 		var cell := Vector2i(int(item.get("x", 0)), int(item.get("y", 0)))
 		_place_tree_at(parent, cell, int(item.get("t", 0)), int(item.get("h", 0)), bool(item.get("s", 0)))
+
+func _apply_mines_from_payload(items: Variant) -> void:
+	var parent: Node2D = _scattered_mines_parent()
+	_clear_named_tile_children(parent, "scattered_mines")
+	if typeof(items) != TYPE_ARRAY:
+		return
+	for item in items:
+		if typeof(item) != TYPE_DICTIONARY:
+			continue
+		var cell := Vector2i(int(item.get("x", 0)), int(item.get("y", 0)))
+		_place_mine_at(parent, cell, int(item.get("h", 0)), int(item.get("ylds", 0)), bool(item.get("d", 0)))
+
+func _place_mine_at(parent: Node2D, cell: Vector2i, hits_taken: int = 0, yields_taken: int = 0, is_depleted: bool = false) -> void:
+	if _mine_scene == null:
+		return
+	var doodad: Node2D = _mine_scene.instantiate() as Node2D
+	if doodad == null:
+		return
+	doodad.name = ("mine_%d_%d" % [cell.x, cell.y]).validate_node_name()
+	doodad.position = DungeonGrid.to_world_center(cell)
+	doodad.add_to_group("scattered_mines")
+	_strip_tile_sync(doodad)
+	parent.add_child(doodad)
+	if doodad.has_method("apply_replicated_mine_state"):
+		doodad.apply_replicated_mine_state(hits_taken, yields_taken, is_depleted)
 
 func _place_cliff_at(parent: Node2D, cell: Vector2i, frame: int) -> void:
 	if _cliff_scene == null:

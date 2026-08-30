@@ -72,7 +72,8 @@ func _enter_tree() -> void:
 	collision_mask = (collision_mask | 16) & ~32
 
 func _ready() -> void:
-	z_index = DungeonConstants.WALL_Z_INDEX + 1
+	z_index = DungeonConstants.WALL_Z_INDEX
+	y_sort_enabled = false
 	if is_multiplayer_authority():
 		camera_2d.make_current()
 	else:
@@ -334,6 +335,9 @@ func can_prompt_tree_harvest() -> bool:
 		return false
 	for node in scene_tree.get_nodes_in_group("harvest_trees"):
 		if node is TreeDoodad and (node as TreeDoodad).is_harvest_prompt_target(self):
+			return true
+	for node in scene_tree.get_nodes_in_group("mines"):
+		if node.has_method("is_harvest_prompt_target") and node.is_harvest_prompt_target(self):
 			return true
 	return false
 

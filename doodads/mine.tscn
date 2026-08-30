@@ -1,0 +1,43 @@
+[gd_scene format=3 uid="uid://4v01vr4n0mb5"]
+
+[ext_resource type="Script" uid="uid://c4ymfgoiq5wy7" path="res://doodads/mine.gd" id="1_mine"]
+[ext_resource type="Texture2D" uid="uid://75gnklhpiaaf" path="res://sprites/mine_active.png" id="2_active"]
+[ext_resource type="PackedScene" uid="uid://c1c212xev4n6e" path="res://hitbox.tscn" id="3_hit"]
+[ext_resource type="Texture2D" uid="uid://dnhaymu1d41d4" path="res://sprites/Shadow.png" id="4_shadow"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_body"]
+size = Vector2(40, 24)
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_harvest"]
+size = Vector2(56, 48)
+
+[node name="Mine" type="Node2D" unique_id=701054494]
+y_sort_enabled = true
+script = ExtResource("1_mine")
+
+[node name="Shadow" type="Sprite2D" parent="."]
+modulate = Color(0.20511743, 0.20511743, 0.20511743, 1)
+z_index = -1
+position = Vector2(0, 20)
+scale = Vector2(1.25, 1.25)
+texture = ExtResource("4_shadow")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+y_sort_enabled = false
+scale = Vector2(2.5, 2.5)
+texture = ExtResource("2_active")
+
+[node name="StaticBody2D" type="StaticBody2D" parent="." unique_id=1974472841]
+collision_layer = 16
+collision_mask = 0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="StaticBody2D" unique_id=1600239505]
+position = Vector2(0, -8)
+shape = SubResource("RectangleShape2D_body")
+
+[node name="Hitbox" parent="." unique_id=122198504 instance=ExtResource("3_hit")]
+collision_layer = 8
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Hitbox" unique_id=1769899897]
+position = Vector2(0, -16)
+shape = SubResource("RectangleShape2D_harvest")

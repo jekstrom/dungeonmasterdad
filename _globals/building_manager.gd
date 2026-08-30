@@ -6,7 +6,11 @@ func request_placement(building_id: String, pos: Vector2, check_pos: Vector2):
 		return
 	
 	var sender_id = multiplayer.get_remote_sender_id()
+	if sender_id == 0:
+		sender_id = multiplayer.get_unique_id()
 	var data: BuildingData = BuildingDatabase.get_building(building_id)
+	if data == null:
+		return
 	var building_root = get_tree().get_first_node_in_group("building_root")
 	if PlayerManager.has_resources(sender_id, data.cost_item, data.cost_qty) and is_area_clear(check_pos, data.size):
 		PlayerManager.consume_resources(sender_id, data.cost_item, data.cost_qty)

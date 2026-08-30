@@ -43,6 +43,11 @@ func _ready() -> void:
 	if tree.hits_taken != 3:
 		_fail("US-006 T002: two players must share one bar, hits_taken=%d" % tree.hits_taken)
 		return
+	var hit_shape: CollisionShape2D = tree.get_node_or_null("Hitbox/CollisionShape2D") as CollisionShape2D
+	if hit_shape == null or not (hit_shape.shape is CircleShape2D) or (hit_shape.shape as CircleShape2D).radius < 56.0:
+		_fail("US-006 T002: harvest hitbox must be a forgiving circle")
+		return
+
 	var prompt_tree: TreeDoodad = load("res://doodads/tree.tscn").instantiate() as TreeDoodad
 	prompt_tree.tree_type = 0
 	prompt_tree.position = Vector2(0, 0)
@@ -50,9 +55,15 @@ func _ready() -> void:
 	await get_tree().process_frame
 	var prompt_player: Player = Player.new()
 	prompt_player.name = "1"
-	prompt_player.position = Vector2(20, 0)
+	prompt_player.cardinal_direction = Vector2.LEFT
+	prompt_player.position = Vector2(60, 0)
 	if not prompt_tree.is_harvest_prompt_target(prompt_player):
 		_fail("US-006 T002: nearby living tree must prompt SPACE harvest")
+		prompt_player.free()
+		return
+	prompt_player.cardinal_direction = Vector2.RIGHT
+	if not prompt_tree.is_harvest_prompt_target(prompt_player):
+		_fail("US-006 T002: SPACE must still show when a nearby swing reaches the tree")
 		prompt_player.free()
 		return
 	prompt_player.position = Vector2(400, 0)

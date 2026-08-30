@@ -34,7 +34,8 @@ signal DirectionChanged(new_direction: Vector2)
 @export var melee_damage: int = 1
 
 func _ready() -> void:
-	z_index = DungeonConstants.WALL_Z_INDEX + 1
+	z_index = DungeonConstants.WALL_Z_INDEX
+	y_sort_enabled = false
 	collision_mask = collision_mask | 16
 	if is_multiplayer_authority():
 		camera_2d.make_current()

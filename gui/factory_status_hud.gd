@@ -7,8 +7,10 @@ const BUFFER_ICON_PX := 22.0
 const BAR_WIDTH := 36.0
 const BAR_HEIGHT := 5.0
 const WORLD_LIFT := Vector2(0, -78)
+const MINE_WORLD_LIFT := Vector2(0, -48)
 
 var _markers: Dictionary = {}
+var _mine_markers: Dictionary = {}
 var _pulse_t: float = 0.0
 
 func _ready() -> void:
@@ -17,31 +19,11 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	_pulse_t += delta
-	var seen: Dictionary = {}
 	var scene_tree := get_tree()
 	if scene_tree == null:
 		return
-	for node in scene_tree.get_nodes_in_group("paper_factories"):
-		if not (node is PaperFactory) or not is_instance_valid(node) or not node.is_inside_tree():
-			continue
-		var factory: PaperFactory = node
-		var id: int = factory.get_instance_id()
-		seen[id] = true
-		var marker: Control = _markers.get(id)
-		if marker == null:
-			marker = _make_marker()
-			add_child(marker)
-			_markers[id] = marker
-		_update_marker(marker, factory)
-	var stale: Array = []
-	for id in _markers.keys():
-		if not seen.has(id):
-			stale.append(id)
-	for id in stale:
-		var old: Control = _markers[id]
-		_markers.erase(id)
-		if is_instance_valid(old):
-			old.queue_free()
+	_sync_factory_markers(scene_tree)
+	_sync_mine_markers(scene_tree)
 
 func wood_visible(factory: PaperFactory) -> bool:
 	var marker: Control = _marker_of(factory)
@@ -82,10 +64,74 @@ func buffer_count_text(factory: PaperFactory) -> String:
 		return ""
 	return label.text
 
+func _sync_factory_markers(scene_tree: SceneTree) -> void:
+	var seen: Dictionary = {}
+	for node in scene_tree.get_nodes_in_group("paper_factories"):
+		if not (node is PaperFactory) or not is_instance_valid(node) or not node.is_inside_tree():
+			continue
+		var factory: PaperFactory = node
+		var id: int = factory.get_instance_id()
+		seen[id] = true
+		var marker: Control = _markers.get(id)
+		if marker == null:
+			marker = _make_marker()
+			add_child(marker)
+			_markers[id] = marker
+		_update_marker(marker, factory)
+	_free_stale_markers(_markers, seen)
+
+func _sync_mine_markers(scene_tree: SceneTree) -> void:
+	var seen: Dictionary = {}
+	for node in scene_tree.get_nodes_in_group("mines"):
+		if not (node is MineDoodad) or not is_instance_valid(node) or not node.is_inside_tree():
+			continue
+		var mine: MineDoodad = node
+		var id: int = mine.get_instance_id()
+		seen[id] = true
+		var marker: Control = _mine_markers.get(id)
+		if marker == null:
+			marker = _make_mine_marker()
+			add_child(marker)
+			_mine_markers[id] = marker
+		_update_mine_marker(marker, mine)
+	_free_stale_markers(_mine_markers, seen)
+
+func _free_stale_markers(store: Dictionary, seen: Dictionary) -> void:
+	var stale: Array = []
+	for id in store.keys():
+		if not seen.has(id):
+			stale.append(id)
+	for id in stale:
+		var old: Control = store[id]
+		store.erase(id)
+		if is_instance_valid(old):
+			old.queue_free()
+
+func mine_bar_visible(mine: MineDoodad) -> bool:
+	var marker: Control = _mine_marker_of(mine)
+	if marker == null:
+		return false
+	var fill: ColorRect = marker.get_node_or_null("BarFill") as ColorRect
+	return marker.visible and fill != null and fill.visible
+
+func mine_bar_fill_width(mine: MineDoodad) -> float:
+	var marker: Control = _mine_marker_of(mine)
+	if marker == null:
+		return 0.0
+	var fill: ColorRect = marker.get_node_or_null("BarFill") as ColorRect
+	if fill == null:
+		return 0.0
+	return fill.size.x
+
 func _marker_of(factory: PaperFactory) -> Control:
 	if factory == null:
 		return null
 	return _markers.get(factory.get_instance_id()) as Control
+
+func _mine_marker_of(mine: MineDoodad) -> Control:
+	if mine == null:
+		return null
+	return _mine_markers.get(mine.get_instance_id()) as Control
 
 func _make_marker() -> Control:
 	var root := Control.new()
@@ -203,3 +249,37 @@ func _update_marker(marker: Control, factory: PaperFactory) -> void:
 		bar_fill.position = Vector2(0, ICON_PX + 4.0)
 	if show_paper:
 		bar_fill.size = Vector2(BAR_WIDTH * factory.production_progress(), BAR_HEIGHT)
+
+func _make_mine_marker() -> Control:
+	var root := Control.new()
+	root.name = "MineHarvestStatus"
+	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.size = Vector2(BAR_WIDTH, BAR_HEIGHT)
+	root.visible = false
+
+	var bar_back := ColorRect.new()
+	bar_back.name = "BarBack"
+	bar_back.position = Vector2.ZERO
+	bar_back.size = Vector2(BAR_WIDTH, BAR_HEIGHT)
+	bar_back.color = Color(0.08, 0.08, 0.08, 0.95)
+	bar_back.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(bar_back)
+
+	var bar_fill := ColorRect.new()
+	bar_fill.name = "BarFill"
+	bar_fill.position = Vector2.ZERO
+	bar_fill.size = Vector2(0, BAR_HEIGHT)
+	bar_fill.color = Color(1.0, 0.95, 0.55, 1)
+	bar_fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(bar_fill)
+	return root
+
+func _update_mine_marker(marker: Control, mine: MineDoodad) -> void:
+	var show_bar: bool = mine.shows_harvest_progress()
+	marker.visible = show_bar
+	var bar_fill: ColorRect = marker.get_node("BarFill") as ColorRect
+	bar_fill.visible = show_bar
+	var screen: Vector2 = mine.get_global_transform_with_canvas() * MINE_WORLD_LIFT
+	marker.position = screen - Vector2(BAR_WIDTH * 0.5, BAR_HEIGHT * 0.5)
+	if show_bar:
+		bar_fill.size = Vector2(BAR_WIDTH * mine.harvest_progress(), BAR_HEIGHT)
