@@ -19,6 +19,7 @@ signal smoke_amt_changed(new_smoke_amt: int)
 
 # Structure: { peer_id: { "inventory": { "item_id": quantity } } }
 var players_data = {}
+var local_inventory: Dictionary = {}
 
 func _ready() -> void:
 	add_player_instance()
@@ -63,25 +64,62 @@ func unregister_player(id: int):
 		SignalBus.player_unregistered.emit(id)
 		print("Player ", id, " fully unregistered and cleaned up")
 		
-func add_item_to_inventory(player_id: int, item_data: ItemData, amount: int = 1):
-	if not multiplayer.is_server(): return
-	if !players_data.has(player_id): return
-	
+func add_item_to_inventory(player_id: int, item_data: ItemData, amount: int = 1) -> bool:
+	if not multiplayer.is_server():
+		return false
+	if item_data == null:
+		return false
+	if !players_data.has(player_id):
+		return false
+
 	var item_id = item_data.resource_path
-	
 	var inventory = players_data[player_id]["inventory"]
 
+	if inventory.has(item_id):
+		inventory[item_id] += amount
+		_push_inventory(player_id, inventory)
+		return true
 	if inventory.keys().size() < max_inv_slots:
-		if inventory.has(item_id):
-			inventory[item_id] += amount
-		else:
-			inventory[item_id] = amount
-		# Sync the entire inventory dictionary to the specific client
-		update_client_inventory.rpc_id(player_id, inventory)
-		SignalBus.on_item_pickup.emit(player_id)
+		inventory[item_id] = amount
+		_push_inventory(player_id, inventory)
+		return true
+	return false
+
+func grant_item_or_drop(player_id: int, item_data: ItemData, amount: int, drop_position: Vector2) -> void:
+	if not multiplayer.is_server():
+		return
+	if item_data == null:
+		return
+	if add_item_to_inventory(player_id, item_data, amount):
+		return
+	for _i in range(maxi(1, amount)):
+		SignalBus.on_item_drop.emit({
+			"item_type": item_data.resource_path,
+			"position": drop_position,
+		})
+
+func _push_inventory(player_id: int, inventory: Dictionary) -> void:
+	update_client_inventory.rpc_id(player_id, inventory)
+	SignalBus.on_item_pickup.emit(player_id)
+
+func get_item_count(player_id: int, item_id: String) -> int:
+	if !players_data.has(player_id):
+		return 0
+	var inventory = players_data[player_id]["inventory"]
+	if !inventory.has(item_id):
+		return 0
+	return int(inventory[item_id])
+
+func carried_count(player_id: int, item_id: String) -> int:
+	var from_data: int = get_item_count(player_id, item_id)
+	var from_local: int = 0
+	if local_inventory.has(item_id):
+		from_local = int(local_inventory[item_id])
+	return maxi(from_data, from_local)
 
 @rpc("authority", "call_local", "reliable")
 func update_client_inventory(new_items: Dictionary):
+	local_inventory = new_items.duplicate()
 	var display_list = []
 	for id in new_items.keys():
 		var resource = ItemDatabase.get_item(id)
@@ -113,7 +151,11 @@ func consume_resources(player_id, resource_id, cost) -> void:
 		return
 			
 	var inventory = players_data[player_id]["inventory"]
+	if !inventory.has(resource_id):
+		return
 	inventory[resource_id] -= cost
+	if inventory[resource_id] <= 0:
+		inventory.erase(resource_id)
 	update_client_inventory.rpc_id(player_id, inventory)
 
 func add_player_instance() -> void:

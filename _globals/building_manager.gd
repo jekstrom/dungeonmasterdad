@@ -28,7 +28,7 @@ func is_area_clear(pos: Vector2, size: Vector2, _unused_radius = 0, _unused_pos:
 	
 	query.shape = shape
 	query.transform = Transform2D(0, pos)
-	query.collision_mask = 1
+	query.collision_mask = 1 | 16
 	
 	var space_state = get_tree().root.world_2d.direct_space_state
 	

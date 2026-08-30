@@ -1,4 +1,4 @@
-[gd_scene load_steps=9 format=3 uid="uid://dgm12ubgivyq7"]
+[gd_scene format=3 uid="uid://dgm12ubgivyq7"]
 
 [ext_resource type="Script" uid="uid://cgvup0wofynj7" path="res://buildings/buildables/paper_factory.gd" id="1_xwhl0"]
 [ext_resource type="Texture2D" uid="uid://bap0g54spdf58" path="res://sprites/paper-sheet.png" id="2_2tdex"]
@@ -25,6 +25,15 @@ properties/3/replication_mode = 2
 properties/4/path = NodePath(".:timer")
 properties/4/spawn = true
 properties/4/replication_mode = 1
+properties/5/path = NodePath(".:stored_wood")
+properties/5/spawn = true
+properties/5/replication_mode = 1
+properties/6/path = NodePath(".:is_ghost")
+properties/6/spawn = true
+properties/6/replication_mode = 1
+properties/7/path = NodePath(".:cycle_paid")
+properties/7/spawn = true
+properties/7/replication_mode = 1
 
 [sub_resource type="Animation" id="Animation_vtusx"]
 resource_name = "RESET"
@@ -87,28 +96,26 @@ _data = {
 &"paper": SubResource("Animation_nyc50")
 }
 
-[node name="PaperFactory" type="StaticBody2D"]
+[node name="PaperFactory" type="StaticBody2D" unique_id=187698503]
 y_sort_enabled = true
 script = ExtResource("1_xwhl0")
-interval = 2.0
+interval = 6.0
 
-[node name="Sprite2D" type="Sprite2D" parent="."]
+[node name="Sprite2D" type="Sprite2D" parent="." unique_id=28000666]
 y_sort_enabled = true
 position = Vector2(1, -41)
 texture = SubResource("AtlasTexture_xwhl0")
 hframes = 6
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1271457497]
 visible = false
 y_sort_enabled = true
 position = Vector2(5, -35)
 shape = SubResource("RectangleShape2D_hdexe")
 
-[node name="MultiplayerSynchronizer" type="MultiplayerSynchronizer" parent="."]
+[node name="MultiplayerSynchronizer" type="MultiplayerSynchronizer" parent="." unique_id=2000908925]
 replication_config = SubResource("SceneReplicationConfig_o2stp")
 
-[node name="AnimationPlayer" type="AnimationPlayer" parent="."]
-libraries = {
-&"": SubResource("AnimationLibrary_ban53")
-}
-autoplay = "RESET"
+[node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=1823371831]
+libraries/ = SubResource("AnimationLibrary_ban53")
+autoplay = &"RESET"

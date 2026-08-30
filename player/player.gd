@@ -32,7 +32,10 @@ var ghost_building: Node2D
 var staple_count: int = 20
 var empty_click_played: bool = false
 var _melee_swing_active: bool = false
+var _melee_pulse_id: int = 0
 var _queued_staple_fire: bool = false
+var _hint_e: Label
+var _hint_space: Label
 
 const TEX_STAPLE_GUN: Texture2D = preload("res://player/sprites/player_staple_gun.png")
 const TEX_PENCIL_MELEE: Texture2D = preload("res://player/sprites/player_pencil_melee.png")
@@ -64,6 +67,7 @@ func _enter_tree() -> void:
 	# Only set authority if multiplayer is ready and we have a valid ID
 	if multiplayer.has_multiplayer_peer() and id > 0:
 		set_multiplayer_authority(id)
+	add_to_group("players")
 	# 16 = walls/cliffs. Clear bit 32 so a leftover Fantasy exclusion shape cannot block Paper Pushers (US-003 T011).
 	collision_mask = (collision_mask | 16) & ~32
 
@@ -78,6 +82,8 @@ func _ready() -> void:
 	state_machine.Initialize(self)
 	staple_count = staple_magazine_max
 	_refresh_staple_hud()
+	if is_multiplayer_authority():
+		_ensure_interact_hints()
 	SignalBus.build_smoke_building_pressed.connect(setup_building)
 	SignalBus.build_paper_building_pressed.connect(setup_building)
 	SignalBus.on_dm_unlock.connect(dm_unlock_listener)
@@ -124,7 +130,13 @@ func update_client_name(n, c):
 	sync_color = c
 	
 func _process(_delta: float) -> void:
-	if !is_multiplayer_authority(): return
+	if !is_multiplayer_authority():
+		if _hint_e:
+			_hint_e.visible = false
+		if _hint_space:
+			_hint_space.visible = false
+		return
+	_update_interact_hints()
 	if current_building_data:
 		update_ghost(get_global_mouse_position())
 		queue_redraw()
@@ -268,6 +280,93 @@ func set_direction() -> bool:
 func set_direction_from_vector(vec: Vector2) -> bool:
 	return apply_aim(vec)
 
+func try_interact() -> void:
+	if multiplayer.is_server():
+		_host_try_deposit_wood()
+	else:
+		request_interact.rpc_id(1)
+
+@rpc("any_peer", "reliable")
+func request_interact() -> void:
+	if not multiplayer.is_server():
+		return
+	var sender: int = multiplayer.get_remote_sender_id()
+	if sender != 0 and sender != get_multiplayer_authority():
+		return
+	_host_try_deposit_wood()
+
+func _host_try_deposit_wood() -> void:
+	var player_id: int = get_multiplayer_authority()
+	if player_id <= 0 and name.is_valid_int():
+		player_id = int(name)
+	var nearest: PaperFactory = null
+	var best := INF
+	var scene_tree := get_tree()
+	if scene_tree == null:
+		return
+	for node in scene_tree.get_nodes_in_group("factories"):
+		if not (node is PaperFactory):
+			continue
+		var factory: PaperFactory = node
+		var dist: float = global_position.distance_to(factory.factory_origin())
+		if dist < best:
+			best = dist
+			nearest = factory
+	if nearest:
+		nearest.try_deposit_wood(player_id)
+
+func can_prompt_building_interact() -> bool:
+	if is_combat_locked():
+		return false
+	var scene_tree := get_tree()
+	if scene_tree == null:
+		return false
+	for node in scene_tree.get_nodes_in_group("paper_factories"):
+		if node is PaperFactory and (node as PaperFactory).can_prompt_deposit(self):
+			return true
+	return false
+
+func can_prompt_tree_harvest() -> bool:
+	if is_combat_locked():
+		return false
+	var scene_tree := get_tree()
+	if scene_tree == null:
+		return false
+	for node in scene_tree.get_nodes_in_group("harvest_trees"):
+		if node is TreeDoodad and (node as TreeDoodad).is_harvest_prompt_target(self):
+			return true
+	return false
+
+func _ensure_interact_hints() -> void:
+	if _hint_e != null:
+		return
+	_hint_e = _make_hint_label("E", Vector2(-18, -108), Vector2(36, 20))
+	_hint_space = _make_hint_label("SPACE", Vector2(-32, -128), Vector2(64, 20))
+	add_child(_hint_e)
+	add_child(_hint_space)
+
+func _make_hint_label(text: String, pos: Vector2, size: Vector2) -> Label:
+	var hint := Label.new()
+	hint.text = text
+	hint.position = pos
+	hint.size = size
+	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	hint.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	hint.add_theme_font_size_override("font_size", 14)
+	hint.add_theme_color_override("font_color", Color(1, 1, 0.75, 1))
+	hint.add_theme_color_override("font_outline_color", Color(0, 0, 0, 1))
+	hint.add_theme_constant_override("outline_size", 6)
+	hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	hint.z_index = 32
+	hint.visible = false
+	return hint
+
+func _update_interact_hints() -> void:
+	if _hint_e == null:
+		_ensure_interact_hints()
+	_hint_e.visible = can_prompt_building_interact()
+	_hint_space.visible = can_prompt_tree_harvest()
+
 func start_melee_attack() -> void:
 	if is_combat_locked():
 		return
@@ -304,6 +403,8 @@ func _pulse_melee_hurtbox(facing: Vector2) -> void:
 	if attack_hurtbox == null:
 		return
 	_melee_swing_active = true
+	_melee_pulse_id += 1
+	var pulse_id: int = _melee_pulse_id
 	attack_hurtbox.damage = melee_damage
 	attack_hurtbox.position = Vector2(facing.x * 20.0, facing.y * 16.0 - 8.0)
 	attack_hurtbox.monitoring = false
@@ -311,6 +412,9 @@ func _pulse_melee_hurtbox(facing: Vector2) -> void:
 	var tree := get_tree()
 	if tree:
 		tree.create_timer(0.12).timeout.connect(func() -> void:
+			if pulse_id != _melee_pulse_id:
+				return
+			_melee_swing_active = false
 			if is_instance_valid(attack_hurtbox):
 				attack_hurtbox.monitoring = false
 		)

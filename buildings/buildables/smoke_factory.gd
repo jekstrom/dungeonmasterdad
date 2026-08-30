@@ -15,5 +15,4 @@ func _process(delta: float) -> void:
 	timer += delta
 	if timer >= interval:
 		timer -= interval
-		PlayerManager.update_reality_level(1)
 		PlayerManager.add_smoke(1)

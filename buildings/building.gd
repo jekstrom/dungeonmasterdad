@@ -10,7 +10,7 @@ const BLIZZARD_FACTORY_INTERVAL_FACTOR := 2.0
 @export var hitpoints: int = 10
 @export var blizzard_factory_interval_factor: float = BLIZZARD_FACTORY_INTERVAL_FACTOR
 @export var timer: float = 0.0
-var is_ghost: bool = true
+@export var is_ghost: bool = true
 var _baseline_interval: float = -1.0
 var _applied_blizzard_factor: float = 1.0
 
@@ -43,6 +43,13 @@ func enable() -> void:
 	set_deferred("collision_layer", 1)
 	set_deferred("collision_mask", 1)
 	sync_blizzard_interval()
+
+func is_operating() -> bool:
+	if not is_ghost:
+		return true
+	if collision_shape_2d and not collision_shape_2d.disabled:
+		return true
+	return false
 
 func factory_origin() -> Vector2:
 	return global_position

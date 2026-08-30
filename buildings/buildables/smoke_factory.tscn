@@ -29,6 +29,9 @@ properties/5/replication_mode = 2
 properties/6/path = NodePath(".:timer")
 properties/6/spawn = true
 properties/6/replication_mode = 1
+properties/7/path = NodePath(".:is_ghost")
+properties/7/spawn = true
+properties/7/replication_mode = 1
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_k0ohe"]
 atlas = ExtResource("2_sj170")
@@ -149,6 +152,7 @@ _data = {
 [node name="SmokeFactory" type="StaticBody2D"]
 y_sort_enabled = true
 script = ExtResource("1_kt0lt")
+interval = 3.0
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
 y_sort_enabled = true

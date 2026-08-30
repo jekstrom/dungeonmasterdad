@@ -40,5 +40,5 @@ func HandleInput(_event: InputEvent) -> PlayerState:
 		player.try_fire_staple_from_input()
 		return null
 	if _event.is_action_pressed("interact"):
-		PlayerManager.interact_pressed.emit()
+		player.try_interact()
 	return null

@@ -22,6 +22,9 @@ func _ready() -> void:
 	spawn_knight_button.connect("button_down", _on_knight_button_pressed)
 	cast_fireball_button.connect("button_down", _on_fireball_button_pressed)
 	cast_blizzard_button.connect("button_down", _on_blizzard_button_pressed)
+	for btn in [spawn_gremlin_button, spawn_knight_button, cast_fireball_button, cast_blizzard_button]:
+		if btn:
+			btn.focus_mode = Control.FOCUS_NONE
 	if not DmManager.mana_changed.is_connected(_on_mana_changed):
 		DmManager.mana_changed.connect(_on_mana_changed)
 	if not DmManager.respawn_countdown_changed.is_connected(_on_respawn_countdown_changed):
