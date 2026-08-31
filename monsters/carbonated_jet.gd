@@ -92,7 +92,7 @@ func _make_cell_sprite(node_name: String, frame: int, pos: Vector2, region: bool
 	return spr
 
 
-func _apply_body_region(wrap: float) -> void:
+func _apply_body_region(wrap_amt: float) -> void:
 	var body := get_node_or_null("Body") as Sprite2D
 	if body == null:
 		return
@@ -103,7 +103,7 @@ func _apply_body_region(wrap: float) -> void:
 	body.hframes = 1
 	body.vframes = 1
 	body.region_enabled = true
-	body.region_rect = Rect2(BODY_CELL_X + wrap, 0.0, CELL - WRAP_PX, CELL)
+	body.region_rect = Rect2(BODY_CELL_X + wrap_amt, 0.0, CELL - WRAP_PX, CELL)
 	body.set_meta("jet_cell", 1)
 	var fizz := get_node_or_null("Fizz") as Sprite2D
 	if fizz:
@@ -113,7 +113,7 @@ func _apply_body_region(wrap: float) -> void:
 		fizz.vframes = 1
 		fizz.position = body.position
 		fizz.region_enabled = true
-		fizz.region_rect = Rect2(CELL * 2.0 + wrap, 0.0, CELL - WRAP_PX, CELL)
+		fizz.region_rect = Rect2(CELL * 2.0 + wrap_amt, 0.0, CELL - WRAP_PX, CELL)
 		fizz.set_meta("jet_cell", 2)
 
 

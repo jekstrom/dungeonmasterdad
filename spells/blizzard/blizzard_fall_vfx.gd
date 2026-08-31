@@ -29,11 +29,11 @@ func _ready() -> void:
 	_apply_rect(_world_rect)
 
 
-func configure(world_rect: Rect2) -> void:
-	_world_rect = world_rect
+func configure(w_rect: Rect2) -> void:
+	_world_rect = w_rect
 	if not is_inside_tree():
 		return
-	_apply_rect(world_rect)
+	_apply_rect(w_rect)
 
 
 func world_rect() -> Rect2:
@@ -48,14 +48,14 @@ func icicle_path() -> String:
 	return ICICLE_PATH
 
 
-func _apply_rect(world_rect: Rect2) -> void:
-	global_position = world_rect.position
-	var live: bool = world_rect.size.x > 0.0 and world_rect.size.y > 0.0
-	var emit_h: float = minf(EMIT_TOP_PX, maxf(28.0, world_rect.size.y * 0.2))
-	var emit_w: float = maxf(32.0, world_rect.size.x - EDGE_INSET_PX * 2.0)
-	var emit_center := Vector2(world_rect.size.x * 0.5, emit_h * 0.5)
+func _apply_rect(w_rect: Rect2) -> void:
+	global_position = w_rect.position
+	var live: bool = w_rect.size.x > 0.0 and w_rect.size.y > 0.0
+	var emit_h: float = minf(EMIT_TOP_PX, maxf(28.0, w_rect.size.y * 0.2))
+	var emit_w: float = maxf(32.0, w_rect.size.x - EDGE_INSET_PX * 2.0)
+	var emit_center := Vector2(w_rect.size.x * 0.5, emit_h * 0.5)
 	var emit_extents := Vector2(emit_w * 0.5, emit_h * 0.5)
-	var fall_px: float = maxf(64.0, world_rect.size.y - emit_h * 0.35)
+	var fall_px: float = maxf(64.0, w_rect.size.y - emit_h * 0.35)
 	if _snow:
 		_snow.lifetime = clampf(fall_px / 150.0, 1.1, 2.4)
 	if _icicles:

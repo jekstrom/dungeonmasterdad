@@ -305,10 +305,10 @@ func apply_outside_presentation(cell: Vector2i, presentation: int) -> void:
 	var tile: OutsideTile = _outside_tile_at(cell)
 	if tile == null:
 		return
-	tile.element_presentation = presentation
+	tile.element_presentation = presentation as OutsideTile.ElementPresentation
 	if presentation == int(OutsideTile.ElementPresentation.REALITY):
 		var drift: Node = get_node_or_null("RealityTileDrift")
-		if drift and drift.has_method("play_convert_puff"):
+		if drift and drift.has_method("play_aaaaaconvert_puff"):
 			drift.play_convert_puff(cell)
 	elif presentation == int(OutsideTile.ElementPresentation.FANTASY):
 		var fantasy_drift: Node = get_node_or_null("FantasyTileDrift")

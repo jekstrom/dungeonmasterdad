@@ -217,7 +217,6 @@ static func _retract_equal_homes(reality: Rect2i, fantasy: Rect2i) -> Array:
 		return [reality, fantasy]
 	var ox: int = hit.position.x
 	var ow: int = hit.size.x
-	var reality_end_x: int = reality.end.x
 	var fantasy_end_x: int = fantasy.end.x
 	var r: Rect2i = reality
 	var f: Rect2i = fantasy

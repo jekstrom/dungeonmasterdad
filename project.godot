@@ -39,6 +39,10 @@ DeathSystem="*res://scripts/multiplayer/DeathSystem.gd"
 ItemPickupPool="*res://_globals/item_pickup_pool.gd"
 DungeonGenerationManager="*res://_globals/dungeon_generation_manager.gd"
 
+[debug]
+
+gdscript/warnings/integer_division=0
+
 [input]
 
 down={

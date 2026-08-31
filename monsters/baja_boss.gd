@@ -313,10 +313,10 @@ func play_death() -> void:
 	disable_hurtbox()
 	var hurtbox := get_node_or_null("Hurtbox")
 	if hurtbox is Area2D:
-		(hurtbox as Area2D).monitorable = false
+		(hurtbox as Area2D).set_deferred("monitorable", false)
 	var hitbox := get_node_or_null("Hitbox")
 	if hitbox is Area2D:
-		(hitbox as Area2D).monitorable = false
+		(hitbox as Area2D).set_deferred("monitorable", false)
 		(hitbox as Area2D).monitoring = false
 	if sprite:
 		sprite.visible = true
@@ -346,7 +346,7 @@ func _place_corpse() -> void:
 		root.add_child(layer)
 		corpses = layer
 	var keep: Vector2 = global_position
-	reparent(corpses)
+	call_deferred("reparent", corpses)
 	global_position = keep
 
 

@@ -31,17 +31,17 @@ func _ensure_spawn_function() -> void:
 func _custom_spawn(data: Dictionary) -> Node2D:
 	if str(data.get("kind", "")) == "staple":
 		var scene: PackedScene = staple_scene if staple_scene else STAPLE_PROJECTILE_SCENE
-		var p = scene.instantiate()
-		p.shooter_id = int(data.get("shooter_id", 0))
-		p.position = data.get("position", Vector2.ZERO)
-		p.direction = data.get("direction", Vector2.RIGHT)
+		var scene_ins = scene.instantiate()
+		scene_ins.shooter_id = int(data.get("shooter_id", 0))
+		scene_ins.position = data.get("position", Vector2.ZERO)
+		scene_ins.direction = data.get("direction", Vector2.RIGHT)
 		if data.has("damage"):
-			p.damage = int(data.damage)
+			scene_ins.damage = int(data.damage)
 		if data.has("speed"):
-			p.speed = float(data.speed)
+			scene_ins.speed = float(data.speed)
 		if data.has("max_range"):
-			p.max_range = float(data.max_range)
-		return p
+			scene_ins.max_range = float(data.max_range)
+		return scene_ins
 	# US-027 Carbonated Jet. Keep fireball as the default branch below so
 	# US-005 staple_fire_test still instantiates FireballSpell.
 	if str(data.get("kind", "")) == "carbonated_jet":

@@ -147,10 +147,11 @@ func handle_pickup(sender_id: int, picked_up_item_data: ItemData) -> void:
 	_disable_pickup()
 	
 	# Send RPC to remove on all clients (but not server due to call_remote)
-	update_client.rpc()
+	if multiplayer.is_server():
+		update_client.rpc()
 	
-	# Server handles its own cleanup separately with a small delay to ensure RPC delivery
-	call_deferred("_server_cleanup")
+		# Server handles its own cleanup separately with a small delay to ensure RPC delivery
+		call_deferred("_server_cleanup")
 
 # RPC to remove pickup on all clients after successful pickup  
 @rpc("authority", "call_remote", "reliable")

@@ -39,7 +39,6 @@ var _melee_swing_active: bool = false
 var _melee_pulse_id: int = 0
 var _queued_staple_fire: bool = false
 var _hint_space: Label
-var _hint_fill: Label
 var _filling: bool = false
 var _fill_duration_sync: float = 0.0
 var _fill_type: String = ""
@@ -414,9 +413,9 @@ func _irs_distance(node: Node) -> float:
 	var best: float = from.distance_to(node.global_position)
 	if node.has_method("factory_origin"):
 		best = minf(best, from.distance_to(node.factory_origin()))
-	var sprite: Sprite2D = node.get_node_or_null("Sprite2D") as Sprite2D
-	if sprite:
-		best = minf(best, from.distance_to(sprite.global_position))
+	var i_sprite: Sprite2D = node.get_node_or_null("Sprite2D") as Sprite2D
+	if i_sprite:
+		best = minf(best, from.distance_to(i_sprite.global_position))
 	return best
 
 func _inventory_id() -> int:

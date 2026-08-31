@@ -104,10 +104,10 @@ func _apply_frame_crops() -> void:
 			_crop_sprite(grass_sprite, atlas_x, Rect2(0, stone, 128, grass), true)
 			_crop_sprite(stone_b, atlas_x, Rect2(), false)
 
-func _crop_sprite(sprite: Sprite2D, atlas_x: float, rect: Rect2, show: bool) -> void:
+func _crop_sprite(sprite: Sprite2D, atlas_x: float, rect: Rect2, show_sprite: bool) -> void:
 	if sprite == null:
 		return
-	sprite.visible = show and rect.size.x > 0.0 and rect.size.y > 0.0
+	sprite.visible = show_sprite and rect.size.x > 0.0 and rect.size.y > 0.0
 	if not sprite.visible:
 		return
 	if sprite.texture is AtlasTexture:

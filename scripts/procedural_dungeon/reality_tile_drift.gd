@@ -133,7 +133,7 @@ func _snap_to_neutral(cell: Vector2i, tile: OutsideTile) -> void:
 	if not tile.has_presentation_strip(OutsideTile.ElementPresentation.NEUTRAL):
 		push_error("US-025 T005: missing Neutral strip for kind %s variety %s; leaving current presentation" % [tile.ground_kind, tile.variety])
 		return
-	var kind: int = int(tile.ground_kind)
+	var kind: OutsideTile.GroundKind = tile.ground_kind
 	var variety: int = int(tile.variety)
 	tile.element_presentation = OutsideTile.ElementPresentation.NEUTRAL
 	if int(tile.ground_kind) != kind or int(tile.variety) != variety:
@@ -232,7 +232,7 @@ func _convert_cell(cell: Vector2i) -> bool:
 	if not tile.has_presentation_strip(OutsideTile.ElementPresentation.REALITY):
 		push_error("US-002: missing Reality strip for kind %s variety %s; leaving current presentation" % [tile.ground_kind, tile.variety])
 		return false
-	var kind: int = int(tile.ground_kind)
+	var kind: OutsideTile.GroundKind = tile.ground_kind
 	var variety: int = int(tile.variety)
 	tile.element_presentation = OutsideTile.ElementPresentation.REALITY
 	if int(tile.ground_kind) != kind or int(tile.variety) != variety:

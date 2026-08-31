@@ -54,7 +54,7 @@ func spawn_pickup(data: Dictionary):
 	
 	var pickup_result = ItemPickupPool.get_pickup(data.item_type, data.position, data.get("velocity", Vector2.ZERO))
 	if !pickup_result.is_pooled:
-		var spawned_node = spawn(data)
+		var spawned_node = call_deferred("spawn", data)
 		if spawned_node == null:
 			print("PickupSpawner: Failed to spawn pickup with data: ", data)
 

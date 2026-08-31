@@ -21,7 +21,7 @@ func _can_afford(player_id: int, data: BuildingData) -> bool:
 	return PlayerManager.carried_count(player_id, data.cost_item) >= data.cost_qty
 
 @rpc("any_peer", "reliable")
-func request_placement(building_id: String, pos: Vector2, check_pos: Vector2):
+func request_placement(building_id: String, pos: Vector2, _check_pos: Vector2):
 	if not multiplayer.is_server(): 
 		return
 	

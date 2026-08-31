@@ -304,8 +304,8 @@ func play_death() -> void:
 		(collision as CollisionShape2D).set_deferred("disabled", true)
 	var hurtbox := get_node_or_null("Hurtbox")
 	if hurtbox is Area2D:
-		(hurtbox as Area2D).monitoring = false
-		(hurtbox as Area2D).monitorable = false
+		(hurtbox as Area2D).set_deferred("monitoring", false)
+		(hurtbox as Area2D).set_deferred("monitorable", false)
 	var effect := get_node_or_null("destroyEffectSprite")
 	if effect is CanvasItem:
 		(effect as CanvasItem).visible = true
