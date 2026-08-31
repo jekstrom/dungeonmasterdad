@@ -259,17 +259,12 @@ func _set_hurtbox_size(large: bool) -> void:
 
 
 func _grant_blizzard_unlock_and_can() -> void:
-	# Host-authored unlock + can drop. Do not call from play_death (clients).
-	# user_stories/tasks/US-017/T004-death-unlock-can.md
-	# Spawn/combat tests set grant_blizzard_on_death false so die() stays isolated.
 	if not grant_blizzard_on_death:
 		return
 	if _blizzard_rewards_granted:
 		return
 	if not multiplayer.is_server():
 		return
-	_blizzard_rewards_granted = true
-	DmManager.unlock("bemidji_blizzard")
 	SignalBus.on_item_drop.emit({
 		"item_type": BAJA_CAN_ITEM,
 		"position": global_position,
@@ -277,10 +272,6 @@ func _grant_blizzard_unlock_and_can() -> void:
 
 
 func die() -> void:
-	# Host owns the kill (same is_server guard as enemy.gd).
-	# Unlock + drop run once on the server before play_death.rpc.
-	# user_stories/tasks/US-017/T003-host-boss-combat.md
-	# user_stories/tasks/US-017/T004-death-unlock-can.md
 	if _dying:
 		return
 	if not multiplayer.is_server():
