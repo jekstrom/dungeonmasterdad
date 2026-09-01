@@ -97,6 +97,17 @@ func update_staple_magazine(count: int, mag_max: int) -> void:
 		if icon.texture == null:
 			icon.texture = load("res://sprites/staple_hud_icon.png")
 
+func _input(event: InputEvent) -> void:
+	# F10 via _input so focused factory buttons / GUI cannot swallow it before unhandled.
+	if not visible:
+		return
+	if not event.is_action_pressed("toggle_minimap_debug_reveal"):
+		return
+	if minimap_widget and minimap_widget.has_method("toggle_debug_reveal"):
+		minimap_widget.toggle_debug_reveal()
+		get_viewport().set_input_as_handled()
+
+
 func _unhandled_input(event: InputEvent) -> void:
 	if not visible:
 		return

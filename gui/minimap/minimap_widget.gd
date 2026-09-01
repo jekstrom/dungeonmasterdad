@@ -77,6 +77,10 @@ func _ready() -> void:
 	if not SignalBus.map_bounds_cleared.is_connected(_on_bounds_cleared):
 		SignalBus.map_bounds_cleared.connect(_on_bounds_cleared)
 	set_process(true)
+	# Keep F10 debug reveal reachable even if a parent pauses the tree.
+	process_mode = Node.PROCESS_MODE_ALWAYS
+	_ensure_debug_reveal_action()
+	set_process_input(true)
 	_request_late_join_if_needed()
 
 
@@ -104,15 +108,57 @@ func toggle_map() -> void:
 	set_map_visible(not _visible_map)
 
 
-func _unhandled_input(event: InputEvent) -> void:
-	if not event.is_action_pressed("toggle_minimap_debug_reveal"):
-		return
+func _ensure_debug_reveal_action() -> void:
+	## Defensive: editor/export InputMap drift — bind F10 as both keycode + physical.
+	const ACTION := "toggle_minimap_debug_reveal"
+	if not InputMap.has_action(ACTION):
+		InputMap.add_action(ACTION)
+	var has_both := false
+	for ev in InputMap.action_get_events(ACTION):
+		if not (ev is InputEventKey):
+			continue
+		var key: InputEventKey = ev
+		if key.physical_keycode != KEY_F10 and key.keycode != KEY_F10:
+			continue
+		if key.keycode == KEY_F10 and key.physical_keycode == KEY_F10:
+			has_both = true
+			break
+		InputMap.action_erase_event(ACTION, key)
+	if not has_both:
+		var bind := InputEventKey.new()
+		bind.keycode = KEY_F10
+		bind.physical_keycode = KEY_F10
+		InputMap.action_add_event(ACTION, bind)
+
+
+func toggle_debug_reveal() -> void:
 	# DEBUG: local paint reveal-all (widget-only; host sets untouched).
 	debug_reveal_all = not debug_reveal_all
-	if debug_reveal_all and not _debug_reveal_enabled_logged:
-		print("DEBUG: minimap debug_reveal_all enabled (local paint only)")
+	print("DEBUG: minimap toggle_minimap_debug_reveal -> debug_reveal_all=%s" % str(debug_reveal_all))
+	if debug_reveal_all:
 		_debug_reveal_enabled_logged = true
 	_queue_map_redraw()
+
+
+func _hud_layer_active() -> bool:
+	# Autoload PlayerHud/DmHud both own a widget; only the visible layer should toggle.
+	var p: Node = get_parent()
+	while p != null:
+		if p is CanvasLayer:
+			return (p as CanvasLayer).visible
+		p = p.get_parent()
+	return is_visible_in_tree()
+
+
+func _input(event: InputEvent) -> void:
+	# Prefer _input over _unhandled_input so focused GUI controls cannot eat F10.
+	if get_viewport().is_input_handled():
+		return
+	if not event.is_action_pressed("toggle_minimap_debug_reveal"):
+		return
+	if not _hud_layer_active():
+		return
+	toggle_debug_reveal()
 	get_viewport().set_input_as_handled()
 
 
