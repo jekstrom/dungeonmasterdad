@@ -7,7 +7,7 @@ cd "$ROOT"
 # Godot --quit-after exits 0 even when a scene fails to parse.
 # Success is the scene's actual passed print, not the engine exit code.
 SCENES=(
-	"test_harness/procedural_dungeon/us033_minimap_test.tscn|US-033 minimap test passed"
+	"test_harness/procedural_dungeon/us033_minimap_test.tscn|US-033 mini-map test passed"
 )
 
 failed=0

@@ -7,7 +7,7 @@ extends Node
 func _ready() -> void:
 	if not await _run_suite():
 		return
-	print("US-033 minimap test passed")
+	print("US-033 mini-map test passed")
 	get_tree().quit(0)
 
 
