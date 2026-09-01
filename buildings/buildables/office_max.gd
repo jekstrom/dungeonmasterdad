@@ -38,6 +38,8 @@ func in_restock_range(player: Node2D) -> bool:
 	return player.global_position.distance_to(factory_origin()) <= restock_range
 
 func can_prompt_restock(player: Node2D) -> bool:
+	# US-010 T003 (James live): prompt when in range and mag not full.
+	# Optionally has >=1 iron; try_restock enforces the 1-iron cost.
 	if not in_restock_range(player):
 		return false
 	if not ("staple_count" in player) or not ("staple_magazine_max" in player):
@@ -46,10 +48,12 @@ func can_prompt_restock(player: Node2D) -> bool:
 	var mag_max: int = int(player.staple_magazine_max)
 	if count >= mag_max:
 		return false
-	# Iron affordability is optional for the F hint; try_restock enforces cost.
 	return true
 
 func try_restock_staples(player_id: int, player_body: Node2D = null) -> bool:
+	# US-010 T003 (James live): each successful interact spends exactly 1 iron
+	# and adds up to 10 staples (partial top-up still costs 1). Never fill-to-max
+	# with ceil(needed/10) multi-iron spend in one press (old behavior).
 	if not multiplayer.is_server():
 		return false
 	if not is_restockable():
@@ -67,10 +71,11 @@ func try_restock_staples(player_id: int, player_body: Node2D = null) -> bool:
 		return false
 	var count: int = int(player_node.staple_count)
 	var mag_max: int = int(player_node.staple_magazine_max)
-	if count >= mag_max:
-		return false
 	var needed: int = mag_max - count
-	var iron_cost: int = ceili(float(needed) / 10.0)
+	if needed <= 0:
+		return false
+	var add: int = mini(10, needed)
+	var iron_cost: int = 1
 	var payer: int = 0
 	for id in _candidate_ids(player_id, player_node):
 		if PlayerManager.has_resources(id, METAL_ITEM, iron_cost):
@@ -79,7 +84,7 @@ func try_restock_staples(player_id: int, player_body: Node2D = null) -> bool:
 	if payer == 0:
 		return false
 	PlayerManager.consume_resources(payer, METAL_ITEM, iron_cost)
-	player_node.staple_count = mag_max
+	player_node.staple_count = mini(count + add, mag_max)
 	if player_node.has_method("_replicate_staple_count"):
 		player_node._replicate_staple_count()
 	elif player_node.has_method("_refresh_staple_hud"):
