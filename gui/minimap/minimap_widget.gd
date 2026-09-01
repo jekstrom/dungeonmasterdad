@@ -203,10 +203,14 @@ func paint_map(ci: Control) -> void:
 	var interior := _interior_rect()
 	if interior.size.x <= 0 or interior.size.y <= 0:
 		return
-	# Uniform square cells; letterbox/pillarbox to center in the view.
+	# Uniform square cells sized to fill map viewport WIDTH (no pillarbox).
+	# Height = rows * cell_px; letterbox top/bottom. If taller than viewport,
+	# keep width-fit and clip vertically rather than shrink for height.
 	var cols: float = float(interior.size.x)
 	var rows: float = float(interior.size.y)
-	var cell_px: float = mini(size_v.x / cols, size_v.y / rows)
+	var cell_px: float = floorf(size_v.x / cols)
+	if cell_px <= 0.0:
+		return
 	var origin := Vector2(
 		(size_v.x - cell_px * cols) * 0.5,
 		(size_v.y - cell_px * rows) * 0.5
