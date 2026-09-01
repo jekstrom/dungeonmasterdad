@@ -1,7 +1,7 @@
-[gd_scene format=3]
+[gd_scene format=3 uid="uid://bomaxoffice001"]
 
 [ext_resource type="Script" path="res://buildings/buildables/office_max.gd" id="1_om"]
-[ext_resource type="Texture2D" path="res://sprites/office_max.png" id="2_tex"]
+[ext_resource type="Texture2D" uid="uid://bcho34278lfs" path="res://sprites/office_max.png" id="2_tex"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_body"]
 size = Vector2(116, 69)

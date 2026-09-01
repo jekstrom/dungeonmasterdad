@@ -175,8 +175,10 @@ func _process(_delta: float) -> void:
 		queue_redraw()
 
 func setup_building(building: String):
-	current_building_data = load("res://buildings/buildables/" + building + ".tres") as BuildingData
+	var path := "res://buildings/buildables/" + building + ".tres"
+	current_building_data = load(path) as BuildingData
 	if current_building_data == null:
+		push_error("setup_building failed to load BuildingData: %s" % path)
 		return
 	_clear_ghost_building()
 	ghost_building = current_building_data.scene.instantiate()
