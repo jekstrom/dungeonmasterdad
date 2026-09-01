@@ -113,6 +113,10 @@ static func interior_from_dungeon_aabb(dungeon: Rect2i) -> Rect2i:
 	var dungeon_area: int = wd * hd
 	while wi * hi < 4 * dungeon_area:
 		wi += 1
+	# Square play area: grow height to match width (letterbox N/S pads).
+	# Prefer fill-width geometry; never shrink below the area/pad floors above.
+	if hi < wi:
+		hi = wi
 	var north_pad: int = int((hi - hd) / 2)
 	var origin := Vector2i(dungeon.end.x - wi, dungeon.position.y - north_pad)
 	return Rect2i(origin, Vector2i(wi, hi))
