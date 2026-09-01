@@ -25,3 +25,7 @@ Paint a fit-to-bounds grid of the cliff **interior**. Cells are fogged or reveal
 
 - **Given** committed map bounds, **When** the widget paints, **Then** the full interior fits in the panel.
 - **Given** an empty reveal set, **When** painted, **Then** all cells read as fog.
+
+## Notes
+
+Debug **`F10`** local full-reveal paint override is **FR-012** (client paint only; do not write host reveal sets). Can land with this paint path or a thin follow-up on the widget.
