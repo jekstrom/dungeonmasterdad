@@ -16,6 +16,7 @@ const MANA_BAR_WIDTH: float = 120.0
 @onready var respawn_overlay: Control = $RespawnOverlay
 @onready var respawn_label: Label = $RespawnOverlay/DmRespawnCountdown
 @onready var skill_tree: Control = $SkillTree
+@onready var minimap_widget: Control = $MinimapWidget
 
 func _ready() -> void:
 	turn_off()
@@ -37,6 +38,10 @@ func _ready() -> void:
 	_update_mana_meter(DmManager.current_mana, DmManager.max_mana)
 	_apply_unlock_visibility()
 	_on_respawn_countdown_changed(-1.0)
+	if minimap_widget and minimap_widget.has_method("configure"):
+		minimap_widget.configure(true)
+	if minimap_widget:
+		minimap_widget.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 func _on_gremlin_button_pressed() -> void:
 	DmManager.request_cast(AbilityCatalog.GREMLIN)
@@ -106,3 +111,22 @@ func _apply_unlock_visibility() -> void:
 
 func _toggle_skill_tree_hud() -> void:
 	skill_tree.visible = !skill_tree.visible
+
+func _input(event: InputEvent) -> void:
+	# F10 via _input so focused ability buttons / GUI cannot swallow it before unhandled.
+	if not visible:
+		return
+	if not event.is_action_pressed("toggle_minimap_debug_reveal"):
+		return
+	if minimap_widget and minimap_widget.has_method("toggle_debug_reveal"):
+		minimap_widget.toggle_debug_reveal()
+		get_viewport().set_input_as_handled()
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	if not visible:
+		return
+	if event.is_action_pressed("toggle_minimap"):
+		if minimap_widget and minimap_widget.has_method("toggle_map"):
+			minimap_widget.toggle_map()
+			get_viewport().set_input_as_handled()

@@ -7,6 +7,7 @@ extends CanvasLayer
 
 @onready var smoke_count: Label = $ResourceContainer/VBoxContainer/SmokeCount
 @onready var paper_count: Label = $ResourceContainer/VBoxContainer/PaperCount
+@onready var minimap_widget: Control = $MinimapWidget
 
 func _ready() -> void:
 	turn_off()
@@ -22,6 +23,12 @@ func _ready() -> void:
 	if build_office_max_button:
 		build_office_max_button.connect("button_down", on_build_office_max_button_pressed)
 	update_staple_magazine(20, 20)
+	if minimap_widget:
+		if minimap_widget.has_method("configure"):
+			minimap_widget.configure(false)
+		elif "role_is_dm" in minimap_widget:
+			minimap_widget.role_is_dm = false
+		_pass_world_clicks_through(minimap_widget)
 	_pass_world_clicks_through(self)
 
 func _pass_world_clicks_through(n: Node) -> void:
@@ -89,3 +96,22 @@ func update_staple_magazine(count: int, mag_max: int) -> void:
 		icon.visible = true
 		if icon.texture == null:
 			icon.texture = load("res://sprites/staple_hud_icon.png")
+
+func _input(event: InputEvent) -> void:
+	# F10 via _input so focused factory buttons / GUI cannot swallow it before unhandled.
+	if not visible:
+		return
+	if not event.is_action_pressed("toggle_minimap_debug_reveal"):
+		return
+	if minimap_widget and minimap_widget.has_method("toggle_debug_reveal"):
+		minimap_widget.toggle_debug_reveal()
+		get_viewport().set_input_as_handled()
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	if not visible:
+		return
+	if event.is_action_pressed("toggle_minimap"):
+		if minimap_widget and minimap_widget.has_method("toggle_map"):
+			minimap_widget.toggle_map()
+			get_viewport().set_input_as_handled()

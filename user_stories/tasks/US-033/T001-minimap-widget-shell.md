@@ -1,7 +1,7 @@
 # T001: Mini-map widget shell
 
 **Story**: US-033  
-**Status**: Todo  
+**Status**: Done  
 **Depends on**: —  
 **Parallel**: no  
 **Owner (after sign)**: Gameplay

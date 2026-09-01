@@ -1,7 +1,7 @@
 # T002: Cell grid and fog paint
 
 **Story**: US-033  
-**Status**: Todo  
+**Status**: Done  
 **Depends on**: T001, US-024 map bounds  
 **Parallel**: no  
 **Owner (after sign)**: Gameplay

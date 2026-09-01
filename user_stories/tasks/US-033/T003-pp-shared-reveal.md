@@ -1,7 +1,7 @@
 # T003: Paper Pusher shared reveal
 
 **Story**: US-033  
-**Status**: Todo  
+**Status**: Done  
 **Depends on**: T002  
 **Parallel**: with T004  
 **Owner (after sign)**: Gameplay / Systems

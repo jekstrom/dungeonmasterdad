@@ -1,7 +1,7 @@
 # T006: Player markers
 
 **Story**: US-033  
-**Status**: Todo  
+**Status**: Done  
 **Depends on**: T003, T004  
 **Parallel**: with T005  
 **Owner (after sign)**: Gameplay

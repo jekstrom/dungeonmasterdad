@@ -1,4 +1,4 @@
-[gd_scene format=3 uid="uid://f15sgptli5oi"]
+[gd_scene load_steps=14 format=3 uid="uid://f15sgptli5oi"]
 
 [ext_resource type="Script" uid="uid://bsgw0ccsyq6ll" path="res://gui/dm/dm_hud.gd" id="1_a1hl1"]
 [ext_resource type="PackedScene" uid="uid://lf81agyh5j08" path="res://gui/dm/skill_tree.tscn" id="2_a3llk"]
@@ -11,6 +11,7 @@
 [ext_resource type="Texture2D" uid="uid://d3wb1fbmfd5jv" path="res://pickups/mtdew/mtdew.png" id="7_mtdew"]
 [ext_resource type="Texture2D" uid="uid://cl7y1vjtfyxrc" path="res://spells/blizzard/blizzard.png" id="8_blizzard"]
 [ext_resource type="Texture2D" uid="uid://dndgmw4onsi0w" path="res://spells/blizzard/blizzard_pressed.png" id="9_blizzard"]
+[ext_resource type="PackedScene" path="res://gui/minimap/minimap_widget.tscn" id="10_minimap"]
 
 [node name="DmHud" type="CanvasLayer" unique_id=771949231]
 script = ExtResource("1_a1hl1")
@@ -184,3 +185,6 @@ tooltip_text = "Bemidji Blizzard"
 texture_normal = ExtResource("8_blizzard")
 texture_pressed = ExtResource("9_blizzard")
 stretch_mode = 0
+
+[node name="MinimapWidget" parent="." instance=ExtResource("10_minimap")]
+role_is_dm = true

@@ -33,8 +33,8 @@ func _ready() -> void:
 
 	var dungeon_8x6 := Rect2i(5, 10, 8, 6)
 	var interior_8x6: Rect2i = MapBounds.interior_from_dungeon_aabb(dungeon_8x6)
-	if interior_8x6.size != Vector2i(16, 12):
-		push_error("US-024 T004: 8x6 dungeon should yield 16x12 interior, got %s" % interior_8x6.size)
+	if interior_8x6.size != Vector2i(16, 16):
+		push_error("US-024 T004: 8x6 dungeon should yield 16x16 square interior, got %s" % interior_8x6.size)
 		get_tree().quit(1)
 		return
 	if interior_8x6.end.x != dungeon_8x6.end.x:
@@ -43,6 +43,16 @@ func _ready() -> void:
 		return
 	if not _contains_rect(interior_8x6, dungeon_8x6):
 		push_error("US-024 T004: 8x6 dungeon not inside interior")
+		get_tree().quit(1)
+		return
+	if interior_8x6.size.x != interior_8x6.size.y:
+		push_error("US-024 T004: interior must be square when width>=height plan, got %s" % interior_8x6.size)
+		get_tree().quit(1)
+		return
+	var north_pad_8: int = dungeon_8x6.position.y - interior_8x6.position.y
+	var south_pad_8: int = interior_8x6.end.y - dungeon_8x6.end.y
+	if north_pad_8 != 5 or south_pad_8 != 5:
+		push_error("US-024 T004: 8x6 should be vertically centered in 16x16, pads %d/%d" % [north_pad_8, south_pad_8])
 		get_tree().quit(1)
 		return
 
