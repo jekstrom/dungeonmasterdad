@@ -1,6 +1,7 @@
-[gd_scene load_steps=11 format=3 uid="uid://f15sgptli5oi"]
+[gd_scene format=3 uid="uid://f15sgptli5oi"]
 
 [ext_resource type="Script" uid="uid://bsgw0ccsyq6ll" path="res://gui/dm/dm_hud.gd" id="1_a1hl1"]
+[ext_resource type="PackedScene" uid="uid://lf81agyh5j08" path="res://gui/dm/skill_tree.tscn" id="2_a3llk"]
 [ext_resource type="Texture2D" uid="uid://b0hlsaoa55imm" path="res://sprites/gremlin_spawn_button.png" id="2_uyd11"]
 [ext_resource type="Texture2D" uid="uid://cg3bt8bcn0275" path="res://sprites/gremlin_spawn_button_pressed.png" id="3_t4wv6"]
 [ext_resource type="PackedScene" uid="uid://dnejfv6x8ws6j" path="res://player/inventory/inventory_ui.tscn" id="4_4nt5k"]
@@ -11,10 +12,12 @@
 [ext_resource type="Texture2D" uid="uid://cl7y1vjtfyxrc" path="res://spells/blizzard/blizzard.png" id="8_blizzard"]
 [ext_resource type="Texture2D" uid="uid://dndgmw4onsi0w" path="res://spells/blizzard/blizzard_pressed.png" id="9_blizzard"]
 
-[node name="DmHud" type="CanvasLayer"]
+[node name="DmHud" type="CanvasLayer" unique_id=771949231]
 script = ExtResource("1_a1hl1")
 
-[node name="RespawnOverlay" type="CenterContainer" parent="."]
+[node name="SkillTree" parent="." unique_id=51537354 instance=ExtResource("2_a3llk")]
+
+[node name="RespawnOverlay" type="CenterContainer" parent="." unique_id=405638812]
 unique_name_in_owner = true
 visible = false
 anchors_preset = 15
@@ -24,10 +27,9 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 
-[node name="DmRespawnCountdown" type="Label" parent="RespawnOverlay"]
+[node name="DmRespawnCountdown" type="Label" parent="RespawnOverlay" unique_id=416844143]
 unique_name_in_owner = true
 layout_mode = 2
-mouse_filter = 2
 theme_override_colors/font_color = Color(1, 0.85, 0.2, 1)
 theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
 theme_override_constants/outline_size = 6
@@ -36,7 +38,7 @@ text = "RESPAWN IN 10"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="MarginContainer" type="MarginContainer" parent="."]
+[node name="MarginContainer" type="MarginContainer" parent="." unique_id=1075024702]
 anchors_preset = 12
 anchor_top = 1.0
 anchor_right = 1.0
@@ -51,25 +53,25 @@ theme_override_constants/margin_top = 5
 theme_override_constants/margin_right = 5
 theme_override_constants/margin_bottom = 5
 
-[node name="InventoryUi" parent="MarginContainer" instance=ExtResource("4_4nt5k")]
+[node name="InventoryUi" parent="MarginContainer" unique_id=1264754681 instance=ExtResource("4_4nt5k")]
 layout_mode = 2
 size_flags_horizontal = 0
 size_flags_vertical = 1
 
-[node name="HBoxContainer" type="HBoxContainer" parent="MarginContainer"]
+[node name="HBoxContainer" type="HBoxContainer" parent="MarginContainer" unique_id=22359385]
 layout_mode = 2
 size_flags_horizontal = 4
 size_flags_vertical = 8
 theme_override_constants/separation = 8
 
-[node name="ManaMeter" type="HBoxContainer" parent="MarginContainer/HBoxContainer"]
+[node name="ManaMeter" type="HBoxContainer" parent="MarginContainer/HBoxContainer" unique_id=666219970]
 custom_minimum_size = Vector2(180, 75)
 layout_mode = 2
 size_flags_vertical = 4
 theme_override_constants/separation = 6
 alignment = 1
 
-[node name="ManaPip" type="TextureRect" parent="MarginContainer/HBoxContainer/ManaMeter"]
+[node name="ManaPip" type="TextureRect" parent="MarginContainer/HBoxContainer/ManaMeter" unique_id=994578919]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(32, 32)
 layout_mode = 2
@@ -79,27 +81,27 @@ texture = ExtResource("7_mtdew")
 expand_mode = 1
 stretch_mode = 5
 
-[node name="BarColumn" type="VBoxContainer" parent="MarginContainer/HBoxContainer/ManaMeter"]
+[node name="BarColumn" type="VBoxContainer" parent="MarginContainer/HBoxContainer/ManaMeter" unique_id=1098607311]
 layout_mode = 2
 size_flags_vertical = 4
 theme_override_constants/separation = 4
 alignment = 1
 
-[node name="Bar" type="ColorRect" parent="MarginContainer/HBoxContainer/ManaMeter/BarColumn"]
-clip_contents = true
+[node name="Bar" type="ColorRect" parent="MarginContainer/HBoxContainer/ManaMeter/BarColumn" unique_id=1890875231]
 custom_minimum_size = Vector2(120, 16)
+clip_contents = true
 layout_mode = 2
 mouse_filter = 2
 color = Color(0.16, 0.16, 0.16, 1)
 
-[node name="ManaFill" type="ColorRect" parent="MarginContainer/HBoxContainer/ManaMeter/BarColumn/Bar"]
+[node name="ManaFill" type="ColorRect" parent="MarginContainer/HBoxContainer/ManaMeter/BarColumn/Bar" unique_id=198595570]
 unique_name_in_owner = true
 layout_mode = 0
 offset_bottom = 16.0
 mouse_filter = 2
 color = Color(0.45, 0.85, 0.15, 1)
 
-[node name="ManaLabel" type="Label" parent="MarginContainer/HBoxContainer/ManaMeter/BarColumn"]
+[node name="ManaLabel" type="Label" parent="MarginContainer/HBoxContainer/ManaMeter/BarColumn" unique_id=1134075701]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_constants/outline_size = 2
@@ -108,13 +110,13 @@ text = "0/100"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="SpawnGremlin" type="ColorRect" parent="MarginContainer/HBoxContainer"]
+[node name="SpawnGremlin" type="ColorRect" parent="MarginContainer/HBoxContainer" unique_id=1193320767]
 custom_minimum_size = Vector2(75, 75)
 layout_mode = 2
 size_flags_horizontal = 8
 color = Color(0.40832946, 0.40832946, 0.40832946, 1)
 
-[node name="TextureButton" type="TextureButton" parent="MarginContainer/HBoxContainer/SpawnGremlin"]
+[node name="TextureButton" type="TextureButton" parent="MarginContainer/HBoxContainer/SpawnGremlin" unique_id=1930613897]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -126,14 +128,14 @@ texture_normal = ExtResource("2_uyd11")
 texture_pressed = ExtResource("3_t4wv6")
 stretch_mode = 0
 
-[node name="SpawnKnight" type="ColorRect" parent="MarginContainer/HBoxContainer"]
+[node name="SpawnKnight" type="ColorRect" parent="MarginContainer/HBoxContainer" unique_id=1800804665]
 visible = false
 custom_minimum_size = Vector2(75, 75)
 layout_mode = 2
 size_flags_horizontal = 8
 color = Color(0.40832946, 0.40832946, 0.40832946, 1)
 
-[node name="TextureButton" type="TextureButton" parent="MarginContainer/HBoxContainer/SpawnKnight"]
+[node name="TextureButton" type="TextureButton" parent="MarginContainer/HBoxContainer/SpawnKnight" unique_id=340818158]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -145,14 +147,14 @@ texture_normal = ExtResource("5_usulh")
 texture_pressed = ExtResource("5_usulh")
 stretch_mode = 0
 
-[node name="Fireball" type="ColorRect" parent="MarginContainer/HBoxContainer"]
+[node name="Fireball" type="ColorRect" parent="MarginContainer/HBoxContainer" unique_id=1656844443]
 visible = false
 custom_minimum_size = Vector2(75, 75)
 layout_mode = 2
 size_flags_horizontal = 8
 color = Color(0.40832946, 0.40832946, 0.40832946, 1)
 
-[node name="TextureButton" type="TextureButton" parent="MarginContainer/HBoxContainer/Fireball"]
+[node name="TextureButton" type="TextureButton" parent="MarginContainer/HBoxContainer/Fireball" unique_id=358328944]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -164,14 +166,14 @@ texture_normal = ExtResource("5_cbx5e")
 texture_pressed = ExtResource("6_usulh")
 stretch_mode = 0
 
-[node name="Blizzard" type="ColorRect" parent="MarginContainer/HBoxContainer"]
+[node name="Blizzard" type="ColorRect" parent="MarginContainer/HBoxContainer" unique_id=1864310006]
 visible = false
 custom_minimum_size = Vector2(75, 75)
 layout_mode = 2
 size_flags_horizontal = 8
 color = Color(0.40832946, 0.40832946, 0.40832946, 1)
 
-[node name="TextureButton" type="TextureButton" parent="MarginContainer/HBoxContainer/Blizzard"]
+[node name="TextureButton" type="TextureButton" parent="MarginContainer/HBoxContainer/Blizzard" unique_id=1782195829]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0

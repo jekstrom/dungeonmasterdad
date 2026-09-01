@@ -20,6 +20,7 @@
 [ext_resource type="Script" uid="uid://c0kl4pny1scqf" path="res://scripts/debug.gd" id="21_jufm4"]
 [ext_resource type="PackedScene" uid="uid://be52gho0i3dak" path="res://player/shadow_scene.tscn" id="21_u2qr3"]
 [ext_resource type="PackedScene" uid="uid://bebn5r64gbvmg" path="res://monsters/knight/knight.tscn" id="22_ymgag"]
+[ext_resource type="PackedScene" uid="uid://c5oa0yy7jcgde" path="res://doodads/skill_tree.tscn" id="24_2yo0f"]
 [ext_resource type="Script" uid="uid://3wvfcisfslpa" path="res://scripts/pickup_spawner.gd" id="24_vnugj"]
 [ext_resource type="Script" uid="uid://dcbuj26qlyp1r" path="res://scripts/building_spawner.gd" id="25_building"]
 [ext_resource type="PackedScene" path="res://scenes/dungeon_generator.tscn" id="26_dungeon"]
@@ -115,3 +116,7 @@ _spawnable_scenes = PackedStringArray("uid://be52gho0i3dak")
 spawn_path = NodePath("..")
 script = ExtResource("20_ymgag")
 trail_scene = ExtResource("21_u2qr3")
+
+[node name="SkillTree" parent="." unique_id=1730333370 instance=ExtResource("24_2yo0f")]
+position = Vector2(179.99998, 57.999996)
+scale = Vector2(0.25, 0.25)

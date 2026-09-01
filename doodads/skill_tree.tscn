@@ -1,0 +1,70 @@
+[gd_scene format=3 uid="uid://c5oa0yy7jcgde"]
+
+[ext_resource type="Script" uid="uid://b2uwtqxin0f37" path="res://doodads/skill_tree.gd" id="1_vi25j"]
+[ext_resource type="Texture2D" uid="uid://dnhaymu1d41d4" path="res://sprites/Shadow.png" id="2_bsf6j"]
+[ext_resource type="Texture2D" uid="uid://cmfrpkwfs27kq" path="res://sprites/skill_tree_s_128.png" id="3_vi25j"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_52uuo"]
+size = Vector2(8, 9)
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_harvest"]
+radius = 72.0
+
+[node name="SkillTree" type="Node2D" unique_id=1730333370]
+y_sort_enabled = true
+script = ExtResource("1_vi25j")
+
+[node name="Shadow" type="Sprite2D" parent="." unique_id=1164685396]
+modulate = Color(0.20511743, 0.20511743, 0.20511743, 1)
+z_index = -1
+position = Vector2(9.999999, 126.99999)
+scale = Vector2(10, 10)
+texture = ExtResource("2_bsf6j")
+
+[node name="Sprite2D" type="Sprite2D" parent="." unique_id=143572537]
+scale = Vector2(5, 5)
+texture = ExtResource("3_vi25j")
+offset = Vector2(0, -16)
+
+[node name="StaticBody2D" type="StaticBody2D" parent="." unique_id=1318743015]
+position = Vector2(-2, 83.00001)
+scale = Vector2(15, 14.097)
+collision_layer = 16
+collision_mask = 0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="StaticBody2D" unique_id=81000456]
+position = Vector2(0, -4.5)
+shape = SubResource("RectangleShape2D_52uuo")
+
+[node name="Area2D" type="Area2D" parent="." unique_id=688455445]
+scale = Vector2(1.7224647, 1.5600005)
+
+[node name="CollisionShape2D2" type="CollisionShape2D" parent="Area2D" unique_id=1653544777]
+position = Vector2(-2, 0)
+scale = Vector2(2, 2)
+shape = SubResource("CircleShape2D_harvest")
+
+[node name="Control" type="Control" parent="." unique_id=1263501392]
+layout_mode = 3
+anchors_preset = 10
+anchor_right = 1.0
+offset_top = -464.0
+offset_bottom = -464.0
+grow_horizontal = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
+
+[node name="FlowContainer" type="FlowContainer" parent="Control" unique_id=1087658756]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_bottom = 99.0
+grow_horizontal = 2
+
+[node name="Label" type="Label" parent="Control/FlowContainer" unique_id=588840360]
+layout_mode = 2
+theme_override_font_sizes/font_size = 72
+text = "F"
+horizontal_alignment = 1
+vertical_alignment = 1
+metadata/_edit_use_anchors_ = true

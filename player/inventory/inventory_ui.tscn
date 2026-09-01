@@ -1,4 +1,4 @@
-[gd_scene load_steps=5 format=3 uid="uid://dnejfv6x8ws6j"]
+[gd_scene format=3 uid="uid://dnejfv6x8ws6j"]
 
 [ext_resource type="Script" uid="uid://dpgphg3vjwgeg" path="res://player/inventory/inventory_ui.gd" id="1_vo0np"]
 [ext_resource type="Script" uid="uid://dswia5h3vsrl3" path="res://player/inventory/player_inventory.gd" id="2_8yeqf"]
@@ -9,7 +9,7 @@ script = ExtResource("2_8yeqf")
 slots = Array[ExtResource("3_xjjhj")]([null, null, null, null])
 metadata/_custom_type_script = "uid://dswia5h3vsrl3"
 
-[node name="InventoryUi" type="Control"]
+[node name="InventoryUi" type="Control" unique_id=362870725]
 layout_mode = 3
 anchors_preset = 12
 anchor_top = 1.0
@@ -20,7 +20,7 @@ grow_vertical = 0
 size_flags_vertical = 8
 mouse_filter = 2
 
-[node name="GridContainer" type="GridContainer" parent="."]
+[node name="GridContainer" type="GridContainer" parent="." unique_id=480376300]
 layout_mode = 1
 anchors_preset = 2
 anchor_top = 1.0

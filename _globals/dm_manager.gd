@@ -3,7 +3,7 @@ extends Node
 #const __DM__ = preload("uid://e1aypo2ysyyc")
 #const INVENTORY_DATA: InventoryData = preload("res://gui/pause_menu/inventory/player_inventory.tres")
 
-#signal interact_pressed
+signal interact_pressed
 
 const AbilityCatalog = preload("res://dm/dm_ability_catalog.gd")
 const DEFAULT_MAX_MANA: int = 100
@@ -559,3 +559,6 @@ func request_launch_blizzard_rpc(spell_data: Dictionary) -> void:
 	if not _is_dm_peer(multiplayer.get_remote_sender_id()):
 		return
 	launch_blizzard(spell_data)
+	
+func _show_skill_tree_hud() -> void:
+	DmHud._toggle_skill_tree_hud()

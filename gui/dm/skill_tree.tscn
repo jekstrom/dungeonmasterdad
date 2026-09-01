@@ -1,0 +1,85 @@
+[gd_scene format=3 uid="uid://lf81agyh5j08"]
+
+[node name="SkillTree" type="Control" unique_id=51537354]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
+
+[node name="MarginContainer2" type="MarginContainer" parent="." unique_id=1930302200]
+layout_mode = 1
+offset_right = 467.0
+offset_bottom = 436.0
+theme_override_constants/margin_left = 50
+theme_override_constants/margin_top = 50
+theme_override_constants/margin_right = 50
+theme_override_constants/margin_bottom = 50
+
+[node name="ColorRect" type="ColorRect" parent="MarginContainer2" unique_id=263905519]
+modulate = Color(1, 1, 1, 0.8)
+layout_mode = 2
+color = Color(0.2231029, 0.2231029, 0.22310287, 1)
+
+[node name="MarginContainer" type="MarginContainer" parent="MarginContainer2" unique_id=1281882803]
+layout_mode = 2
+theme_override_constants/margin_left = 100
+theme_override_constants/margin_top = 100
+theme_override_constants/margin_right = 100
+theme_override_constants/margin_bottom = 100
+
+[node name="FlowContainer" type="FlowContainer" parent="MarginContainer2/MarginContainer" unique_id=502069013]
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
+
+[node name="GridContainer" type="GridContainer" parent="MarginContainer2/MarginContainer/FlowContainer" unique_id=1499966758]
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
+columns = 3
+
+[node name="Button" type="Button" parent="MarginContainer2/MarginContainer/FlowContainer/GridContainer" unique_id=304751823]
+layout_mode = 2
+text = "Skill 1"
+
+[node name="Button2" type="Button" parent="MarginContainer2/MarginContainer/FlowContainer/GridContainer" unique_id=709755920]
+layout_mode = 2
+text = "Skill 2"
+
+[node name="Button3" type="Button" parent="MarginContainer2/MarginContainer/FlowContainer/GridContainer" unique_id=1804494676]
+layout_mode = 2
+text = "Skill 3"
+
+[node name="Button4" type="Button" parent="MarginContainer2/MarginContainer/FlowContainer/GridContainer" unique_id=636503218]
+layout_mode = 2
+text = "Skill 4"
+
+[node name="Button5" type="Button" parent="MarginContainer2/MarginContainer/FlowContainer/GridContainer" unique_id=883423552]
+layout_mode = 2
+text = "Skill 5"
+
+[node name="Button6" type="Button" parent="MarginContainer2/MarginContainer/FlowContainer/GridContainer" unique_id=725119211]
+layout_mode = 2
+text = "Skill 6"
+
+[node name="Button7" type="Button" parent="MarginContainer2/MarginContainer/FlowContainer/GridContainer" unique_id=401595256]
+layout_mode = 2
+text = "Skill 7"
+
+[node name="Button8" type="Button" parent="MarginContainer2/MarginContainer/FlowContainer/GridContainer" unique_id=375925856]
+layout_mode = 2
+text = "Skill 8"
+
+[node name="Button9" type="Button" parent="MarginContainer2/MarginContainer/FlowContainer/GridContainer" unique_id=1429469482]
+layout_mode = 2
+text = "Skill 9"
+
+[node name="Button" type="Button" parent="MarginContainer2/MarginContainer/FlowContainer" unique_id=1919623363]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+text = "Ultimate"

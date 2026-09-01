@@ -15,6 +15,7 @@ const MANA_BAR_WIDTH: float = 120.0
 @onready var mana_label: Label = $MarginContainer/HBoxContainer/ManaMeter/BarColumn/ManaLabel
 @onready var respawn_overlay: Control = $RespawnOverlay
 @onready var respawn_label: Label = $RespawnOverlay/DmRespawnCountdown
+@onready var skill_tree: Control = $SkillTree
 
 func _ready() -> void:
 	turn_off()
@@ -102,3 +103,6 @@ func _apply_unlock_visibility() -> void:
 		spawn_knight.visible = bool(DmUnlocks.dm_unlocks.get(AbilityCatalog.KNIGHTLING, false))
 	if blizzard:
 		blizzard.visible = bool(DmUnlocks.dm_unlocks.get(AbilityCatalog.BEMIDJI_BLIZZARD, false))
+
+func _toggle_skill_tree_hud() -> void:
+	skill_tree.visible = !skill_tree.visible

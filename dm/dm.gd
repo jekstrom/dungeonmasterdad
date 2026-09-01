@@ -393,3 +393,4 @@ func _unhandled_input(event: InputEvent) -> void:
 		var viewport := get_viewport()
 		if viewport:
 			viewport.set_input_as_handled()
+		
