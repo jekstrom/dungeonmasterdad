@@ -1,7 +1,7 @@
 extends Node
 
 ## US-033 headless harness: shared vs isolated reveal, visit radius, markers,
-## M toggle, late-join snapshot. Exact pass print required by T009.
+## M toggle, late-join snapshot, T010 trees/mines/walls. Exact pass print required.
 
 
 func _ready() -> void:
@@ -182,7 +182,162 @@ func _run_suite() -> bool:
 	if dm_hud.get_node_or_null("MinimapWidget") == null:
 		return _fail("US-033: DmHud missing MinimapWidget")
 
+	# --- T010: living trees, mines, dungeon walls on revealed cells only ---
+	# Down leftover actors so host tick does not re-brush reveal mid-assert.
+	for actor in [pp_a, pp_b, dm]:
+		if is_instance_valid(actor) and "hitpoints" in actor:
+			actor.set("hitpoints", 0)
+	if not await _assert_t010_world_content(reveal, widget, interior):
+		return false
+
 	return true
+
+
+func _assert_t010_world_content(reveal: Node, widget: Control, interior: Rect2i) -> bool:
+	if not widget.has_method("collect_revealed_tree_cells"):
+		return _fail("US-033 T010: collect_revealed_tree_cells missing")
+	if not widget.has_method("collect_revealed_mine_cells"):
+		return _fail("US-033 T010: collect_revealed_mine_cells missing")
+	if not widget.has_method("collect_revealed_wall_cells"):
+		return _fail("US-033 T010: collect_revealed_wall_cells missing")
+
+	if not ResourceLoader.exists("res://gui/minimap/tree_pip.png"):
+		return _fail("US-033 T010: tree_pip.png missing")
+	if not ResourceLoader.exists("res://gui/minimap/mine_pip.png"):
+		return _fail("US-033 T010: mine_pip.png missing")
+	if not ResourceLoader.exists("res://gui/minimap/dungeon_wall_wash.png"):
+		return _fail("US-033 T010: dungeon_wall_wash.png missing")
+
+	# Drop level-spawned doodads so cell asserts are not polluted by scatter/exit forest.
+	var doomed: Array = []
+	for group_name in ["scattered_trees", "exit_forest_trees", "scattered_mines", "mines", "wall"]:
+		for node in get_tree().get_nodes_in_group(group_name):
+			if is_instance_valid(node) and not doomed.has(node):
+				doomed.append(node)
+	for node in doomed:
+		node.free()
+	await get_tree().process_frame
+
+	reveal.reset_reveals()
+
+	var living := _make_content_node("tree_living", ["scattered_trees"], Vector2i(3, 3), {
+		"is_stump": false,
+	})
+	var stump := _make_content_node("tree_stump", ["scattered_trees"], Vector2i(3, 4), {
+		"is_stump": true,
+	})
+	var exit_tree := _make_content_node("tree_exit", ["exit_forest_trees"], Vector2i(6, 3), {
+		"is_stump": false,
+	})
+	var mine := _make_content_node("mine_active", ["scattered_mines", "mines"], Vector2i(7, 4), {
+		"is_depleted": false,
+	})
+	var mine_dead := _make_content_node("mine_dead", ["scattered_mines", "mines"], Vector2i(7, 5), {
+		"is_depleted": true,
+	})
+	var wall := _make_content_node("dungeon_wall", ["wall"], Vector2i(9, 4), {})
+	var fog_tree := _make_content_node("tree_fogged", ["scattered_trees"], Vector2i(14, 8), {
+		"is_stump": false,
+	})
+	var fog_mine := _make_content_node("mine_fogged", ["scattered_mines", "mines"], Vector2i(14, 7), {
+		"is_depleted": false,
+	})
+	var fog_wall := _make_content_node("wall_fogged", ["wall"], Vector2i(15, 8), {})
+	for n in [living, stump, exit_tree, mine, mine_dead, wall, fog_tree, fog_mine, fog_wall]:
+		add_child(n)
+	await get_tree().process_frame
+	# Clear any tick reveals from prior living movers; actors are downed by caller.
+	reveal.reset_reveals()
+
+	var living_cell: Vector2i = DungeonGrid.from_world(living.global_position)
+	var stump_cell: Vector2i = DungeonGrid.from_world(stump.global_position)
+	var exit_cell: Vector2i = DungeonGrid.from_world(exit_tree.global_position)
+	var mine_cell: Vector2i = DungeonGrid.from_world(mine.global_position)
+	var mine_dead_cell: Vector2i = DungeonGrid.from_world(mine_dead.global_position)
+	var wall_cell: Vector2i = DungeonGrid.from_world(wall.global_position)
+	var fog_tree_cell: Vector2i = DungeonGrid.from_world(fog_tree.global_position)
+	var fog_mine_cell: Vector2i = DungeonGrid.from_world(fog_mine.global_position)
+	var fog_wall_cell: Vector2i = DungeonGrid.from_world(fog_wall.global_position)
+
+	# Fogged: nothing listed
+	var trees_fog = widget.collect_revealed_tree_cells(reveal, interior)
+	var mines_fog = widget.collect_revealed_mine_cells(reveal, interior)
+	var walls_fog = widget.collect_revealed_wall_cells(reveal, interior)
+	if living_cell in trees_fog or exit_cell in trees_fog or fog_tree_cell in trees_fog:
+		return _fail("US-033 T010: tree pips must hide while fogged")
+	if stump_cell in trees_fog:
+		return _fail("US-033 T010: stump must stay hidden (default)")
+	if mine_cell in mines_fog or fog_mine_cell in mines_fog:
+		return _fail("US-033 T010: mine pips must hide while fogged")
+	if wall_cell in walls_fog or fog_wall_cell in walls_fog:
+		return _fail("US-033 T010: wall tint must not leak through fog")
+
+	# Reveal living tree / exit tree / mine / wall — leave fog_* unrevealed
+	for cell in [living_cell, stump_cell, exit_cell, mine_cell, mine_dead_cell, wall_cell]:
+		reveal.apply_visit_at(false, cell)
+
+	var trees = widget.collect_revealed_tree_cells(reveal, interior)
+	var mines = widget.collect_revealed_mine_cells(reveal, interior)
+	var walls = widget.collect_revealed_wall_cells(reveal, interior)
+
+	if living_cell not in trees:
+		return _fail("US-033 T010: living scattered tree must show when revealed")
+	if exit_cell not in trees:
+		return _fail("US-033 T010: exit-forest living tree must show when revealed")
+	if stump_cell in trees:
+		return _fail("US-033 T010: stump must be omitted by default")
+	if fog_tree_cell in trees:
+		return _fail("US-033 T010: fogged tree must stay hidden after other reveals")
+	if mine_cell not in mines:
+		return _fail("US-033 T010: active mine must show when revealed")
+	if mine_dead_cell in mines:
+		return _fail("US-033 T010: depleted mine must clear")
+	if fog_mine_cell in mines:
+		return _fail("US-033 T010: fogged mine must stay hidden")
+	if wall_cell not in walls:
+		return _fail("US-033 T010: revealed dungeon wall must tint")
+	if fog_wall_cell in walls:
+		return _fail("US-033 T010: unrevealed wall must stay fogged (no silhouette leak)")
+
+	# Reveal sets unchanged in rules: PP visit still does not write DM, and vice versa
+	if reveal.is_dm_revealed(living_cell):
+		return _fail("US-033 T010: tree/mine/wall paint must not merge into dm_reveal")
+	var dm_only := Vector2i(1, 8)
+	reveal.apply_visit_at(true, dm_only)
+	if reveal.is_pp_revealed(dm_only):
+		return _fail("US-033 T010: DM visit must not write pp_shared")
+
+	# Optional stump toggle still fog-gates
+	if "show_tree_stumps" in widget:
+		widget.set("show_tree_stumps", true)
+		var trees_stump = widget.collect_revealed_tree_cells(reveal, interior)
+		if stump_cell not in trees_stump:
+			return _fail("US-033 T010: show_tree_stumps=true should include stump when revealed")
+		widget.set("show_tree_stumps", false)
+
+	return true
+
+
+func _make_content_node(node_name: String, groups: Array, cell: Vector2i, props: Dictionary) -> Node2D:
+	var node := Node2D.new()
+	node.name = node_name
+	for g in groups:
+		node.add_to_group(str(g))
+	var lines: PackedStringArray = PackedStringArray(["extends Node2D"])
+	for key in props.keys():
+		var val = props[key]
+		if typeof(val) == TYPE_BOOL:
+			lines.append("var %s := %s" % [key, "true" if val else "false"])
+		elif typeof(val) == TYPE_INT:
+			lines.append("var %s := %d" % [key, int(val)])
+		else:
+			lines.append("var %s = %s" % [key, str(val)])
+	var script := GDScript.new()
+	script.source_code = "\n".join(lines) + "\n"
+	script.reload()
+	node.set_script(script)
+	node.position = DungeonGrid.to_world_center(cell)
+	return node
 
 
 func _make_actor(actor_name: String, groups: Array, cell: Vector2i, hp: int) -> Node2D:

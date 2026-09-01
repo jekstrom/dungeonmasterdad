@@ -1,7 +1,7 @@
 # T010: Trees, mines, and dungeon walls on revealed cells
 
 **Story**: US-033  
-**Status**: Todo  
+**Status**: Done  
 **Depends on**: T002 (grid); T003 or T004 for fog gate; builds on T005 paint pass  
 **Parallel**: with T008 pip art  
 **Owner**: Gameplay
