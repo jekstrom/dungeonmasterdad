@@ -1,7 +1,7 @@
 # T005: Sparse scatter excludes forest pocket
 
 **Story**: US-032  
-**Status**: Todo  
+**Status**: Done  
 **Depends on**: T001  
 **Parallel**: with T002
 

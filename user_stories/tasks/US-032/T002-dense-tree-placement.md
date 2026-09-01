@@ -1,7 +1,7 @@
 # T002: Dense TreeDoodad placement in pocket
 
 **Story**: US-032  
-**Status**: Todo  
+**Status**: Done  
 **Depends on**: T001  
 **Parallel**: with T003
 

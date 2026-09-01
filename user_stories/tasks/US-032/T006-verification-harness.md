@@ -1,7 +1,7 @@
 # T006: Verification harness
 
 **Story**: US-032  
-**Status**: Todo  
+**Status**: Done  
 **Depends on**: T002–T005  
 **Parallel**: no
 
