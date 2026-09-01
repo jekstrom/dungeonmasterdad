@@ -2,17 +2,15 @@
 
 **Story**: [US-033.md](../../US-033.md)  
 **Branch**: `033-minimap`  
-**Status**: Todo
+**Status**: Signed — in progress
 
-Corner mini-map for every player. **Shared PP fog** (`pp_shared_reveal`) vs **private DM fog** (`dm_reveal`). Visit-radius reveal (Chebyshev 3). Markdown only until James signs — no Art/Gameplay/QA handoff ping yet.
-
-Defaults to confirm are in the story’s **Open defaults** table.
+Corner mini-map for every player. **Shared PP fog** (`pp_shared_reveal`) vs **private DM fog** (`dm_reveal`). Visit-radius reveal (Chebyshev 3). James signed at `219629e`; Art + Gameplay kicked off. Defaults in the story **Open defaults** table are locked unless overridden.
 
 ## Order
 
 T001 shell first. T002 grid/fog paint next. T003 (PP shared) and T004 (DM private) in parallel after T002. T005 content (zones/buildings) and T006 markers after reveal sets exist. T007 late-join with T003/T004. T008 art can start after T001 (chrome) and refine pips after T005/T006. T009 harness last.
 
-| ID | Task | Owner (after sign) | Depends on | Parallel |
+| ID | Task | Owner | Depends on | Parallel |
 |---|---|---|---|---|
 | [T001](T001-minimap-widget-shell.md) | Corner widget + `M` toggle on PP + DM HUDs | Gameplay | — | |
 | [T002](T002-cell-grid-and-fog-paint.md) | Interior cell grid + fog vs revealed paint | Gameplay | T001, US-024 bounds | |
