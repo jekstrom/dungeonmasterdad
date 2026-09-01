@@ -123,6 +123,25 @@ func _run_suite() -> bool:
 	# DEBUG reveal-all (F10) is a local paint override; must default false.
 	if "debug_reveal_all" in widget and bool(widget.get("debug_reveal_all")):
 		return _fail("US-033: debug_reveal_all must default false")
+	if not InputMap.has_action("toggle_minimap_debug_reveal"):
+		return _fail("US-033: toggle_minimap_debug_reveal InputMap action missing")
+	if not _action_uses_physical("toggle_minimap_debug_reveal", KEY_F10):
+		return _fail("US-033: toggle_minimap_debug_reveal must be KEY_F10 (4194341)")
+	# Flip local paint override; host reveal sets must stay untouched.
+	var pp_before: int = reveal.pp_shared.size()
+	var dm_before: int = reveal.dm_private.size()
+	var pp_snap: PackedInt32Array = reveal.snapshot_pp()
+	var dm_snap: PackedInt32Array = reveal.snapshot_dm()
+	widget.set("debug_reveal_all", true)
+	if not bool(widget.get("debug_reveal_all")):
+		return _fail("US-033: failed to enable debug_reveal_all")
+	if reveal.pp_shared.size() != pp_before or reveal.dm_private.size() != dm_before:
+		return _fail("US-033: debug_reveal_all must not mutate host reveal set sizes")
+	if reveal.snapshot_pp() != pp_snap or reveal.snapshot_dm() != dm_snap:
+		return _fail("US-033: debug_reveal_all must not mutate host reveal snapshots")
+	widget.set("debug_reveal_all", false)
+	if bool(widget.get("debug_reveal_all")):
+		return _fail("US-033: toggling debug_reveal_all off must restore fog paint path")
 	if "minimap_pip_min_px" in widget and float(widget.get("minimap_pip_min_px")) < 6.0:
 		return _fail("US-033: minimap_pip_min_px should be readable (>=6)")
 
@@ -353,6 +372,15 @@ func _make_content_node(node_name: String, groups: Array, cell: Vector2i, props:
 	node.set_script(script)
 	node.position = DungeonGrid.to_world_center(cell)
 	return node
+
+
+func _action_uses_physical(action: String, code: Key) -> bool:
+	for event in InputMap.action_get_events(action):
+		if event is InputEventKey:
+			var key: InputEventKey = event
+			if key.physical_keycode == code or key.keycode == code:
+				return true
+	return false
 
 
 func _make_actor(actor_name: String, groups: Array, cell: Vector2i, hp: int) -> Node2D:
