@@ -39,7 +39,7 @@ func _process(_delta: float) -> void:
 	_host_tick_living_movers()
 
 
-func _on_host_started(_player_name: String = "") -> void:
+func _on_host_started(_player_name = null) -> void:
 	if not Lobby.is_network_server():
 		return
 	reset_reveals()
@@ -174,7 +174,7 @@ func _send_dm_delta(packed: PackedInt32Array) -> void:
 	var dm_peer := _dm_peer_id()
 	if dm_peer <= 0:
 		return
-	# Host may also be the DM (listen server).
+	# Host may also be the DM (listen server) — local set already updated.
 	if dm_peer == multiplayer.get_unique_id():
 		return
 	_rpc_dm_delta.rpc_id(dm_peer, packed)
@@ -184,6 +184,8 @@ func _on_peer_connected(peer_id: int) -> void:
 	if not Lobby.is_network_server():
 		return
 	_ensure_peer_connected_hook()
+	# Role may not be known yet; default PP shared snapshot. DM spawn path /
+	# request_reveal_snapshot corrects with dm_reveal (AC10 / AC11).
 	if _is_dm_peer(peer_id):
 		_rpc_dm_snapshot.rpc_id(peer_id, snapshot_for_role(ROLE_DM))
 	else:
@@ -198,6 +200,27 @@ func send_late_join_snapshot(peer_id: int, role: int) -> void:
 		_rpc_dm_snapshot.rpc_id(peer_id, snapshot_for_role(ROLE_DM))
 	else:
 		_rpc_pp_snapshot.rpc_id(peer_id, snapshot_for_role(ROLE_PP))
+
+
+## Client asks host for the role-appropriate full set (late join / first paint).
+@rpc("any_peer", "reliable")
+func request_reveal_snapshot(role: int) -> void:
+	if not Lobby.is_network_server():
+		return
+	var peer_id: int = multiplayer.get_remote_sender_id()
+	if peer_id <= 0:
+		return
+	send_late_join_snapshot(peer_id, role)
+
+
+func request_snapshot_for_local_role(role: int) -> void:
+	if Lobby.is_network_server():
+		return
+	if not multiplayer.has_multiplayer_peer():
+		return
+	if multiplayer.multiplayer_peer is OfflineMultiplayerPeer:
+		return
+	request_reveal_snapshot.rpc_id(1, role)
 
 
 @rpc("authority", "reliable")
@@ -254,10 +277,32 @@ func _emit_role(role: int) -> void:
 func _dm_peer_id() -> int:
 	if DmManager.dm != null and is_instance_valid(DmManager.dm):
 		return int(DmManager.dm.get_multiplayer_authority())
-	return 1
+	return -1
 
 
 func _is_dm_peer(peer_id: int) -> bool:
 	if peer_id <= 0:
 		return false
-	return peer_id == _dm_peer_id()
+	var dm_peer := _dm_peer_id()
+	if dm_peer <= 0:
+		return false
+	return peer_id == dm_peer
+
+
+## Marker visibility helpers (FR-007) — host-known cells only.
+func should_show_pp_marker(viewer_role: int, pp_cell: Vector2i) -> bool:
+	if viewer_role == ROLE_PP:
+		return true
+	return is_cell_revealed(ROLE_DM, pp_cell)
+
+
+func should_show_dm_marker(viewer_role: int, dm_cell: Vector2i) -> bool:
+	if viewer_role == ROLE_DM:
+		return true
+	return is_cell_revealed(ROLE_PP, dm_cell)
+
+
+## Chebyshev brush cell count for radius r (filled square).
+static func brush_cell_count(radius: int = VISIT_RADIUS) -> int:
+	var side: int = radius * 2 + 1
+	return side * side
