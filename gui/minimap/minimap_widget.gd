@@ -466,8 +466,9 @@ func _draw_markers(ci: Control, interior: Rect2i, cell_w: float, cell_h: float, 
 
 
 func _draw_pip_tex(ci: Control, center: Vector2, cell_w: float, cell_h: float, tex: Texture2D, color: Color) -> void:
-	# Readable fixed minimum screen size; fog/zone/wall fills stay cell-sized.
-	var pip: float = maxf(minimap_pip_min_px, mini(cell_w, cell_h) * 0.55)
+	# Pips: max(cell_size, minimap_pip_min_px), centered. Fog/zone/wall fills stay cell-sized.
+	var cell_size: float = mini(cell_w, cell_h)
+	var pip: float = maxf(cell_size, minimap_pip_min_px)
 	if tex != null:
 		var rect := Rect2(center - Vector2(pip, pip) * 0.5, Vector2(pip, pip))
 		ci.draw_texture_rect(tex, rect, false)
