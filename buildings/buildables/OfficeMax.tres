@@ -1,6 +1,6 @@
 [gd_resource type="Resource" script_class="BuildingData" format=3]
 
-[ext_resource type="PackedScene" path="res://buildings/buildables/office_max.tscn" id="1_scene"]
+[ext_resource type="PackedScene" uid="uid://bomaxoffice001" path="res://buildings/buildables/office_max.tscn" id="1_scene"]
 [ext_resource type="Script" uid="uid://dlerv2lp0i1v8" path="res://buildings/building_data.gd" id="2_data"]
 
 [resource]

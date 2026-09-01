@@ -27,6 +27,10 @@ for scene in "${SCENES[@]}"; do
 		echo "FAIL ${scene} (no pass line)"
 		failed=1
 	fi
+	if ! echo "$out" | grep -Fq "US-010 place spawnable registration passed"; then
+		echo "FAIL ${scene} (no spawnable registration pass line)"
+		failed=1
+	fi
 done
 
 if [[ "$failed" -ne 0 ]]; then

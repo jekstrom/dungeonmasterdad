@@ -53,6 +53,39 @@ func _ready() -> void:
 	if data.cost_item != METAL or data.cost_qty != 3:
 		_fail("US-010 T002: Office Max must cost 3 metal")
 		return
+	if data.scene == null:
+		_fail("US-010: OfficeMax.tres scene must load")
+		return
+	var scene_probe: Node = data.scene.instantiate()
+	var script_path := ""
+	if scene_probe.get_script():
+		script_path = str(scene_probe.get_script().resource_path)
+	scene_probe.free()
+	if not script_path.ends_with("office_max.gd"):
+		_fail("US-010: office_max.tscn script must be office_max.gd, got %s" % script_path)
+		return
+
+	# BuildingSpawner must register office_max so MultiplayerSpawner accepts place.
+	var spawn_host := Node2D.new()
+	spawn_host.name = "Buildings"
+	add_child(spawn_host)
+	var building_spawner := MultiplayerSpawner.new()
+	building_spawner.set_script(load("res://scripts/building_spawner.gd"))
+	building_spawner.name = "BuildingSpawner"
+	building_spawner.spawn_path = NodePath("..")
+	spawn_host.add_child(building_spawner)
+	await get_tree().process_frame
+	var found_office_max := false
+	var spawnable_paths: Array[String] = []
+	for i in range(building_spawner.get_spawnable_scene_count()):
+		var path: String = str(building_spawner.get_spawnable_scene(i))
+		spawnable_paths.append(path)
+		if path.ends_with("office_max.tscn") or path.contains("bomaxoffice001"):
+			found_office_max = true
+	if not found_office_max:
+		_fail("US-010: BuildingSpawner must register office_max.tscn, have %s" % str(spawnable_paths))
+		return
+	print("US-010 place spawnable registration passed")
 
 	var size := Vector2(data.size)
 	var legal: Vector2 = _first_clear(size)
