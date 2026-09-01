@@ -19,6 +19,7 @@ var invulnerable: bool = false
 
 var current_building_data: BuildingData
 var ghost_building: Node2D
+var _suppress_primary_staple_click: bool = false
 
 @export var num_shadows: int = 0
 @export var shadow_scene: PackedScene
@@ -984,7 +985,14 @@ func wants_fire_staple(event: InputEvent) -> bool:
 	if event.is_action_pressed("fire"):
 		return true
 	# LMB is also primary_click (building). Fire only when not placing.
+	# Dedicated `fire` action above still works while a ghost is up.
 	if event.is_action_pressed("primary_click"):
+		if current_building_data != null or ghost_building != null:
+			return false
+		# Place clears ghost in _unhandled_input before sibling/state handlers
+		# see the same LMB; suppress staple on that click.
+		if _suppress_primary_staple_click:
+			return false
 		return true
 	return false
 
@@ -1004,10 +1012,16 @@ func try_fire_staple_from_input() -> void:
 		return
 	if is_combat_locked():
 		return
+	if _suppress_primary_staple_click:
+		return
 	# Queue until end of physics frame so same-frame melee (T006) can win.
 	_queued_staple_fire = true
 
 func _flush_queued_staple_fire() -> void:
+	if _suppress_primary_staple_click:
+		_suppress_primary_staple_click = false
+		_queued_staple_fire = false
+		return
 	if not _queued_staple_fire:
 		return
 	_queued_staple_fire = false
@@ -1134,6 +1148,9 @@ func _unhandled_input(event: InputEvent) -> void:
 				BuildingManager.request_placement.rpc_id(1, place_id, place_at, place_at)
 			current_building_data = null
 			_clear_ghost_building()
+			# Same LMB must not also staple-fire after ghost clear.
+			_suppress_primary_staple_click = true
+			get_viewport().set_input_as_handled()
 
 # =============================================================================
 # DEATH SYSTEM INTEGRATION

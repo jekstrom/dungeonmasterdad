@@ -8,6 +8,7 @@ cd "$ROOT"
 
 SCENES=(
 	test_harness/procedural_dungeon/us010_office_max_test.tscn
+	test_harness/procedural_dungeon/us010_place_then_staple_test.tscn
 )
 
 failed=0
@@ -25,13 +26,20 @@ for scene in "${SCENES[@]}"; do
 		failed=1
 		continue
 	fi
-	if ! echo "$out" | grep -Eq "US-010 T002/T003 office max test passed|US-010 T002-T007 office max test passed"; then
-		echo "FAIL ${scene} (no pass line)"
-		failed=1
-	fi
-	if ! echo "$out" | grep -Fq "US-010 place spawnable registration passed"; then
-		echo "FAIL ${scene} (no spawnable registration pass line)"
-		failed=1
+	if echo "$scene" | grep -q place_then_staple; then
+		if ! echo "$out" | grep -Fq "US-010 place-OfficeMax-then-staple passed"; then
+			echo "FAIL ${scene} (no place-then-staple pass line)"
+			failed=1
+		fi
+	else
+		if ! echo "$out" | grep -Eq "US-010 T002/T003 office max test passed|US-010 T002-T007 office max test passed"; then
+			echo "FAIL ${scene} (no pass line)"
+			failed=1
+		fi
+		if ! echo "$out" | grep -Fq "US-010 place spawnable registration passed"; then
+			echo "FAIL ${scene} (no spawnable registration pass line)"
+			failed=1
+		fi
 	fi
 done
 
