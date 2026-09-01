@@ -4,7 +4,11 @@ const TREE_TYPE_COUNT := 10
 
 @export var tree_scatter_density: float = 0.08
 @export var mine_scatter_count: int = 3
+@export var exit_forest_density: float = 0.78
+@export var exit_forest_pocket_radius: int = 2
 var _mine_scene: PackedScene = preload("res://doodads/mine.tscn")
+var _skill_tree_scene: PackedScene = preload("res://doodads/skill_tree.tscn")
+var _exit_forest_planner: ExitForestPlanner = ExitForestPlanner.new()
 
 var damage_numbers_scene: PackedScene = preload("res://spells/damage_number.tscn")
 var is_shadow_zone: bool = false
@@ -210,6 +214,7 @@ func apply_map_interior(interior: Rect2i, dungeon: Rect2i = Rect2i(), exit_cell:
 	rebuild_outside_fill()
 	strip_outside_tiles_from_dungeon_cells()
 	rebuild_tree_scatter()
+	rebuild_exit_forest()
 	rebuild_mine_scatter()
 
 func clear_map_interior() -> void:
@@ -264,6 +269,7 @@ func apply_map_sync_payload(payload: Dictionary) -> void:
 	_apply_trees_from_payload(payload.get("trees", []))
 	_apply_mines_from_payload(payload.get("mines", []))
 	strip_outside_tiles_from_dungeon_cells()
+	rebuild_exit_forest()
 	SignalBus.map_bounds_committed.emit(interior)
 
 @rpc("authority", "reliable")
@@ -280,6 +286,7 @@ func _rpc_clear_map_interior() -> void:
 	rebuild_cliff_ring()
 	rebuild_outside_fill()
 	rebuild_tree_scatter()
+	rebuild_exit_forest()
 	rebuild_mine_scatter()
 	SignalBus.map_bounds_cleared.emit()
 
@@ -457,6 +464,144 @@ func _exit_from_manager() -> Vector2i:
 		return manager.get_exit_cell()
 	return DungeonGrid.SENTINEL
 
+func exit_forest_plan() -> Dictionary:
+	var buildings: Dictionary = {}
+	for cell in _building_blocked_cells():
+		buildings[cell] = true
+	return _exit_forest_planner.plan(
+		map_bounds,
+		dungeon_cell_bounds(),
+		dungeon_exit_cell(),
+		exit_forest_pocket_radius,
+		buildings
+	)
+
+
+func exit_forest_pocket_cells() -> Array[Vector2i]:
+	var cells: Array[Vector2i] = []
+	for cell in exit_forest_plan().get("pocket", []):
+		cells.append(cell)
+	return cells
+
+
+func exit_forest_egress_cells() -> Array[Vector2i]:
+	var cells: Array[Vector2i] = []
+	for cell in exit_forest_plan().get("egress", []):
+		cells.append(cell)
+	return cells
+
+
+func rebuild_exit_forest() -> void:
+	var parent: Node2D = _exit_forest_trees_parent()
+	_clear_named_tile_children(parent, "exit_forest_trees")
+	_clear_exit_forest_skill_trees(parent)
+	if not map_bounds.has_committed_bounds():
+		return
+	if _tree_scene == null:
+		return
+	var plan: Dictionary = exit_forest_plan()
+	var placeable: Array = plan.get("placeable", [])
+	if placeable.is_empty():
+		# Degenerate bounds: never punch dungeon cells; leave pocket empty.
+		_supersede_authored_skill_trees(null)
+		return
+	var rng := RandomNumberGenerator.new()
+	rng.seed = _exit_forest_seed(map_bounds.get_interior(), dungeon_cell_bounds(), dungeon_exit_cell())
+	var skill_cell: Vector2i = _exit_forest_planner.pick_skill_tree_cell(plan, rng)
+	var place_set: Array[Vector2i] = []
+	for cell in placeable:
+		if cell == skill_cell:
+			continue
+		place_set.append(cell)
+	_shuffle_cells(place_set, rng)
+	var density: float = clampf(exit_forest_density, 0.0, 1.0)
+	var count: int = int(round(float(place_set.size()) * density))
+	count = mini(count, place_set.size())
+	# Dense forest should still read as woods when the pocket is tiny.
+	if count < place_set.size() and density >= 0.5 and place_set.size() <= 3:
+		count = place_set.size()
+	for i in range(count):
+		var cell: Vector2i = place_set[i]
+		var doodad: Node2D = _tree_scene.instantiate() as Node2D
+		if doodad == null:
+			continue
+		if "tree_type" in doodad:
+			doodad.tree_type = rng.randi_range(0, TREE_TYPE_COUNT - 1)
+		doodad.name = ("exit_tree_%d_%d" % [cell.x, cell.y]).validate_node_name()
+		doodad.position = DungeonGrid.to_world_center(cell)
+		doodad.add_to_group("exit_forest_trees")
+		parent.add_child(doodad)
+	var skill: Node2D = null
+	if skill_cell != DungeonGrid.SENTINEL and _skill_tree_scene != null:
+		skill = _skill_tree_scene.instantiate() as Node2D
+		if skill != null:
+			skill.name = ("exit_skill_tree_%d_%d" % [skill_cell.x, skill_cell.y]).validate_node_name()
+			skill.position = DungeonGrid.to_world_center(skill_cell)
+			# Match playground authored instance scale (scene art is authored large).
+			skill.scale = Vector2(0.25, 0.25)
+			skill.add_to_group("exit_forest_skill_trees")
+			# Keep interact group used by SkillTreeDoodad._ready.
+			parent.add_child(skill)
+	_supersede_authored_skill_trees(skill)
+
+
+func _exit_forest_seed(interior: Rect2i, dungeon: Rect2i, exit_cell: Vector2i) -> int:
+	return _exit_forest_planner.seed_hash(interior, dungeon, exit_cell)
+
+
+func _exit_forest_trees_parent() -> Node2D:
+	var existing: Node = get_node_or_null("ExitForestTrees")
+	if existing is Node2D:
+		return existing
+	var created := Node2D.new()
+	created.name = "ExitForestTrees"
+	created.y_sort_enabled = true
+	add_child(created)
+	return created
+
+
+func _clear_exit_forest_skill_trees(parent: Node) -> void:
+	var doomed: Array[Node] = []
+	for child in parent.get_children():
+		if child.is_in_group("exit_forest_skill_trees") or child.is_in_group("skill_trees"):
+			doomed.append(child)
+	for node in doomed:
+		if node.is_in_group("exit_forest_skill_trees"):
+			node.remove_from_group("exit_forest_skill_trees")
+		if node.is_in_group("skill_trees"):
+			node.remove_from_group("skill_trees")
+		if node.is_in_group("exit_forest_trees"):
+			node.remove_from_group("exit_forest_trees")
+		var p: Node = node.get_parent()
+		if p:
+			p.remove_child(node)
+		node.queue_free()
+
+
+func _supersede_authored_skill_trees(keep: Node) -> void:
+	# FR-004: authored playground SkillTree must not remain the match source.
+	# Only remove non-procedural SkillTrees (leave ExitForestTrees instances alone).
+	var scene_tree := get_tree()
+	if scene_tree == null:
+		return
+	var doomed: Array[Node] = []
+	for node in scene_tree.get_nodes_in_group("skill_trees"):
+		if node == keep:
+			continue
+		if not is_instance_valid(node):
+			continue
+		if node.is_in_group("exit_forest_skill_trees"):
+			continue
+		doomed.append(node)
+	for node in doomed:
+		if node.is_in_group("skill_trees"):
+			node.remove_from_group("skill_trees")
+		var p: Node = node.get_parent()
+		if p:
+			p.remove_child(node)
+		node.queue_free()
+
+
 func rebuild_tree_scatter() -> void:
 	var parent: Node2D = _scattered_trees_parent()
 	_clear_named_tile_children(parent, "scattered_trees")
@@ -514,6 +659,13 @@ func mine_scatter_eligible_cells() -> Array[Vector2i]:
 		for child in tree_parent.get_children():
 			if child is Node2D:
 				taken[DungeonGrid.from_world((child as Node2D).position)] = true
+	var forest_parent: Node = get_node_or_null("ExitForestTrees")
+	if forest_parent:
+		for child in forest_parent.get_children():
+			if child is Node2D:
+				taken[DungeonGrid.from_world((child as Node2D).position)] = true
+	for cell in exit_forest_plan().get("pocket", []):
+		taken[cell] = true
 	var fantasy: Node = null
 	var scene_tree := get_tree()
 	if scene_tree:
@@ -560,6 +712,12 @@ func _tree_scatter_blocked_cells() -> Dictionary:
 		blocked[exit_cell] = true
 		for neighbor in DungeonGrid.neighbors(exit_cell):
 			blocked[neighbor] = true
+	# US-032 T005: sparse scatter must skip the entire exit forest pocket.
+	var plan: Dictionary = exit_forest_plan()
+	for cell in plan.get("pocket", []):
+		blocked[cell] = true
+	for cell in plan.get("egress", []):
+		blocked[cell] = true
 	for cell in _building_blocked_cells():
 		blocked[cell] = true
 	return blocked
