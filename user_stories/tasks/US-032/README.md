@@ -1,8 +1,8 @@
 # US-032 tasks: Generated dungeon exit forest
 
 **Story**: [US-032.md](../../US-032.md)  
-**Branch**: `032-dungeon-exit-forest`  
-**Status**: Todo
+**Branch**: `032-exit-forest`  
+**Status**: Done
 
 Dense **TreeDoodad** forest + one **SkillTreeDoodad** immediately outside the procedural dungeon exit. Follows the exit when generation moves it. No trees on dungeon footprint. Markdown only until James signs — no Art/Gameplay/QA handoff yet.
 

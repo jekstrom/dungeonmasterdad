@@ -1,7 +1,7 @@
 # T001: Exit forest pocket from live exit
 
 **Story**: US-032  
-**Status**: Todo  
+**Status**: Done  
 **Depends on**: US-015 exit cell/door, US-024 map bounds  
 **Parallel**: no
 

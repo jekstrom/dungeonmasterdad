@@ -1,7 +1,7 @@
 # T004: Forest follows exit rebuild
 
 **Story**: US-032  
-**Status**: Todo  
+**Status**: Done  
 **Depends on**: T002, T003  
 **Parallel**: no
 
