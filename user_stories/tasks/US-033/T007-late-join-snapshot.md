@@ -1,7 +1,7 @@
 # T007: Late-join reveal snapshot
 
 **Story**: US-033  
-**Status**: Todo  
+**Status**: Done  
 **Depends on**: T003, T004  
 **Parallel**: no  
 **Owner (after sign)**: Gameplay

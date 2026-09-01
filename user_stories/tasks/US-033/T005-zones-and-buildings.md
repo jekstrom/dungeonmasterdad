@@ -1,7 +1,7 @@
 # T005: Zones and buildings on revealed cells
 
 **Story**: US-033  
-**Status**: Todo  
+**Status**: Done  
 **Depends on**: T003 or T004  
 **Parallel**: after either reveal path works for that HUD  
 **Owner (after sign)**: Gameplay

@@ -1,7 +1,7 @@
 # T004: DM private reveal
 
 **Story**: US-033  
-**Status**: Todo  
+**Status**: Done  
 **Depends on**: T002  
 **Parallel**: with T003  
 **Owner (after sign)**: Gameplay / Systems

@@ -2,7 +2,7 @@
 
 **Story**: [US-033.md](../../US-033.md)  
 **Branch**: `033-minimap`  
-**Status**: Signed — in progress
+**Status**: Signed — Gameplay T001–T007+T009 Done (T008 Art landed)
 
 Corner mini-map for every player. **Shared PP fog** (`pp_shared_reveal`) vs **private DM fog** (`dm_reveal`). Visit-radius reveal (Chebyshev 3). James signed at `219629e`; Art + Gameplay kicked off. Defaults in the story **Open defaults** table are locked unless overridden.
 

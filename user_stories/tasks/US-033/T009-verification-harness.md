@@ -1,7 +1,7 @@
 # T009: Verification harness
 
 **Story**: US-033  
-**Status**: Todo  
+**Status**: Done  
 **Depends on**: T003–T007  
 **Parallel**: no  
 **Owner (after sign)**: QA / Gameplay
