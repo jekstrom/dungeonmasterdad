@@ -96,14 +96,11 @@ func apply_ruined_placeholder_visuals() -> void:
 	var sprite := get_node_or_null("Sprite2D") as Sprite2D
 	if sprite == null:
 		return
-	var ruined_path := RUINED_SPRITE
-	if not ResourceLoader.exists(ruined_path):
-		ruined_path = "res://sprites/office_max_ruined.png"
-	if ResourceLoader.exists(ruined_path):
-		sprite.texture = load(ruined_path)
+	if ResourceLoader.exists(RUINED_SPRITE):
+		sprite.texture = load(RUINED_SPRITE)
 		sprite.modulate = Color(1, 1, 1, 1)
 	else:
-		# Art will swap when rubble/ruined sheet lands; darken live sprite.
+		# Rubble missing: darken live sprite.
 		if sprite.texture == null and ResourceLoader.exists(LIVE_SPRITE):
 			sprite.texture = load(LIVE_SPRITE)
 		sprite.modulate = Color(0.35, 0.35, 0.35, 1.0)
