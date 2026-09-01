@@ -229,21 +229,27 @@ func _assert_t010_world_content(reveal: Node, widget: Control, interior: Rect2i)
 	var exit_tree := _make_content_node("tree_exit", ["exit_forest_trees"], Vector2i(6, 3), {
 		"is_stump": false,
 	})
+	var skill_tree := _make_content_node("skill_tree", ["skill_trees", "exit_forest_skill_trees"], Vector2i(6, 5), {})
 	var mine := _make_content_node("mine_active", ["scattered_mines", "mines"], Vector2i(7, 4), {
 		"is_depleted": false,
 	})
 	var mine_dead := _make_content_node("mine_dead", ["scattered_mines", "mines"], Vector2i(7, 5), {
 		"is_depleted": true,
 	})
-	var wall := _make_content_node("dungeon_wall", ["wall"], Vector2i(9, 4), {})
+	# Real generated walls use generated_dungeon_tiles + wall_type; group "wall" also accepted.
+	var wall := _make_content_node("dungeon_wall", ["generated_dungeon_tiles"], Vector2i(9, 4), {
+		"wall_type": 1,
+	})
 	var fog_tree := _make_content_node("tree_fogged", ["scattered_trees"], Vector2i(14, 8), {
 		"is_stump": false,
 	})
 	var fog_mine := _make_content_node("mine_fogged", ["scattered_mines", "mines"], Vector2i(14, 7), {
 		"is_depleted": false,
 	})
-	var fog_wall := _make_content_node("wall_fogged", ["wall"], Vector2i(15, 8), {})
-	for n in [living, stump, exit_tree, mine, mine_dead, wall, fog_tree, fog_mine, fog_wall]:
+	var fog_wall := _make_content_node("wall_fogged", ["generated_dungeon_tiles"], Vector2i(15, 8), {
+		"wall_type": 2,
+	})
+	for n in [living, stump, exit_tree, skill_tree, mine, mine_dead, wall, fog_tree, fog_mine, fog_wall]:
 		add_child(n)
 	await get_tree().process_frame
 	# Clear any tick reveals from prior living movers; actors are downed by caller.
@@ -252,6 +258,7 @@ func _assert_t010_world_content(reveal: Node, widget: Control, interior: Rect2i)
 	var living_cell: Vector2i = DungeonGrid.from_world(living.global_position)
 	var stump_cell: Vector2i = DungeonGrid.from_world(stump.global_position)
 	var exit_cell: Vector2i = DungeonGrid.from_world(exit_tree.global_position)
+	var skill_cell: Vector2i = DungeonGrid.from_world(skill_tree.global_position)
 	var mine_cell: Vector2i = DungeonGrid.from_world(mine.global_position)
 	var mine_dead_cell: Vector2i = DungeonGrid.from_world(mine_dead.global_position)
 	var wall_cell: Vector2i = DungeonGrid.from_world(wall.global_position)
@@ -272,8 +279,8 @@ func _assert_t010_world_content(reveal: Node, widget: Control, interior: Rect2i)
 	if wall_cell in walls_fog or fog_wall_cell in walls_fog:
 		return _fail("US-033 T010: wall tint must not leak through fog")
 
-	# Reveal living tree / exit tree / mine / wall — leave fog_* unrevealed
-	for cell in [living_cell, stump_cell, exit_cell, mine_cell, mine_dead_cell, wall_cell]:
+	# Reveal living tree / exit tree / skill tree / mine / wall — leave fog_* unrevealed
+	for cell in [living_cell, stump_cell, exit_cell, skill_cell, mine_cell, mine_dead_cell, wall_cell]:
 		reveal.apply_visit_at(false, cell)
 
 	var trees = widget.collect_revealed_tree_cells(reveal, interior)
@@ -284,6 +291,8 @@ func _assert_t010_world_content(reveal: Node, widget: Control, interior: Rect2i)
 		return _fail("US-033 T010: living scattered tree must show when revealed")
 	if exit_cell not in trees:
 		return _fail("US-033 T010: exit-forest living tree must show when revealed")
+	if skill_cell not in trees:
+		return _fail("US-033 T010: skill tree must show when revealed")
 	if stump_cell in trees:
 		return _fail("US-033 T010: stump must be omitted by default")
 	if fog_tree_cell in trees:

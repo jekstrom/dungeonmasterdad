@@ -246,21 +246,7 @@ func _cell_revealed(reveal: Node, cell: Vector2i) -> bool:
 
 
 func _draw_dungeon_walls(ci: Control, interior: Rect2i, cell_w: float, cell_h: float, reveal: Node) -> void:
-	var tree := get_tree()
-	if tree == null:
-		return
-	var painted: Dictionary = {}
-	for node in tree.get_nodes_in_group("wall"):
-		if not (node is Node2D):
-			continue
-		var cell: Vector2i = DungeonGrid.from_world((node as Node2D).global_position)
-		if painted.has(cell):
-			continue
-		if not interior.has_point(cell):
-			continue
-		if not _cell_revealed(reveal, cell):
-			continue
-		painted[cell] = true
+	for cell in collect_revealed_wall_cells(reveal, interior):
 		var local := Vector2(
 			float(cell.x - interior.position.x) * cell_w,
 			float(cell.y - interior.position.y) * cell_h
@@ -287,7 +273,7 @@ func _draw_mines(ci: Control, interior: Rect2i, cell_w: float, cell_h: float, re
 		_draw_pip_tex(ci, center, cell_w, cell_h, _tex_mine, MINE_COLOR)
 
 
-## Harness / debug: living scattered + exit-forest trees on revealed cells (stumps off by default).
+## Harness / debug: living scattered + exit-forest (+ skill) trees on revealed cells (stumps off by default).
 func collect_revealed_tree_cells(reveal: Node, interior: Rect2i = Rect2i()) -> Array[Vector2i]:
 	var out: Array[Vector2i] = []
 	var tree := get_tree()
@@ -296,7 +282,7 @@ func collect_revealed_tree_cells(reveal: Node, interior: Rect2i = Rect2i()) -> A
 	if interior == Rect2i():
 		interior = _interior_rect()
 	var seen: Dictionary = {}
-	for group_name in ["scattered_trees", "exit_forest_trees"]:
+	for group_name in ["scattered_trees", "exit_forest_trees", "skill_trees", "exit_forest_skill_trees"]:
 		for node in tree.get_nodes_in_group(group_name):
 			if not (node is Node2D):
 				continue
@@ -347,6 +333,8 @@ func collect_revealed_mine_cells(reveal: Node, interior: Rect2i = Rect2i()) -> A
 
 
 ## Harness / debug: dungeon wall footprint cells that are revealed.
+## Real walls are WallDoodad under generated_dungeon_tiles (have wall_type).
+## Group "wall" is also accepted for harness / authored markers.
 func collect_revealed_wall_cells(reveal: Node, interior: Rect2i = Rect2i()) -> Array[Vector2i]:
 	var out: Array[Vector2i] = []
 	var tree := get_tree()
@@ -355,7 +343,14 @@ func collect_revealed_wall_cells(reveal: Node, interior: Rect2i = Rect2i()) -> A
 	if interior == Rect2i():
 		interior = _interior_rect()
 	var seen: Dictionary = {}
+	var nodes: Array = []
+	for node in tree.get_nodes_in_group("generated_dungeon_tiles"):
+		if "wall_type" in node:
+			nodes.append(node)
 	for node in tree.get_nodes_in_group("wall"):
+		if not nodes.has(node):
+			nodes.append(node)
+	for node in nodes:
 		if not (node is Node2D):
 			continue
 		var cell: Vector2i = DungeonGrid.from_world((node as Node2D).global_position)
