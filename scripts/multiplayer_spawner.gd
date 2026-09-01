@@ -387,6 +387,11 @@ func _sync_global_state_to_peer(id: int) -> void:
 		dm_max = int(DmManager.dm.max_hp)
 	sync_global_state.rpc_id(id, DmManager.fantasy_level, DmManager.current_mana, DmManager.max_mana, DmUnlocks.snapshot(), int(PlayerManager.reality_level), dm_hp, dm_max)
 	DmManager.sync_blizzard_to_peer(id)
+	if MinimapReveal:
+		var is_dm := false
+		if DmManager.dm != null and is_instance_valid(DmManager.dm):
+			is_dm = int(DmManager.dm.get_multiplayer_authority()) == id
+		MinimapReveal.send_late_join_snapshot(id, is_dm)
 
 @rpc("authority", "call_local", "reliable")
 func sync_global_state(f: int, mana: int = 0, mana_max: int = 100, unlocks: Dictionary = {}, reality_lv: int = -1, dm_hp: int = -1, dm_max_hp: int = -1) -> void:

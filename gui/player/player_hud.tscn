@@ -165,3 +165,4 @@ text = "20/20"
 vertical_alignment = 1
 
 [node name="MinimapWidget" parent="." instance=ExtResource("12_minimap")]
+role_is_dm = false

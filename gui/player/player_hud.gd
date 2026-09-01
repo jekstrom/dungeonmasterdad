@@ -25,7 +25,9 @@ func _ready() -> void:
 	update_staple_magazine(20, 20)
 	if minimap_widget:
 		if minimap_widget.has_method("configure"):
-			minimap_widget.configure(0)  # ROLE_PP
+			minimap_widget.configure(false)
+		elif "role_is_dm" in minimap_widget:
+			minimap_widget.role_is_dm = false
 		_pass_world_clicks_through(minimap_widget)
 	_pass_world_clicks_through(self)
 
@@ -94,3 +96,11 @@ func update_staple_magazine(count: int, mag_max: int) -> void:
 		icon.visible = true
 		if icon.texture == null:
 			icon.texture = load("res://sprites/staple_hud_icon.png")
+
+func _unhandled_input(event: InputEvent) -> void:
+	if not visible:
+		return
+	if event.is_action_pressed("toggle_minimap"):
+		if minimap_widget and minimap_widget.has_method("toggle_map"):
+			minimap_widget.toggle_map()
+			get_viewport().set_input_as_handled()

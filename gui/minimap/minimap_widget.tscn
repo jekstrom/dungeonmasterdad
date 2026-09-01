@@ -1,19 +1,47 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://gui/minimap/minimap_widget.gd" id="1_minimap"]
+[ext_resource type="Texture2D" path="res://gui/minimap/frame.png" id="2_frame"]
+[ext_resource type="Script" path="res://gui/minimap/minimap_map_view.gd" id="3_mapview"]
 
 [node name="MinimapWidget" type="Control"]
-custom_minimum_size = Vector2(200, 200)
+custom_minimum_size = Vector2(208, 208)
 anchors_preset = 3
 anchor_left = 1.0
 anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = -212.0
-offset_top = -212.0
+offset_left = -220.0
+offset_top = -220.0
 offset_right = -12.0
 offset_bottom = -12.0
 grow_horizontal = 0
 grow_vertical = 0
 mouse_filter = 2
 script = ExtResource("1_minimap")
+
+[node name="MapView" type="Control" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 12.0
+offset_top = 12.0
+offset_right = -12.0
+offset_bottom = -12.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("3_mapview")
+
+[node name="Frame" type="TextureRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = ExtResource("2_frame")
+expand_mode = 1
+stretch_mode = 5

@@ -39,7 +39,7 @@ func _ready() -> void:
 	_apply_unlock_visibility()
 	_on_respawn_countdown_changed(-1.0)
 	if minimap_widget and minimap_widget.has_method("configure"):
-		minimap_widget.configure(1)  # ROLE_DM
+		minimap_widget.configure(true)
 	if minimap_widget:
 		minimap_widget.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
@@ -111,3 +111,11 @@ func _apply_unlock_visibility() -> void:
 
 func _toggle_skill_tree_hud() -> void:
 	skill_tree.visible = !skill_tree.visible
+
+func _unhandled_input(event: InputEvent) -> void:
+	if not visible:
+		return
+	if event.is_action_pressed("toggle_minimap"):
+		if minimap_widget and minimap_widget.has_method("toggle_map"):
+			minimap_widget.toggle_map()
+			get_viewport().set_input_as_handled()

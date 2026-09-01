@@ -187,3 +187,4 @@ texture_pressed = ExtResource("9_blizzard")
 stretch_mode = 0
 
 [node name="MinimapWidget" parent="." instance=ExtResource("10_minimap")]
+role_is_dm = true
