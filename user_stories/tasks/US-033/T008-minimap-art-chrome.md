@@ -2,13 +2,13 @@
 
 **Story**: US-033  
 **Status**: Todo  
-**Depends on**: T001 (chrome); T005/T006 for final pip pass  
+**Depends on**: T001 (chrome); T005/T006/T010 for final pip pass  
 **Parallel**: with Gameplay after T001  
 **Owner (after sign)**: Art
 
 ## Goal
 
-Ship mini-map frame chrome, fog/zone modulate guidance, and small PP / DM / building pips per story art table. Gameplay may keep rect placeholders until these land.
+Ship mini-map frame chrome, fog/zone modulate guidance, dungeon wall-tint guidance, and small PP / DM / building / **tree** / **mine** pips per story art table. Gameplay may keep rect placeholders until these land.
 
 ## Files
 
