@@ -130,12 +130,18 @@ func _ready() -> void:
 			return
 	# Sparse trees must not live under ExitForestTrees / ScatteredTrees on pocket.
 	var scattered: Node = level.get_node_or_null("ScatteredTrees")
+	var sparse_outside := 0
 	if scattered:
 		for child in scattered.get_children():
 			var cell: Vector2i = DungeonGrid.from_world(child.position)
 			if pocket.has(cell):
 				_fail("US-032: sparse tree inside pocket %s" % cell)
 				return
+			sparse_outside += 1
+	# AC6: eligible outside pocket still gets US-024 sparse trees.
+	if sparse_outside < 1:
+		_fail("US-032: expected sparse trees outside pocket")
+		return
 
 	# Peer seed match
 	var other := Node2D.new()
@@ -158,19 +164,35 @@ func _ready() -> void:
 	await get_tree().process_frame
 	var plan_b: Dictionary = level.exit_forest_plan()
 	var pocket_b: Array = plan_b.get("pocket", [])
+	var egress_b: Array = plan_b.get("egress", [])
 	if pocket_b.is_empty():
 		_fail("US-032: pocket empty after exit move")
 		return
 	var occupied_after: Dictionary = {}
+	var forest_after: Dictionary = {}
 	var skill_after := 0
+	var skill_cell_after := DungeonGrid.SENTINEL
 	for child in forest_parent.get_children():
 		var cell: Vector2i = DungeonGrid.from_world(child.position)
 		occupied_after[cell] = true
 		if child.is_in_group("exit_forest_skill_trees") or child.is_in_group("skill_trees"):
 			skill_after += 1
+			skill_cell_after = cell
+		elif child.is_in_group("exit_forest_trees"):
+			forest_after[cell] = true
 	if skill_after != 1:
 		_fail("US-032: after exit move SkillTree count %d" % skill_after)
 		return
+	if skill_cell_after == DungeonGrid.SENTINEL or not pocket_b.has(skill_cell_after):
+		_fail("US-032: after exit move SkillTree not in new pocket %s" % skill_cell_after)
+		return
+	if egress_b.has(skill_cell_after):
+		_fail("US-032: after exit move SkillTree on new egress %s" % skill_cell_after)
+		return
+	for cell in egress_b:
+		if forest_after.has(cell) or cell == skill_cell_after:
+			_fail("US-032: after exit move egress cell occupied %s" % cell)
+			return
 	# No orphan forest keyed only to old pocket (unless overlap with new pocket).
 	for cell in old_pocket:
 		if occupied_after.has(cell) and not pocket_b.has(cell):
