@@ -4,7 +4,7 @@
 **Branch**: `033-minimap`  
 **Status**: Signed — in progress
 
-Corner mini-map for every player. **Shared PP fog** (`pp_shared_reveal`) vs **private DM fog** (`dm_reveal`). Visit-radius reveal (Chebyshev 3). James signed at `219629e`; Art + Gameplay kicked off. Defaults in the story **Open defaults** table are locked unless overridden. **Scope add:** revealed-cell **trees**, **mines**, and **dungeon wall** silhouette (T010) from James on PR #14 (`5c1da01`).
+Corner mini-map for every player. **Shared PP fog** (`pp_shared_reveal`) vs **private DM fog** (`dm_reveal`). Visit-radius reveal (Chebyshev 3). James signed at `219629e`; Art + Gameplay kicked off. Defaults in the story **Open defaults** table are locked unless overridden. **Scope add:** revealed-cell **trees**, **mines**, and **dungeon wall** silhouette (T010) from James on PR #14 (`5c1da01`). **Debug:** `F10` local mini-map full-reveal paint override (FR-012; does not change peer fog).
 
 ## Order
 
