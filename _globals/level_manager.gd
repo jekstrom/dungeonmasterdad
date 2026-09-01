@@ -6,7 +6,7 @@ const TREE_TYPE_COUNT := 10
 @export var mine_scatter_count: int = 3
 ## Exit forest fill fraction in [0, 1] (not a 1–10 scale). Values >1 clamp to 1.0 = max dense.
 @export_range(0.0, 1.0, 0.01) var exit_forest_density: float = 0.85
-@export var exit_forest_pocket_radius: int = 2
+@export var exit_forest_pocket_radius: int = 5
 var _mine_scene: PackedScene = preload("res://doodads/mine.tscn")
 var _skill_tree_scene: PackedScene = preload("res://doodads/skill_tree.tscn")
 var _exit_forest_planner: ExitForestPlanner = ExitForestPlanner.new()
@@ -526,11 +526,8 @@ func rebuild_exit_forest() -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = _exit_forest_seed(map_bounds.get_interior(), dungeon_cell_bounds(), dungeon_exit_cell())
 	var skill_cell: Vector2i = _exit_forest_planner.pick_skill_tree_cell(plan, rng)
-	var place_set: Array[Vector2i] = []
-	for cell in placeable:
-		if cell == skill_cell:
-			continue
-		place_set.append(cell)
+	# Regular trees only on leftover placeable after Skill Tree + Chebyshev-1 ring.
+	var place_set: Array[Vector2i] = _exit_forest_planner.skill_tree_tree_placeable(plan, skill_cell)
 	_shuffle_cells(place_set, rng)
 	# Density is a 0–1 fill fraction; >1 (confused 1–10 knobs) => max dense.
 	var density: float = _exit_forest_planner.normalize_density(exit_forest_density)

@@ -93,25 +93,69 @@ func plan(
 
 
 func pick_skill_tree_cell(plan_data: Dictionary, rng: RandomNumberGenerator) -> Vector2i:
+	## Prefer placeable cell nearest the live exit/landing (Chebyshev, same as pocket).
+	## Prefer cells that can keep an empty 8-neigh ring (no forest trunks on Chebyshev-1).
+	## Fallback: nearest that can clear the ring, then any placeable.
 	var placeable: Array = plan_data.get("placeable", [])
 	if placeable.is_empty():
 		return DungeonGrid.SENTINEL
-	var pocket_set: Dictionary = {}
-	for cell in plan_data.get("pocket", []):
-		pocket_set[cell] = true
-	var best_score := -1
-	var best: Array[Vector2i] = []
+	var landing: Vector2i = plan_data.get("landing", DungeonGrid.SENTINEL)
+	var exit_cell: Vector2i = plan_data.get("exit_cell", DungeonGrid.SENTINEL)
+	var anchor: Vector2i = landing if landing != DungeonGrid.SENTINEL else exit_cell
+	var place_set: Dictionary = {}
 	for cell in placeable:
-		var neighbors_in_pocket := 0
-		for n in DungeonGrid.neighbors(cell):
-			if pocket_set.has(n):
-				neighbors_in_pocket += 1
-		if neighbors_in_pocket > best_score:
-			best_score = neighbors_in_pocket
+		place_set[cell] = true
+	# Tier 1: cells that allow a clear 8-neigh ring under adjacency exclusion.
+	var clearable: Array[Vector2i] = []
+	for cell in placeable:
+		if _skill_cell_allows_clear_ring(cell, place_set):
+			clearable.append(cell)
+	if not clearable.is_empty():
+		return _nearest_placeable(clearable, anchor, rng)
+	# Tier 2: any placeable (tiny degenerate pockets).
+	var any_cells: Array[Vector2i] = []
+	for cell in placeable:
+		any_cells.append(cell)
+	return _nearest_placeable(any_cells, anchor, rng)
+
+
+func skill_tree_tree_placeable(plan_data: Dictionary, skill_cell: Vector2i) -> Array[Vector2i]:
+	## Placeable leftover after Skill Tree + its Chebyshev-1 (8-neigh) exclusion.
+	var out: Array[Vector2i] = []
+	for cell in plan_data.get("placeable", []):
+		if skill_cell != DungeonGrid.SENTINEL and DungeonGrid.chebyshev(cell, skill_cell) <= 1:
+			continue
+		out.append(cell)
+	return out
+
+
+func _skill_cell_allows_clear_ring(cell: Vector2i, place_set: Dictionary) -> bool:
+	## True when rebuild can leave every placeable Chebyshev-1 neighbor empty.
+	## Always achievable via exclusion; kept as an explicit gate for tiny-pocket fallback.
+	# Vacuous / achievable: exclusion never forces a neighbor trunk.
+	return place_set.has(cell)
+
+
+func _nearest_placeable(
+	candidates: Array[Vector2i],
+	anchor: Vector2i,
+	rng: RandomNumberGenerator
+) -> Vector2i:
+	if candidates.is_empty():
+		return DungeonGrid.SENTINEL
+	if anchor == DungeonGrid.SENTINEL:
+		var copy: Array[Vector2i] = candidates.duplicate()
+		_shuffle_cells(copy, rng)
+		return copy[0]
+	var best_dist := 2147483647
+	var best: Array[Vector2i] = []
+	for cell in candidates:
+		var d: int = DungeonGrid.chebyshev(cell, anchor)
+		if d < best_dist:
+			best_dist = d
 			best = [cell]
-		elif neighbors_in_pocket == best_score:
+		elif d == best_dist:
 			best.append(cell)
-	# Deterministic tie-break among equal surround scores.
 	_shuffle_cells(best, rng)
 	return best[0]
 

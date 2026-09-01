@@ -102,10 +102,8 @@ func _run_edge_exit_suite() -> bool:
 		_fail("US-032: expected dense forest trees")
 		return false
 
-	# Dense >> US-024 8%: most placeable non-skill cells should be filled.
-	var placeable_for_trees: int = placeable.size()
-	if skill_cell != DungeonGrid.SENTINEL and placeable.has(skill_cell):
-		placeable_for_trees = maxi(placeable_for_trees - 1, 0)
+	# Dense >> US-024 8%: leftover after Skill Tree + 8-neigh exclusion.
+	var placeable_for_trees: int = _tree_placeable_after_skill(plan, skill_cell).size()
 	var ratio: float = 0.0
 	if placeable_for_trees > 0:
 		ratio = float(forest_tree_cells.size()) / float(placeable_for_trees)
@@ -122,6 +120,8 @@ func _run_edge_exit_suite() -> bool:
 		return false
 	if skill_cell == DungeonGrid.SENTINEL or not pocket.has(skill_cell) or egress.has(skill_cell):
 		_fail("US-032: SkillTree cell invalid %s" % skill_cell)
+		return false
+	if not _assert_skill_nearest_exit_clear_ring(plan, skill_cell, forest_tree_cells):
 		return false
 	if is_instance_valid(authored) and authored.is_inside_tree():
 		_fail("US-032: authored SkillTree was not superseded")
@@ -197,6 +197,8 @@ func _run_edge_exit_suite() -> bool:
 	if egress_b.has(skill_cell_after):
 		_fail("US-032: after exit move SkillTree on new egress %s" % skill_cell_after)
 		return false
+	if not _assert_skill_nearest_exit_clear_ring(plan_b, skill_cell_after, forest_after):
+		return false
 	for cell in egress_b:
 		if forest_after.has(cell) or cell == skill_cell_after:
 			_fail("US-032: after exit move egress cell occupied %s" % cell)
@@ -260,29 +262,78 @@ func _run_room_center_and_density_suite() -> bool:
 		return false
 	var tree_n := 0
 	var skill_n := 0
+	var skill_cell := DungeonGrid.SENTINEL
+	var forest_tree_cells: Dictionary = {}
 	for child in forest_parent.get_children():
+		if not (child is Node2D):
+			continue
+		var cell: Vector2i = DungeonGrid.from_world((child as Node2D).position)
 		if child.is_in_group("exit_forest_skill_trees") or child.is_in_group("skill_trees"):
 			skill_n += 1
+			skill_cell = cell
 		elif child.is_in_group("exit_forest_trees"):
 			tree_n += 1
+			forest_tree_cells[cell] = true
 	if tree_n < 1:
 		_fail("US-032: room-center density=10 placed no trees")
 		return false
 	if skill_n != 1:
 		_fail("US-032: room-center SkillTree count %d" % skill_n)
 		return false
-	# Max dense: every placeable non-skill cell filled.
-	var expected_trees: int = placeable.size() - 1
+	if not _assert_skill_nearest_exit_clear_ring(plan, skill_cell, forest_tree_cells):
+		return false
+	# Max dense: every leftover placeable after Skill Tree + 8-neigh exclusion.
+	var expected_trees: int = _tree_placeable_after_skill(plan, skill_cell).size()
 	if expected_trees < 1:
-		expected_trees = placeable.size()
-	if tree_n < maxi(expected_trees, 1):
-		_fail("US-032: density=10 should max-fill; trees=%d placeable=%d" % [tree_n, placeable.size()])
+		# Tiny pocket: Skill Tree alone is OK when exclusion eats the rest.
+		expected_trees = 0
+	if expected_trees >= 1 and tree_n < expected_trees:
+		_fail("US-032: density=10 should max-fill; trees=%d expected=%d placeable=%d" % [
+			tree_n, expected_trees, placeable.size()
+		])
+		return false
+	if expected_trees < 1 and tree_n < 1:
+		_fail("US-032: room-center density=10 placed no trees")
 		return false
 
 	level.queue_free()
 	await get_tree().process_frame
 	return true
 
+
+
+func _tree_placeable_after_skill(plan: Dictionary, skill_cell: Vector2i) -> Array[Vector2i]:
+	var planner := ExitForestPlanner.new()
+	return planner.skill_tree_tree_placeable(plan, skill_cell)
+
+
+func _assert_skill_nearest_exit_clear_ring(
+	plan: Dictionary,
+	skill_cell: Vector2i,
+	forest_tree_cells: Dictionary
+) -> bool:
+	var placeable: Array = plan.get("placeable", [])
+	if skill_cell == DungeonGrid.SENTINEL or not placeable.has(skill_cell):
+		_fail("US-032: SkillTree not on placeable %s" % skill_cell)
+		return false
+	var landing: Vector2i = plan.get("landing", DungeonGrid.SENTINEL)
+	var exit_cell: Vector2i = plan.get("exit_cell", DungeonGrid.SENTINEL)
+	var anchor: Vector2i = landing if landing != DungeonGrid.SENTINEL else exit_cell
+	var skill_dist: int = DungeonGrid.chebyshev(skill_cell, anchor) if anchor != DungeonGrid.SENTINEL else 0
+	# Nearest-exit among placeable (all placeable allow clear ring via exclusion).
+	for cell in placeable:
+		var d: int = DungeonGrid.chebyshev(cell, anchor) if anchor != DungeonGrid.SENTINEL else 0
+		if d < skill_dist:
+			_fail("US-032: SkillTree %s not nearest exit/landing (closer placeable %s)" % [
+				skill_cell, cell
+			])
+			return false
+	# No forest tree in Chebyshev-1 (8-neigh) ring.
+	for cell in forest_tree_cells.keys():
+		if DungeonGrid.chebyshev(cell, skill_cell) <= 1:
+			_fail("US-032: forest tree in SkillTree 8-neigh at %s (skill %s)" % [cell, skill_cell])
+			return false
+	return true
 
 func _fail(message: String) -> void:
 	push_error(message)
