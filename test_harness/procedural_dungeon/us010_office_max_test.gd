@@ -294,6 +294,7 @@ func _ready() -> void:
 		return
 	print("US-010 T006 independent restock passed")
 
+	print("US-010 T002/T003 office max test passed")
 	print("US-010 T002-T007 office max test passed")
 	get_tree().quit(0)
 

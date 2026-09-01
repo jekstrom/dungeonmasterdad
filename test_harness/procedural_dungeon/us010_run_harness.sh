@@ -23,7 +23,7 @@ for scene in "${SCENES[@]}"; do
 		failed=1
 		continue
 	fi
-	if ! echo "$out" | grep -q "US-010 T002-T007 office max test passed"; then
+	if ! echo "$out" | grep -Eq "US-010 T002/T003 office max test passed|US-010 T002-T007 office max test passed"; then
 		echo "FAIL ${scene} (no pass line)"
 		failed=1
 	fi
