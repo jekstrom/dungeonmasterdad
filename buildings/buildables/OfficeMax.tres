@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="BuildingData" format=3]
+
+[ext_resource type="PackedScene" path="res://buildings/buildables/office_max.tscn" id="1_scene"]
+[ext_resource type="Script" uid="uid://dlerv2lp0i1v8" path="res://buildings/building_data.gd" id="2_data"]
+
+[resource]
+script = ExtResource("2_data")
+scene = ExtResource("1_scene")
+cost_item = "res://pickups/metal.tres"
+cost_qty = 3
+size = Vector2i(128, 128)
+unique_building = true
+metadata/_custom_type_script = "uid://dlerv2lp0i1v8"

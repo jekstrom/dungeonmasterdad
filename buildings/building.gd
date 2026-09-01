@@ -337,6 +337,9 @@ func _apply_rubble_sprite() -> void:
 		sprite.hframes = 1
 		sprite.vframes = 1
 		sprite.frame = 0
+	elif has_method("apply_ruined_placeholder_visuals"):
+		# Office Max (and any future ruined helper): load ruined if present else placeholder.
+		call("apply_ruined_placeholder_visuals")
 
 func _on_hitbox_damaged(hurt_box: Hurtbox) -> void:
 	if destroyed:

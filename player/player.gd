@@ -113,6 +113,8 @@ func _ready() -> void:
 	SignalBus.build_paper_building_pressed.connect(setup_building)
 	if not SignalBus.build_irs_building_pressed.is_connected(setup_building):
 		SignalBus.build_irs_building_pressed.connect(setup_building)
+	if not SignalBus.build_office_max_building_pressed.is_connected(setup_building):
+		SignalBus.build_office_max_building_pressed.connect(setup_building)
 	SignalBus.on_dm_unlock.connect(dm_unlock_listener)
 	SignalBus.on_dm_lock.connect(dm_lock_listener)
 
@@ -365,9 +367,60 @@ func request_interact() -> void:
 	_host_try_interact()
 
 func _host_try_interact() -> void:
+	if _host_try_restock_office_max():
+		return
 	if _host_try_file_tax():
 		return
 	_host_try_deposit_wood()
+
+func _host_try_restock_office_max() -> bool:
+	var player_id: int = _inventory_id()
+	var nearest: Node = null
+	var best := INF
+	for node in _office_max_nodes():
+		if not node.has_method("try_restock_staples"):
+			continue
+		if node.has_method("is_restockable") and not bool(node.is_restockable()):
+			continue
+		if node.has_method("in_restock_range") and not bool(node.in_restock_range(self)):
+			continue
+		var dist: float = _office_max_distance(node)
+		if dist < best:
+			best = dist
+			nearest = node
+	if nearest == null:
+		return false
+	return bool(nearest.try_restock_staples(player_id, self))
+
+func _office_max_nodes() -> Array:
+	var out: Array = []
+	var scene_tree := get_tree()
+	if scene_tree == null:
+		return out
+	for node in scene_tree.get_nodes_in_group("office_max"):
+		if is_instance_valid(node) and not out.has(node):
+			out.append(node)
+	var root: Node = scene_tree.get_first_node_in_group("building_root")
+	if root == null:
+		return out
+	for child in root.get_children():
+		if not is_instance_valid(child):
+			continue
+		var scene_path := str(child.scene_file_path)
+		if child.has_method("try_restock_staples") or scene_path.ends_with("office_max.tscn"):
+			if not out.has(child):
+				out.append(child)
+	return out
+
+func _office_max_distance(node: Node) -> float:
+	var from: Vector2 = global_position
+	var best: float = from.distance_to(node.global_position)
+	if node.has_method("factory_origin"):
+		best = minf(best, from.distance_to(node.factory_origin()))
+	var sprite: Sprite2D = node.get_node_or_null("Sprite2D") as Sprite2D
+	if sprite:
+		best = minf(best, from.distance_to(sprite.global_position))
+	return best
 
 func _host_try_file_tax() -> bool:
 	var player_id: int = _inventory_id()
@@ -755,6 +808,9 @@ func can_prompt_building_interact() -> bool:
 			return true
 	for node in _irs_nodes():
 		if node.has_method("can_prompt_file") and bool(node.can_prompt_file(self)):
+			return true
+	for node in _office_max_nodes():
+		if node.has_method("can_prompt_restock") and bool(node.can_prompt_restock(self)):
 			return true
 	return false
 

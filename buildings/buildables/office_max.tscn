@@ -1,0 +1,44 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://buildings/buildables/office_max.gd" id="1_om"]
+[ext_resource type="Texture2D" uid="uid://bcho34278lfs" path="res://sprites/office_max.png" id="2_tex"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_body"]
+size = Vector2(116, 69)
+
+[sub_resource type="SceneReplicationConfig" id="SceneReplicationConfig_om"]
+properties/0/path = NodePath(".:position")
+properties/0/spawn = true
+properties/0/replication_mode = 1
+properties/1/path = NodePath("CollisionShape2D:disabled")
+properties/1/spawn = true
+properties/1/replication_mode = 2
+properties/2/path = NodePath(".:is_ghost")
+properties/2/spawn = true
+properties/2/replication_mode = 1
+properties/3/path = NodePath(".:hitpoints")
+properties/3/spawn = true
+properties/3/replication_mode = 2
+properties/4/path = NodePath(".:destroyed")
+properties/4/spawn = true
+properties/4/replication_mode = 2
+
+[node name="OfficeMax" type="StaticBody2D" groups=["office_max"]]
+y_sort_enabled = true
+script = ExtResource("1_om")
+max_hitpoints = 16
+hitpoints = 16
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+y_sort_enabled = true
+position = Vector2(0, -55)
+texture = ExtResource("2_tex")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+position = Vector2(5, -35)
+shape = SubResource("RectangleShape2D_body")
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="."]
+
+[node name="MultiplayerSynchronizer" type="MultiplayerSynchronizer" parent="."]
+replication_config = SubResource("SceneReplicationConfig_om")

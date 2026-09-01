@@ -64,6 +64,8 @@ func _has_enabled_unique(data: BuildingData) -> bool:
 			return true
 		if child is IrsBuilding and want == "" and (child as Building).is_operating():
 			return true
+		if child.is_in_group("office_max") and want == "" and (child as Building).is_operating():
+			return true
 	return false
 
 func is_area_clear(pos: Vector2, size: Vector2, _unused_radius = 0, _unused_pos: Vector2 = Vector2.ZERO) -> bool:
