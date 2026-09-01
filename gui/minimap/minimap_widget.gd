@@ -2,7 +2,7 @@ extends Control
 
 ## US-033 corner mini-map. Frame chrome + MapView inset paint fog, washes,
 ## buildings, living trees, mines, dungeon wall tint, and role-gated markers.
-## Toggle with M (toggle_minimap).
+## Toggle with M (toggle_minimap). DEBUG F10: toggle_minimap_debug_reveal.
 
 const PANEL_SIZE := Vector2(208.0, 208.0)
 const MAP_INSET := 12.0
@@ -20,6 +20,13 @@ const DM_PIP := Color(0.95, 0.35, 0.20, 1.0)
 @export var role_is_dm: bool = false
 ## v1 default: hide harvested stumps on the mini-map (FR-011 / T010).
 @export var show_tree_stumps: bool = false
+## Minimum on-screen pip size (px). Player/building/tree/mine/skill-tree pips.
+@export var minimap_pip_min_px: float = 8.0
+
+## DEBUG: local paint override only — treat all interior cells as revealed for
+## THIS client's paint. Does NOT mutate MinimapReveal host sets; no RPC.
+var debug_reveal_all: bool = false
+var _debug_reveal_enabled_logged: bool = false
 
 # Harness / callers may use role int (0=PP, 1=DM).
 var role: int:
@@ -89,6 +96,17 @@ func set_map_visible(on: bool) -> void:
 func toggle_map() -> void:
 	set_map_visible(not _visible_map)
 
+
+func _unhandled_input(event: InputEvent) -> void:
+	if not event.is_action_pressed("toggle_minimap_debug_reveal"):
+		return
+	# DEBUG: local paint reveal-all (widget-only; host sets untouched).
+	debug_reveal_all = not debug_reveal_all
+	if debug_reveal_all and not _debug_reveal_enabled_logged:
+		print("DEBUG: minimap debug_reveal_all enabled (local paint only)")
+		_debug_reveal_enabled_logged = true
+	_queue_map_redraw()
+	get_viewport().set_input_as_handled()
 
 
 
@@ -199,7 +217,10 @@ func paint_map(ci: Control) -> void:
 			)
 			var cell_rect := Rect2(local, Vector2(cell_w, cell_h))
 			var revealed := false
-			if reveal != null:
+			if debug_reveal_all:
+				# DEBUG: local paint override — do not touch MinimapReveal sets.
+				revealed = true
+			elif reveal != null:
 				if role_is_dm:
 					revealed = bool(reveal.call("is_dm_revealed", cell))
 				else:
@@ -238,6 +259,9 @@ func _paint_wash(ci: Control, cell_rect: Rect2, tex: Texture2D, fallback: Color)
 
 
 func _cell_revealed(reveal: Node, cell: Vector2i) -> bool:
+	if debug_reveal_all:
+		# DEBUG: local paint override only.
+		return true
 	if reveal == null:
 		return false
 	if role_is_dm:
@@ -409,7 +433,7 @@ func _draw_markers(ci: Control, interior: Rect2i, cell_w: float, cell_h: float, 
 		if not interior.has_point(cell):
 			continue
 		var show_pp := true
-		if role_is_dm:
+		if role_is_dm and not debug_reveal_all:
 			show_pp = reveal != null and bool(reveal.call("is_dm_revealed", cell))
 		if show_pp:
 			var center := Vector2(
@@ -431,7 +455,7 @@ func _draw_markers(ci: Control, interior: Rect2i, cell_w: float, cell_h: float, 
 	if not interior.has_point(dm_cell):
 		return
 	var show_dm := true
-	if not role_is_dm:
+	if not role_is_dm and not debug_reveal_all:
 		show_dm = reveal != null and bool(reveal.call("is_pp_revealed", dm_cell))
 	if show_dm:
 		var dm_center := Vector2(
@@ -442,7 +466,8 @@ func _draw_markers(ci: Control, interior: Rect2i, cell_w: float, cell_h: float, 
 
 
 func _draw_pip_tex(ci: Control, center: Vector2, cell_w: float, cell_h: float, tex: Texture2D, color: Color) -> void:
-	var pip: float = maxf(2.0, mini(cell_w, cell_h) * 0.55)
+	# Readable fixed minimum screen size; fog/zone/wall fills stay cell-sized.
+	var pip: float = maxf(minimap_pip_min_px, mini(cell_w, cell_h) * 0.55)
 	if tex != null:
 		var rect := Rect2(center - Vector2(pip, pip) * 0.5, Vector2(pip, pip))
 		ci.draw_texture_rect(tex, rect, false)

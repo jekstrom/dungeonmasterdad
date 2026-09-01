@@ -120,6 +120,12 @@ func _run_suite() -> bool:
 	if not widget.visible:
 		return _fail("US-033: M toggle must show again")
 
+	# DEBUG reveal-all (F10) is a local paint override; must default false.
+	if "debug_reveal_all" in widget and bool(widget.get("debug_reveal_all")):
+		return _fail("US-033: debug_reveal_all must default false")
+	if "minimap_pip_min_px" in widget and float(widget.get("minimap_pip_min_px")) < 6.0:
+		return _fail("US-033: minimap_pip_min_px should be readable (>=6)")
+
 	if widget.size.x <= 0 or widget.size.y <= 0:
 		return _fail("US-033: widget size invalid")
 	if level.map_bounds.get_interior() != interior:
