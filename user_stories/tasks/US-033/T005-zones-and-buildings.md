@@ -25,3 +25,7 @@ On revealed cells, paint Reality / Fantasy claim washes (home ∪ pockets, US-02
 
 - **Given** a revealed Reality-claimed cell, **When** painted, **Then** it shows a Reality wash (not Fantasy).
 - **Given** a building on a revealed cell, **When** painted, **Then** a building marker appears; on a fogged cell it does not.
+
+## Notes
+
+Trees, mines, and dungeon wall silhouette are **T010** (scope add after this task Done).

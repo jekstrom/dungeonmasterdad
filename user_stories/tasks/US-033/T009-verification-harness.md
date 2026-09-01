@@ -2,7 +2,7 @@
 
 **Story**: US-033  
 **Status**: Todo  
-**Depends on**: T003–T007  
+**Depends on**: T003–T007; re-check / extend after T010  
 **Parallel**: no  
 **Owner (after sign)**: QA / Gameplay
 
@@ -16,8 +16,9 @@ Headless or harness asserts for shared vs isolated reveal, visit radius brush, m
 
 ## Requirements
 
-- AC1–AC11 smoke
+- AC1–AC12 smoke (AC12 after T010)
 - Assert PP shared union; assert DM set disjoint growth; assert ally-always / enemy-on-reveal markers.
+- After T010: revealed living tree/mine/wall tint visible; fogged hidden; stumps absent by default.
 
 ## Acceptance
 
