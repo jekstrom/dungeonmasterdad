@@ -8,7 +8,7 @@
 
 ## Goal
 
-Prove the independent test headless where possible, and list the two-window play pass. Do not start until James signs the revised story and Gameplay lands T002–T006.
+Prove the independent test headless where possible, and list the two-window play pass.
 
 ## Files
 
@@ -18,18 +18,20 @@ Prove the independent test headless where possible, and list the two-window play
 ## Headless checks
 
 - Legal place: one Office Max with HP (suggested 16); second place rejected.
-- Restock with enough iron: mag → max; iron − `ceil(staples_refilled / 10)`; no paper/wood/smoke spend.
+- One restock press: +`min(10, room)` staples, exactly −1 iron; no paper/wood/smoke spend.
+- Empty 20-mag: two presses → full, −2 iron (not one press charging 2).
+- Mag with 3 free slots: one press → +3 staples, −1 iron.
 - Already full: no-op, no iron spend.
-- Not enough iron: reject; mag and iron unchanged.
+- 0 iron: reject; mag unchanged.
 - Out of range / ghost: unchanged.
 - Damage to 0: ruined presentation; restock fails; rebuild restores restock + uniqueness.
 - Two players: sequential restock; magazines and iron independent.
-- Client cannot invent a second Office Max or remote-fill / free-fill.
+- Client cannot invent a second Office Max or free-fill.
 
 ## Play pass (host + client, two windows)
 
-- Empty mag, enough iron, restock: HUD full, iron dropped correctly.
-- Starve iron: reject. Away from building: fail.
+- Empty mag, restock once: +10 / −1 iron; restock again to full.
+- 0 iron: reject. Away from building: fail.
 - Second Office Max rejected.
 - Destroy: ruined art; peer agrees; rebuild works.
 
@@ -40,7 +42,7 @@ Prove the independent test headless where possible, and list the two-window play
 ## Acceptance
 
 - **Given** the harness, **When** it runs headless, **Then** it prints pass and exits 0.
-- **Given** a two-window play, **When** both roles restock and destroy, **Then** both windows agree on uniqueness, iron cost, and ruined state.
+- **Given** a two-window play, **When** both roles restock and destroy, **Then** both windows agree on uniqueness, per-press iron cost, and ruined state.
 
 ## Notes
 

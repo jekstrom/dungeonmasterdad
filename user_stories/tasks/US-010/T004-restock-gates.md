@@ -8,7 +8,7 @@
 
 ## Goal
 
-Restock does **nothing** (no mag change, no iron spend) when out of range, when the magazine is already full, when the target is only a ghost/preview, or when the player **lacks enough iron** for the full `ceil` cost. No other full-restock source from this story.
+Restock does **nothing** (no mag change, no iron spend) when out of range, when the magazine is already full, when the target is only a ghost/preview, or when the player has **0 iron**. No other map full-restock source from this story.
 
 ## Files
 
@@ -17,19 +17,20 @@ Restock does **nothing** (no mag change, no iron spend) when out of range, when 
 
 ## Requirements
 
-- AC2, AC3, AC4, AC5, edge: ghost, dying, ceil bands
+- AC2, AC3, AC4, AC5, edge: ghost, dying, remainder < 10
 - Out of range: magazine and iron unchanged.
 - Already full: no-op; no iron spend.
-- Not enough iron for full refill to max: reject entire restock; no partial fill.
+- 0 iron and mag not full: reject; no staples granted.
 - Ghost/preview: not restockable.
 - No alternate full-restock path in this story.
-- Dying: if interact completes before death, mag full + iron spent on respawn; if not, both unchanged.
+- Dying: if interact completes before death, 1 iron spent + staples granted stick; if not, both unchanged.
+- Do not require enough iron for a full mag top-off in one press (old `ceil` rule is dead).
 
 ## Acceptance
 
 - **Given** the magazine is already full, **When** they restock, **Then** nothing changes and no iron is spent.
 - **Given** the player is not in range, **When** they press restock / interact, **Then** magazine and iron do not change.
-- **Given** not enough iron for `ceil(staples_needed / 10)`, **When** they restock, **Then** the server rejects; magazine and iron are unchanged.
+- **Given** 0 iron and a non-full magazine, **When** they restock, **Then** the server rejects; magazine and iron are unchanged.
 - **Given** only a placement ghost, **When** they try to restock, **Then** magazine and iron do not change.
 
 ## Notes
