@@ -10,6 +10,8 @@ signal build_smoke_building_pressed
 signal build_paper_building_pressed(building: String)
 @warning_ignore("unused_signal")
 signal build_irs_building_pressed(building: String)
+@warning_ignore("unused_signal")
+signal build_office_max_building_pressed(building: String)
 
 @warning_ignore("unused_signal")
 signal on_dm_unlock(unlock_name: String)

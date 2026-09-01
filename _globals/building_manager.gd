@@ -35,16 +35,51 @@ func request_placement(building_id: String, pos: Vector2, _check_pos: Vector2):
 	if not can_place(building_id, origin, sender_id):
 		return
 	var building_root = get_tree().get_first_node_in_group("building_root")
-	PlayerManager.consume_resources(sender_id, data.cost_item, data.cost_qty)
-	if building_root:
-		var building = data.scene.instantiate()
-		building.position = origin
-		building_root.add_child(building, true)
-		building.global_position = origin
-		building.enable()
-	else:
+	if building_root == null:
 		print("no building root found")
 		assert(false, "no building root")
+		return
+	var scene_path := str(data.scene.resource_path) if data.scene else ""
+	if not _ensure_spawnable_registered(building_root, scene_path):
+		push_error("BuildingManager.request_placement: spawnable not registered for %s; refusing place to avoid MultiplayerSpawner abort" % scene_path)
+		return
+	PlayerManager.consume_resources(sender_id, data.cost_item, data.cost_qty)
+	var building = data.scene.instantiate()
+	if scene_path != "" and str(building.scene_file_path).is_empty():
+		building.scene_file_path = scene_path
+	building.position = origin
+	building_root.add_child(building, true)
+	if not is_instance_valid(building) or building.get_parent() != building_root:
+		push_error("BuildingManager.request_placement: add_child failed for %s" % scene_path)
+		return
+	building.global_position = origin
+	building.enable()
+
+func _ensure_spawnable_registered(building_root: Node, scene_path: String) -> bool:
+	if scene_path == "":
+		return true
+	var spawner: MultiplayerSpawner = null
+	for child in building_root.get_children():
+		if child is MultiplayerSpawner:
+			spawner = child
+			break
+	if spawner == null:
+		# Headless / tests often have no spawner; placement still valid locally.
+		return true
+	for i in range(spawner.get_spawnable_scene_count()):
+		var path := str(spawner.get_spawnable_scene(i))
+		if path == scene_path or path.ends_with(scene_path.get_file()):
+			return true
+	if spawner.has_method("add_spawnable_scene"):
+		spawner.add_spawnable_scene(scene_path)
+		for i in range(spawner.get_spawnable_scene_count()):
+			var path2 := str(spawner.get_spawnable_scene(i))
+			if path2 == scene_path or path2.ends_with(scene_path.get_file()):
+				return true
+		push_error("BuildingManager: add_spawnable_scene did not stick for %s" % scene_path)
+		return false
+	push_error("BuildingManager: BuildingSpawner missing spawnable %s" % scene_path)
+	return false
 
 func _has_enabled_unique(data: BuildingData) -> bool:
 	if data == null or not data.unique_building:
@@ -63,6 +98,8 @@ func _has_enabled_unique(data: BuildingData) -> bool:
 		if want != "" and str(child.scene_file_path) == want:
 			return true
 		if child is IrsBuilding and want == "" and (child as Building).is_operating():
+			return true
+		if child.is_in_group("office_max") and want == "" and (child as Building).is_operating():
 			return true
 	return false
 

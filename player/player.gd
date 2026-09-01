@@ -19,6 +19,7 @@ var invulnerable: bool = false
 
 var current_building_data: BuildingData
 var ghost_building: Node2D
+var _suppress_primary_staple_click: bool = false
 
 @export var num_shadows: int = 0
 @export var shadow_scene: PackedScene
@@ -113,6 +114,8 @@ func _ready() -> void:
 	SignalBus.build_paper_building_pressed.connect(setup_building)
 	if not SignalBus.build_irs_building_pressed.is_connected(setup_building):
 		SignalBus.build_irs_building_pressed.connect(setup_building)
+	if not SignalBus.build_office_max_building_pressed.is_connected(setup_building):
+		SignalBus.build_office_max_building_pressed.connect(setup_building)
 	SignalBus.on_dm_unlock.connect(dm_unlock_listener)
 	SignalBus.on_dm_lock.connect(dm_lock_listener)
 
@@ -173,8 +176,10 @@ func _process(_delta: float) -> void:
 		queue_redraw()
 
 func setup_building(building: String):
-	current_building_data = load("res://buildings/buildables/" + building + ".tres") as BuildingData
+	var path := "res://buildings/buildables/" + building + ".tres"
+	current_building_data = load(path) as BuildingData
 	if current_building_data == null:
+		push_error("setup_building failed to load BuildingData: %s" % path)
 		return
 	_clear_ghost_building()
 	ghost_building = current_building_data.scene.instantiate()
@@ -365,9 +370,60 @@ func request_interact() -> void:
 	_host_try_interact()
 
 func _host_try_interact() -> void:
+	if _host_try_restock_office_max():
+		return
 	if _host_try_file_tax():
 		return
 	_host_try_deposit_wood()
+
+func _host_try_restock_office_max() -> bool:
+	var player_id: int = _inventory_id()
+	var nearest: Node = null
+	var best := INF
+	for node in _office_max_nodes():
+		if not node.has_method("try_restock_staples"):
+			continue
+		if node.has_method("is_restockable") and not bool(node.is_restockable()):
+			continue
+		if node.has_method("in_restock_range") and not bool(node.in_restock_range(self)):
+			continue
+		var dist: float = _office_max_distance(node)
+		if dist < best:
+			best = dist
+			nearest = node
+	if nearest == null:
+		return false
+	return bool(nearest.try_restock_staples(player_id, self))
+
+func _office_max_nodes() -> Array:
+	var out: Array = []
+	var scene_tree := get_tree()
+	if scene_tree == null:
+		return out
+	for node in scene_tree.get_nodes_in_group("office_max"):
+		if is_instance_valid(node) and not out.has(node):
+			out.append(node)
+	var root: Node = scene_tree.get_first_node_in_group("building_root")
+	if root == null:
+		return out
+	for child in root.get_children():
+		if not is_instance_valid(child):
+			continue
+		var scene_path := str(child.scene_file_path)
+		if child.has_method("try_restock_staples") or scene_path.ends_with("office_max.tscn"):
+			if not out.has(child):
+				out.append(child)
+	return out
+
+func _office_max_distance(node: Node) -> float:
+	var from: Vector2 = global_position
+	var best: float = from.distance_to(node.global_position)
+	if node.has_method("factory_origin"):
+		best = minf(best, from.distance_to(node.factory_origin()))
+	var sprite: Sprite2D = node.get_node_or_null("Sprite2D") as Sprite2D
+	if sprite:
+		best = minf(best, from.distance_to(sprite.global_position))
+	return best
 
 func _host_try_file_tax() -> bool:
 	var player_id: int = _inventory_id()
@@ -756,6 +812,9 @@ func can_prompt_building_interact() -> bool:
 	for node in _irs_nodes():
 		if node.has_method("can_prompt_file") and bool(node.can_prompt_file(self)):
 			return true
+	for node in _office_max_nodes():
+		if node.has_method("can_prompt_restock") and bool(node.can_prompt_restock(self)):
+			return true
 	return false
 
 func can_prompt_tree_harvest() -> bool:
@@ -923,9 +982,16 @@ func is_combat_locked() -> bool:
 func wants_fire_staple(event: InputEvent) -> bool:
 	if is_combat_locked():
 		return false
+	# LMB is both `fire` and `primary_click`. Never staple-fire while placing
+	# (ghost active) or on the place click flush (_suppress_primary_staple_click).
+	if current_building_data != null:
+		return false
+	if ghost_building != null and is_instance_valid(ghost_building):
+		return false
+	if _suppress_primary_staple_click:
+		return false
 	if event.is_action_pressed("fire"):
 		return true
-	# LMB is also primary_click (building). Fire only when not placing.
 	if event.is_action_pressed("primary_click"):
 		return true
 	return false
@@ -946,10 +1012,16 @@ func try_fire_staple_from_input() -> void:
 		return
 	if is_combat_locked():
 		return
+	if _suppress_primary_staple_click:
+		return
 	# Queue until end of physics frame so same-frame melee (T006) can win.
 	_queued_staple_fire = true
 
 func _flush_queued_staple_fire() -> void:
+	if _suppress_primary_staple_click:
+		_suppress_primary_staple_click = false
+		_queued_staple_fire = false
+		return
 	if not _queued_staple_fire:
 		return
 	_queued_staple_fire = false
@@ -1076,6 +1148,9 @@ func _unhandled_input(event: InputEvent) -> void:
 				BuildingManager.request_placement.rpc_id(1, place_id, place_at, place_at)
 			current_building_data = null
 			_clear_ghost_building()
+			# Same LMB must not also staple-fire after ghost clear.
+			_suppress_primary_staple_click = true
+			get_viewport().set_input_as_handled()
 
 # =============================================================================
 # DEATH SYSTEM INTEGRATION

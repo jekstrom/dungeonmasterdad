@@ -3,6 +3,7 @@ extends CanvasLayer
 @onready var build_smoke_factory_button: TextureButton = $MarginContainer/HBoxContainer/ColorRect/TextureButton
 @onready var build_paper_factory_button: TextureButton = $MarginContainer/HBoxContainer/ColorRect2/TextureButton
 @onready var build_irs_button: TextureButton = $MarginContainer/HBoxContainer/ColorRect3/TextureButton
+@onready var build_office_max_button: TextureButton = $MarginContainer/HBoxContainer/ColorRect4/TextureButton
 
 @onready var smoke_count: Label = $ResourceContainer/VBoxContainer/SmokeCount
 @onready var paper_count: Label = $ResourceContainer/VBoxContainer/PaperCount
@@ -18,6 +19,8 @@ func _ready() -> void:
 	build_paper_factory_button.connect("button_down", on_build_paper_factory_button_pressed)
 	if build_irs_button:
 		build_irs_button.connect("button_down", on_build_irs_button_pressed)
+	if build_office_max_button:
+		build_office_max_button.connect("button_down", on_build_office_max_button_pressed)
 	update_staple_magazine(20, 20)
 	_pass_world_clicks_through(self)
 
@@ -50,6 +53,11 @@ func on_build_irs_button_pressed():
 	if build_irs_button:
 		build_irs_button.release_focus()
 	SignalBus.build_irs_building_pressed.emit("Irs")
+
+func on_build_office_max_button_pressed():
+	if build_office_max_button:
+		build_office_max_button.release_focus()
+	SignalBus.build_office_max_building_pressed.emit("OfficeMax")
 	
 func update_smoke_count(smoke_amt: int) -> void:
 	smoke_count.visible = true

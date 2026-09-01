@@ -5,6 +5,7 @@ const HITBOX_SCENE: PackedScene = preload("res://hitbox.tscn")
 const SMOKE_RUBBLE: Texture2D = preload("res://sprites/smoke_factory_rubble.png")
 const PAPER_RUBBLE: Texture2D = preload("res://sprites/paper_factory_rubble.png")
 const IRS_RUBBLE: Texture2D = preload("res://sprites/irs_building_rubble.png")
+const OFFICE_MAX_RUBBLE: Texture2D = preload("res://sprites/office_max_rubble.png")
 const IRON_ITEM := "res://pickups/metal.tres"
 const RAID_HITBOX_LAYER := 32
 const HARVEST_HITBOX_LAYER := 8
@@ -337,6 +338,15 @@ func _apply_rubble_sprite() -> void:
 		sprite.hframes = 1
 		sprite.vframes = 1
 		sprite.frame = 0
+	elif has_method("try_restock_staples"):
+		# Office Max: duck-type (avoid class_name cache holes in headless).
+		sprite.texture = OFFICE_MAX_RUBBLE
+		sprite.modulate = Color(1, 1, 1, 1)
+		sprite.hframes = 1
+		sprite.vframes = 1
+		sprite.frame = 0
+	elif has_method("apply_ruined_placeholder_visuals"):
+		call("apply_ruined_placeholder_visuals")
 
 func _on_hitbox_damaged(hurt_box: Hurtbox) -> void:
 	if destroyed:

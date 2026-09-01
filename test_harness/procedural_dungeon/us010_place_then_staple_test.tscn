@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" uid="uid://dkknepxdv574r" path="res://test_harness/procedural_dungeon/us010_place_then_staple_test.gd" id="1"]
+
+[node name="Us010PlaceThenStapleTest" type="Node"]
+script = ExtResource("1")
