@@ -1,32 +1,33 @@
-# T005: Destroyed Office Max unavailable
+# T005: Destroyed / ruined Office Max
 
 **Story**: US-010  
 **Status**: Todo  
 **Owner**: Gameplay  
-**Depends on**: T003  
+**Depends on**: T001, T003  
 **Parallel**: no
 
 ## Goal
 
-If Office Max is **destroyed** (US-011), restock is unavailable until it is **rebuilt**. This story only needs the restock gate + unique slot freeing; not goblin AI.
+At **0 HP**, Office Max is destroyed: show **ruined** art, restock unavailable until **rebuilt**. Unique slot frees so a rebuild can place. Goblin AI stays US-011; this task is HP death → ruin + restock gate.
 
 ## Files
 
-- `buildings/building.gd` / Office Max enabled flag / death
-- Building manager uniqueness: destroyed instance no longer counts as the live unique, so a rebuild can place again
+- `buildings/building.gd` destroyed / HP
+- Office Max scene — swap to T001 ruined sprite on destroy
+- Building manager uniqueness after destroy
 
 ## Requirements
 
-- AC6
-- Disabled / destroyed: interact must not fill magazines.
+- FR-006, AC7, MR-003
+- 0 HP: destroyed, ruined presentation, interact must not fill magazines or spend iron.
 - After destroy, uniqueness allows a new placement (still max one enabled).
-- Do not implement goblin raid pathing or HP tuning (US-011 owns raids; suggested Office Max HP is noted there).
+- Do not implement goblin raid pathing (US-011).
 
 ## Acceptance
 
-- **Given** Office Max is destroyed, **When** players try to restock, **Then** restock fails and magazines are unchanged.
-- **Given** Office Max was destroyed, **When** a legal rebuild is placed, **Then** restock works again on the new enabled building.
+- **Given** Office Max reaches 0 HP, **When** destruction resolves, **Then** peers see ruined art and restock fails.
+- **Given** Office Max was destroyed, **When** a legal rebuild is placed, **Then** live art returns and restock works again.
 
 ## Notes
 
-Do not start US-011 work here. Harness can fake destroy/disable without goblins.
+Harness can fake damage to 0 without goblins.

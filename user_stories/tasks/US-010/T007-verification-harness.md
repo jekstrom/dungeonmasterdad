@@ -8,42 +8,40 @@
 
 ## Goal
 
-Prove the independent test headless where possible, and list the two-window play pass. Do not start this until James signs the story and Gameplay lands T002–T006.
+Prove the independent test headless where possible, and list the two-window play pass. Do not start until James signs the revised story and Gameplay lands T002–T006.
 
 ## Files
 
-- `test_harness/procedural_dungeon/us010_office_max_test.gd` (+ `.tscn`) — Node script that quits on success (US-001 / US-005 pattern)
+- `test_harness/procedural_dungeon/us010_office_max_test.gd` (+ `.tscn`) — quit on success
 - Optional shell wrapper matching `us001_run_harness.sh`
 
 ## Headless checks
 
-- Legal place: one Office Max; iron required as designed.
-- Second place while enabled: rejected.
-- Non-full mag + in range interact: mag → max; no paper/wood/iron/smoke spent for refill.
-- Already full: no-op.
-- Out of range: mag unchanged.
-- Ghost: not restockable.
-- Destroy/disable: restock fails; rebuild restores restock and uniqueness allows one again.
-- Two players: sequential restock; magazines independent.
-- Client cannot invent a second Office Max or remote-fill another mag.
+- Legal place: one Office Max with HP (suggested 16); second place rejected.
+- Restock with enough iron: mag → max; iron − `ceil(staples_refilled / 10)`; no paper/wood/smoke spend.
+- Already full: no-op, no iron spend.
+- Not enough iron: reject; mag and iron unchanged.
+- Out of range / ghost: unchanged.
+- Damage to 0: ruined presentation; restock fails; rebuild restores restock + uniqueness.
+- Two players: sequential restock; magazines and iron independent.
+- Client cannot invent a second Office Max or remote-fill / free-fill.
 
 ## Play pass (host + client, two windows)
 
-- Empty mag, walk to Office Max, restock, HUD full.
-- Restock away from it: fails.
-- Second Office Max placement rejected.
-- Peer sees one building; each player can refill their own mag.
+- Empty mag, enough iron, restock: HUD full, iron dropped correctly.
+- Starve iron: reject. Away from building: fail.
+- Second Office Max rejected.
+- Destroy: ruined art; peer agrees; rebuild works.
 
 ## Requirements
 
 - Independent Test section of US-010
-- Testing skill: new tests under `test_harness/procedural_dungeon/` as Node + `.tscn` that quit on success
 
 ## Acceptance
 
 - **Given** the harness, **When** it runs headless, **Then** it prints pass and exits 0.
-- **Given** a two-window play of the independent test, **When** both roles restock, **Then** both windows agree on uniqueness and per-player magazines.
+- **Given** a two-window play, **When** both roles restock and destroy, **Then** both windows agree on uniqueness, iron cost, and ruined state.
 
 ## Notes
 
-Do not require US-011 goblins, US-027–029 Baja work, cozy, cube, or fireball. Do not claim the story done until James has signed and this pass is run or explicitly called out as not run.
+Do not require US-011 goblins, US-027–029, cozy, cube, or fireball.

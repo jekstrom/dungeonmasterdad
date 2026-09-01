@@ -1,4 +1,4 @@
-# T006: Replicate uniqueness and magazines
+# T006: Replicate uniqueness, HP, and restock
 
 **Story**: US-010  
 **Status**: Todo  
@@ -8,25 +8,25 @@
 
 ## Goal
 
-Uniqueness and restock are **host-authored**. Two players may restock in sequence; each magazine is independent. Peers see the same single Office Max and the correct owner magazines.
+Uniqueness, HP/destruction, and restock (magazine + iron) are **host-authored**. Two players may restock in sequence; each magazine and iron spend is independent.
 
 ## Files
 
-- Building spawn / uniqueness replication (IRS pattern)
-- `player/player.gd` staple count replication / `staple_count_changed` (US-005)
-- Late join: current buildings + owner magazine
+- Building spawn / HP / destroyed replication
+- `player/player.gd` staple count + iron inventory replication
+- Late join: current building (live or ruined), HP, owner magazines, iron
 
 ## Requirements
 
-- FR-004, MR-001, MR-002
-- Client cannot create a second Office Max or force another player's mag to max.
-- After restock, owning client HUD matches server `staple_count`.
+- FR-004, MR-001, MR-002, MR-003
+- Client cannot create a second Office Max, force another player's mag to max, or spend iron they do not have.
+- After restock, owning client HUD matches server staple count and iron.
 
 ## Acceptance
 
-- **Given** two Paper Pushers restock in sequence, **When** each finishes, **Then** each magazine is independent and full for that player only.
-- **Given** a client requests a second Office Max, **When** the host validates, **Then** it is rejected and peers still see one.
-- **Given** a late joiner, **When** they spawn, **Then** they see the current Office Max (if any) and correct staple counts.
+- **Given** two Paper Pushers restock in sequence, **When** each finishes, **Then** each magazine and iron spend is independent.
+- **Given** a client requests a second Office Max or a free restock, **When** the host validates, **Then** it is rejected.
+- **Given** a late joiner, **When** they spawn, **Then** they see the current Office Max state (live/ruined/HP) and correct staple/iron values.
 
 ## Notes
 
