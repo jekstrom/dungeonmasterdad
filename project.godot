@@ -38,6 +38,7 @@ TrailManager="*res://_globals/trail_manager.gd"
 DeathSystem="*res://scripts/multiplayer/DeathSystem.gd"
 ItemPickupPool="*res://_globals/item_pickup_pool.gd"
 DungeonGenerationManager="*res://_globals/dungeon_generation_manager.gd"
+MinimapFog="*res://_globals/minimap_fog.gd"
 MinimapReveal="*res://_globals/minimap_reveal.gd"
 
 [debug]
