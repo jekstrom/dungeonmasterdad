@@ -203,19 +203,25 @@ func paint_map(ci: Control) -> void:
 	var interior := _interior_rect()
 	if interior.size.x <= 0 or interior.size.y <= 0:
 		return
-	var cell_w: float = size_v.x / float(interior.size.x)
-	var cell_h: float = size_v.y / float(interior.size.y)
+	# Uniform square cells; letterbox/pillarbox to center in the view.
+	var cols: float = float(interior.size.x)
+	var rows: float = float(interior.size.y)
+	var cell_px: float = mini(size_v.x / cols, size_v.y / rows)
+	var origin := Vector2(
+		(size_v.x - cell_px * cols) * 0.5,
+		(size_v.y - cell_px * rows) * 0.5
+	)
 	var reveal: Node = _reveal()
 	var tree := get_tree()
 
 	for y in range(interior.position.y, interior.end.y):
 		for x in range(interior.position.x, interior.end.x):
 			var cell := Vector2i(x, y)
-			var local := Vector2(
-				float(x - interior.position.x) * cell_w,
-				float(y - interior.position.y) * cell_h
+			var local := origin + Vector2(
+				float(x - interior.position.x) * cell_px,
+				float(y - interior.position.y) * cell_px
 			)
-			var cell_rect := Rect2(local, Vector2(cell_w, cell_h))
+			var cell_rect := Rect2(local, Vector2(cell_px, cell_px))
 			var revealed := false
 			if debug_reveal_all:
 				# DEBUG: local paint override — do not touch MinimapReveal sets.
@@ -237,11 +243,11 @@ func paint_map(ci: Control) -> void:
 			elif claim == ZoneDriftClaim.CLAIM_FANTASY:
 				_paint_wash(ci, cell_rect, _tex_fantasy, FANTASY_WASH)
 
-	_draw_dungeon_walls(ci, interior, cell_w, cell_h, reveal)
-	_draw_buildings(ci, interior, cell_w, cell_h, reveal)
-	_draw_trees(ci, interior, cell_w, cell_h, reveal)
-	_draw_mines(ci, interior, cell_w, cell_h, reveal)
-	_draw_markers(ci, interior, cell_w, cell_h, reveal)
+	_draw_dungeon_walls(ci, interior, cell_px, origin, reveal)
+	_draw_buildings(ci, interior, cell_px, origin, reveal)
+	_draw_trees(ci, interior, cell_px, origin, reveal)
+	_draw_mines(ci, interior, cell_px, origin, reveal)
+	_draw_markers(ci, interior, cell_px, origin, reveal)
 
 
 func _paint_fog(ci: Control, cell_rect: Rect2) -> void:
@@ -269,32 +275,32 @@ func _cell_revealed(reveal: Node, cell: Vector2i) -> bool:
 	return bool(reveal.call("is_pp_revealed", cell))
 
 
-func _draw_dungeon_walls(ci: Control, interior: Rect2i, cell_w: float, cell_h: float, reveal: Node) -> void:
+func _draw_dungeon_walls(ci: Control, interior: Rect2i, cell_px: float, origin: Vector2, reveal: Node) -> void:
 	for cell in collect_revealed_wall_cells(reveal, interior):
-		var local := Vector2(
-			float(cell.x - interior.position.x) * cell_w,
-			float(cell.y - interior.position.y) * cell_h
+		var local := origin + Vector2(
+			float(cell.x - interior.position.x) * cell_px,
+			float(cell.y - interior.position.y) * cell_px
 		)
-		var cell_rect := Rect2(local, Vector2(cell_w, cell_h))
+		var cell_rect := Rect2(local, Vector2(cell_px, cell_px))
 		_paint_wash(ci, cell_rect, _tex_wall, WALL_TINT)
 
 
-func _draw_trees(ci: Control, interior: Rect2i, cell_w: float, cell_h: float, reveal: Node) -> void:
+func _draw_trees(ci: Control, interior: Rect2i, cell_px: float, origin: Vector2, reveal: Node) -> void:
 	for cell in collect_revealed_tree_cells(reveal, interior):
-		var center := Vector2(
-			(float(cell.x - interior.position.x) + 0.5) * cell_w,
-			(float(cell.y - interior.position.y) + 0.5) * cell_h
+		var center := origin + Vector2(
+			(float(cell.x - interior.position.x) + 0.5) * cell_px,
+			(float(cell.y - interior.position.y) + 0.5) * cell_px
 		)
-		_draw_pip_tex(ci, center, cell_w, cell_h, _tex_tree, TREE_COLOR)
+		_draw_pip_tex(ci, center, cell_px, _tex_tree, TREE_COLOR)
 
 
-func _draw_mines(ci: Control, interior: Rect2i, cell_w: float, cell_h: float, reveal: Node) -> void:
+func _draw_mines(ci: Control, interior: Rect2i, cell_px: float, origin: Vector2, reveal: Node) -> void:
 	for cell in collect_revealed_mine_cells(reveal, interior):
-		var center := Vector2(
-			(float(cell.x - interior.position.x) + 0.5) * cell_w,
-			(float(cell.y - interior.position.y) + 0.5) * cell_h
+		var center := origin + Vector2(
+			(float(cell.x - interior.position.x) + 0.5) * cell_px,
+			(float(cell.y - interior.position.y) + 0.5) * cell_px
 		)
-		_draw_pip_tex(ci, center, cell_w, cell_h, _tex_mine, MINE_COLOR)
+		_draw_pip_tex(ci, center, cell_px, _tex_mine, MINE_COLOR)
 
 
 ## Harness / debug: living scattered + exit-forest (+ skill) trees on revealed cells (stumps off by default).
@@ -389,7 +395,7 @@ func collect_revealed_wall_cells(reveal: Node, interior: Rect2i = Rect2i()) -> A
 	return out
 
 
-func _draw_buildings(ci: Control, interior: Rect2i, cell_w: float, cell_h: float, reveal: Node) -> void:
+func _draw_buildings(ci: Control, interior: Rect2i, cell_px: float, origin: Vector2, reveal: Node) -> void:
 	var tree := get_tree()
 	if tree == null:
 		return
@@ -413,14 +419,14 @@ func _draw_buildings(ci: Control, interior: Rect2i, cell_w: float, cell_h: float
 			continue
 		if not _cell_revealed(reveal, cell):
 			continue
-		var center := Vector2(
-			(float(cell.x - interior.position.x) + 0.5) * cell_w,
-			(float(cell.y - interior.position.y) + 0.5) * cell_h
+		var center := origin + Vector2(
+			(float(cell.x - interior.position.x) + 0.5) * cell_px,
+			(float(cell.y - interior.position.y) + 0.5) * cell_px
 		)
-		_draw_pip_tex(ci, center, cell_w, cell_h, _tex_building, BUILDING_COLOR)
+		_draw_pip_tex(ci, center, cell_px, _tex_building, BUILDING_COLOR)
 
 
-func _draw_markers(ci: Control, interior: Rect2i, cell_w: float, cell_h: float, reveal: Node) -> void:
+func _draw_markers(ci: Control, interior: Rect2i, cell_px: float, origin: Vector2, reveal: Node) -> void:
 	var tree := get_tree()
 	if tree == null:
 		return
@@ -436,11 +442,11 @@ func _draw_markers(ci: Control, interior: Rect2i, cell_w: float, cell_h: float, 
 		if role_is_dm and not debug_reveal_all:
 			show_pp = reveal != null and bool(reveal.call("is_dm_revealed", cell))
 		if show_pp:
-			var center := Vector2(
-				(float(cell.x - interior.position.x) + 0.5) * cell_w,
-				(float(cell.y - interior.position.y) + 0.5) * cell_h
+			var center := origin + Vector2(
+				(float(cell.x - interior.position.x) + 0.5) * cell_px,
+				(float(cell.y - interior.position.y) + 0.5) * cell_px
 			)
-			_draw_pip_tex(ci, center, cell_w, cell_h, _tex_pp, PP_PIP)
+			_draw_pip_tex(ci, center, cell_px, _tex_pp, PP_PIP)
 
 	var dm_node: Node = null
 	if DmManager.dm != null and is_instance_valid(DmManager.dm):
@@ -458,17 +464,16 @@ func _draw_markers(ci: Control, interior: Rect2i, cell_w: float, cell_h: float, 
 	if not role_is_dm and not debug_reveal_all:
 		show_dm = reveal != null and bool(reveal.call("is_pp_revealed", dm_cell))
 	if show_dm:
-		var dm_center := Vector2(
-			(float(dm_cell.x - interior.position.x) + 0.5) * cell_w,
-			(float(dm_cell.y - interior.position.y) + 0.5) * cell_h
+		var dm_center := origin + Vector2(
+			(float(dm_cell.x - interior.position.x) + 0.5) * cell_px,
+			(float(dm_cell.y - interior.position.y) + 0.5) * cell_px
 		)
-		_draw_pip_tex(ci, dm_center, cell_w, cell_h, _tex_dm, DM_PIP)
+		_draw_pip_tex(ci, dm_center, cell_px, _tex_dm, DM_PIP)
 
 
-func _draw_pip_tex(ci: Control, center: Vector2, cell_w: float, cell_h: float, tex: Texture2D, color: Color) -> void:
-	# Pips: max(cell_size, minimap_pip_min_px), centered. Fog/zone/wall fills stay cell-sized.
-	var cell_size: float = mini(cell_w, cell_h)
-	var pip: float = maxf(cell_size, minimap_pip_min_px)
+func _draw_pip_tex(ci: Control, center: Vector2, cell_px: float, tex: Texture2D, color: Color) -> void:
+	# Pips: max(cell_px, minimap_pip_min_px), centered. Fog/zone/wall fills stay cell-sized.
+	var pip: float = maxf(cell_px, minimap_pip_min_px)
 	if tex != null:
 		var rect := Rect2(center - Vector2(pip, pip) * 0.5, Vector2(pip, pip))
 		ci.draw_texture_rect(tex, rect, false)
