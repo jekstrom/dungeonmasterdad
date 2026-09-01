@@ -1,6 +1,6 @@
 extends Control
 
-## Thin drawer owned by MinimapWidget — paints the inset map grid.
+## Thin drawer owned by MinimapWidget — paints the map grid flush to frame hole.
 
 var _owner_widget: Control
 

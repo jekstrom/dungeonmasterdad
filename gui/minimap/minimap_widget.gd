@@ -1,11 +1,12 @@
 extends Control
 
-## US-033 corner mini-map. Frame chrome + MapView inset paint fog, washes,
-## buildings, living trees, mines, dungeon wall tint, and role-gated markers.
+## US-033 corner mini-map. Frame chrome + MapView paint (flush to frame hole),
+## fog, washes, buildings, living trees, mines, dungeon wall tint, markers.
 ## Toggle with M (toggle_minimap). DEBUG F10: toggle_minimap_debug_reveal.
 
 const PANEL_SIZE := Vector2(208.0, 208.0)
-const MAP_INSET := 12.0
+## Matches frame.png transparent hole (opaque chrome 0..9, hole from 10).
+const MAP_INSET := 10.0
 const FOG_COLOR := Color(0.06, 0.07, 0.09, 0.92)
 const REVEALED_BASE := Color(0.22, 0.24, 0.20, 0.95)
 const REALITY_WASH := Color(0.25, 0.45, 0.85, 0.55)
@@ -59,6 +60,12 @@ func _ready() -> void:
 		_frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	if _map_view:
 		_map_view.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		# Flush MapView to the frame's inner transparent hole (no world ring).
+		_map_view.set_anchors_preset(Control.PRESET_FULL_RECT)
+		_map_view.offset_left = MAP_INSET
+		_map_view.offset_top = MAP_INSET
+		_map_view.offset_right = -MAP_INSET
+		_map_view.offset_bottom = -MAP_INSET
 		if not _map_view.draw.is_connected(_on_map_view_draw):
 			# Custom draw via script on MapView — attach draw callback.
 			pass
@@ -203,12 +210,15 @@ func paint_map(ci: Control) -> void:
 	var interior := _interior_rect()
 	if interior.size.x <= 0 or interior.size.y <= 0:
 		return
-	# Uniform square cells sized to fill map viewport WIDTH (no pillarbox).
-	# Height = rows * cell_px; letterbox top/bottom. If taller than viewport,
-	# keep width-fit and clip vertically rather than shrink for height.
+	# Uniform square cells. When interior is square, fill 100% of the MapView
+	# (no letterbox ring). Otherwise width-fit; letterbox top/bottom, clip if taller.
 	var cols: float = float(interior.size.x)
 	var rows: float = float(interior.size.y)
-	var cell_px: float = floorf(size_v.x / cols)
+	var cell_px: float
+	if cols == rows:
+		cell_px = minf(size_v.x / cols, size_v.y / rows)
+	else:
+		cell_px = floorf(size_v.x / cols)
 	if cell_px <= 0.0:
 		return
 	var origin := Vector2(
