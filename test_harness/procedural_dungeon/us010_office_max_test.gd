@@ -132,7 +132,7 @@ func _ready() -> void:
 		return
 	print("US-010 T002 office max unique place passed")
 
-	# --- T003 / T004 restock ---
+	# --- T003 / T004 restock (James live: 1 iron -> up to +10 staples/interact) ---
 	var player: Player = Player.new()
 	player.name = str(peer_id)
 	player.set_multiplayer_authority(peer_id)
@@ -170,7 +170,7 @@ func _ready() -> void:
 		return
 	ghost.queue_free()
 
-	# Happy path: 5 -> 20 costs ceil(15/10)=2
+	# Happy path: 5/20 -> 15, iron -1 only (not ceil fill-to-max of 2)
 	player.global_position = om.global_position
 	if not bool(om.call("in_restock_range", player)):
 		_fail("US-010 T003: player on building must be in restock range")
@@ -178,12 +178,12 @@ func _ready() -> void:
 	if not bool(om.call("try_restock_staples", peer_id, player)):
 		_fail("US-010 T003: restock with enough iron must succeed")
 		return
-	if player.staple_count != 20:
-		_fail("US-010 T003: mag must fill to max, got %d" % player.staple_count)
+	if player.staple_count != 15:
+		_fail("US-010 T003: mag must be 5+10=15, got %d" % player.staple_count)
 		return
-	var expected_iron: int = iron_before - 2
+	var expected_iron: int = iron_before - 1
 	if PlayerManager.get_item_count(peer_id, METAL) != expected_iron:
-		_fail("US-010 T003: iron cost must be 2, have %d want %d" % [PlayerManager.get_item_count(peer_id, METAL), expected_iron])
+		_fail("US-010 T003: iron cost must be 1, have %d want %d" % [PlayerManager.get_item_count(peer_id, METAL), expected_iron])
 		return
 	if PlayerManager.get_item_count(peer_id, PAPER) != paper_before:
 		_fail("US-010 T003: paper must be unchanged")
@@ -193,6 +193,32 @@ func _ready() -> void:
 		return
 	if PlayerManager.smoke_amt != smoke_before:
 		_fail("US-010 T003: smoke must be unchanged")
+		return
+
+	# 15/20 -> 20, iron -1
+	iron_before = PlayerManager.get_item_count(peer_id, METAL)
+	if not bool(om.call("try_restock_staples", peer_id, player)):
+		_fail("US-010 T003: restock from 15/20 must succeed")
+		return
+	if player.staple_count != 20:
+		_fail("US-010 T003: 15+10 capped to max=20, got %d" % player.staple_count)
+		return
+	if PlayerManager.get_item_count(peer_id, METAL) != iron_before - 1:
+		_fail("US-010 T003: 15/20 restock must spend exactly 1 iron")
+		return
+
+	# Partial top-up: 18/20 -> 20, still 1 iron
+	player.staple_count = 18
+	PlayerManager.add_item_to_inventory(peer_id, metal, 1)
+	iron_before = PlayerManager.get_item_count(peer_id, METAL)
+	if not bool(om.call("try_restock_staples", peer_id, player)):
+		_fail("US-010 T003: partial top-up from 18/20 must succeed")
+		return
+	if player.staple_count != 20:
+		_fail("US-010 T003: 18+2 partial must reach 20, got %d" % player.staple_count)
+		return
+	if PlayerManager.get_item_count(peer_id, METAL) != iron_before - 1:
+		_fail("US-010 T003: partial top-up must still spend exactly 1 iron")
 		return
 	print("US-010 T003 office max restock passed")
 
@@ -205,23 +231,20 @@ func _ready() -> void:
 		_fail("US-010 T004: full mag must leave mag/iron unchanged")
 		return
 
-	# Not enough iron: need 2, give 1
+	# 0 iron: reject
 	player.staple_count = 5
-	# drain to 1 iron
 	var have: int = PlayerManager.get_item_count(peer_id, METAL)
-	if have > 1:
-		PlayerManager.consume_resources(peer_id, METAL, have - 1)
-	elif have < 1:
-		PlayerManager.add_item_to_inventory(peer_id, metal, 1)
+	if have > 0:
+		PlayerManager.consume_resources(peer_id, METAL, have)
 	iron_before = PlayerManager.get_item_count(peer_id, METAL)
-	if iron_before != 1:
-		_fail("US-010 T004 setup: expected 1 iron, got %d" % iron_before)
+	if iron_before != 0:
+		_fail("US-010 T004 setup: expected 0 iron, got %d" % iron_before)
 		return
 	if bool(om.call("try_restock_staples", peer_id, player)):
-		_fail("US-010 T004: not enough iron must reject")
+		_fail("US-010 T004: 0 iron must reject")
 		return
-	if player.staple_count != 5 or PlayerManager.get_item_count(peer_id, METAL) != 1:
-		_fail("US-010 T004: insufficient iron must leave mag/iron unchanged")
+	if player.staple_count != 5 or PlayerManager.get_item_count(peer_id, METAL) != 0:
+		_fail("US-010 T004: 0 iron must leave mag/iron unchanged")
 		return
 	print("US-010 T004 restock gates passed")
 
@@ -282,12 +305,12 @@ func _ready() -> void:
 	if not bool(rebuilt.call("try_restock_staples", peer_id, player)):
 		_fail("US-010 T005: rebuilt Office Max must restock")
 		return
-	if player.staple_count != 20:
-		_fail("US-010 T005: rebuilt restock must fill mag")
+	if player.staple_count != 15:
+		_fail("US-010 T005: rebuilt restock must add 10 (5->15), got %d" % player.staple_count)
 		return
 	print("US-010 T005 destroyed / rebuild passed")
 
-	# --- T006 two players independent restock ---
+	# --- T006 two players independent restock (1 iron / +10 each) ---
 	PlayerManager.register_player(2, "Paper Pusher B")
 	var player_b: Player = Player.new()
 	player_b.name = "2"
@@ -305,24 +328,24 @@ func _ready() -> void:
 	var iron_b0: int = PlayerManager.get_item_count(2, METAL)
 	player.global_position = rebuilt.global_position
 	player_b.global_position = rebuilt.global_position
-	# A: 8->20 needs 12 staples -> 2 iron
+	# A: 8->18 (+10), iron -1
 	if not bool(rebuilt.call("try_restock_staples", peer_id, player)):
 		_fail("US-010 T006: player A restock must succeed")
 		return
-	if player.staple_count != 20 or PlayerManager.get_item_count(peer_id, METAL) != iron_a0 - 2:
+	if player.staple_count != 18 or PlayerManager.get_item_count(peer_id, METAL) != iron_a0 - 1:
 		_fail("US-010 T006: player A mag/iron incorrect")
 		return
 	if player_b.staple_count != 11 or PlayerManager.get_item_count(2, METAL) != iron_b0:
 		_fail("US-010 T006: player B must be unchanged after A restock")
 		return
-	# B: 11->20 needs 9 staples -> 1 iron
+	# B: 11->20 (+9 partial), iron -1
 	if not bool(rebuilt.call("try_restock_staples", 2, player_b)):
 		_fail("US-010 T006: player B restock must succeed")
 		return
 	if player_b.staple_count != 20 or PlayerManager.get_item_count(2, METAL) != iron_b0 - 1:
 		_fail("US-010 T006: player B mag/iron incorrect")
 		return
-	if player.staple_count != 20 or PlayerManager.get_item_count(peer_id, METAL) != iron_a0 - 2:
+	if player.staple_count != 18 or PlayerManager.get_item_count(peer_id, METAL) != iron_a0 - 1:
 		_fail("US-010 T006: player A must stay independent after B restock")
 		return
 	print("US-010 T006 independent restock passed")

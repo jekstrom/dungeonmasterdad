@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# US-010 Office Max headless harness.
+# James live restock: 1 iron -> up to +10 staples per interact (not fill-to-max multi-iron).
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
