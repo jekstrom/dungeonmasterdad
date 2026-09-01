@@ -1,8 +1,18 @@
 extends Node
 
 ## US-032 headless harness: dense exit forest + SkillTree, egress clear, sparse exclusion, rebuild.
+## Covers west-edge exit (simple) and room-center exit (live room radius + wall shell).
 
 func _ready() -> void:
+	if not await _run_edge_exit_suite():
+		return
+	if not await _run_room_center_and_density_suite():
+		return
+	print("US-032 exit forest test passed")
+	get_tree().quit(0)
+
+
+func _run_edge_exit_suite() -> bool:
 	var interior := Rect2i(0, 0, 16, 10)
 	var dungeon := Rect2i(8, 2, 8, 6)
 	var exit_a := Vector2i(8, 5)
@@ -22,7 +32,7 @@ func _ready() -> void:
 	await get_tree().process_frame
 
 	level.tree_scatter_density = 1.0
-	level.exit_forest_density = 0.78
+	level.exit_forest_density = 0.85
 	level.apply_map_interior(interior, dungeon, exit_a)
 	await get_tree().process_frame
 
@@ -32,36 +42,36 @@ func _ready() -> void:
 	var placeable: Array = plan.get("placeable", [])
 	if pocket.is_empty():
 		_fail("US-032: expected non-empty exit forest pocket")
-		return
+		return false
 	if egress.is_empty() or not egress.has(exit_a):
 		_fail("US-032: egress must include exit door cell")
-		return
+		return false
 	var landing: Vector2i = plan.get("landing", DungeonGrid.SENTINEL)
 	if landing == DungeonGrid.SENTINEL or not egress.has(landing):
 		_fail("US-032: egress must include an outside landing")
-		return
+		return false
 	if dungeon.has_point(landing):
 		_fail("US-032: landing must be outside dungeon")
-		return
+		return false
 
 	for cell in pocket:
 		if dungeon.has_point(cell):
 			_fail("US-032: pocket cell on dungeon %s" % cell)
-			return
+			return false
 		if not level.map_bounds.is_interior_cell(cell):
 			_fail("US-032: pocket cell not interior %s" % cell)
-			return
+			return false
 		if level.map_bounds.is_cliff_cell(cell):
 			_fail("US-032: pocket cell on cliff %s" % cell)
-			return
+			return false
 		if level.map_bounds.west_spawn_strip_cells(dungeon).has(cell):
 			_fail("US-032: pocket cell on west strip %s" % cell)
-			return
+			return false
 
 	var forest_parent: Node = level.get_node_or_null("ExitForestTrees")
 	if forest_parent == null:
 		_fail("US-032: ExitForestTrees missing")
-		return
+		return false
 
 	var forest_tree_cells: Dictionary = {}
 	var skill_count := 0
@@ -76,21 +86,21 @@ func _ready() -> void:
 			continue
 		if not child.is_in_group("exit_forest_trees"):
 			_fail("US-032: unexpected ExitForestTrees child %s" % child.name)
-			return
+			return false
 		if dungeon.has_point(cell):
 			_fail("US-032: forest tree on dungeon %s" % cell)
-			return
+			return false
 		if egress.has(cell):
 			_fail("US-032: forest tree on egress %s" % cell)
-			return
+			return false
 		if not pocket.has(cell):
 			_fail("US-032: forest tree outside pocket %s" % cell)
-			return
+			return false
 		forest_tree_cells[cell] = true
 
 	if forest_tree_cells.is_empty():
 		_fail("US-032: expected dense forest trees")
-		return
+		return false
 
 	# Dense >> US-024 8%: most placeable non-skill cells should be filled.
 	var placeable_for_trees: int = placeable.size()
@@ -101,34 +111,33 @@ func _ready() -> void:
 		ratio = float(forest_tree_cells.size()) / float(placeable_for_trees)
 	if ratio < 0.5:
 		_fail("US-032: forest density %s too low (want dense >> 8%%)" % ratio)
-		return
+		return false
 
 	var scene_skills: Array = get_tree().get_nodes_in_group("skill_trees")
 	if scene_skills.size() != 1:
 		_fail("US-032: expected exactly one SkillTree, got %d" % scene_skills.size())
-		return
+		return false
 	if skill_count != 1:
 		_fail("US-032: ExitForestTrees skill count %d" % skill_count)
-		return
+		return false
 	if skill_cell == DungeonGrid.SENTINEL or not pocket.has(skill_cell) or egress.has(skill_cell):
 		_fail("US-032: SkillTree cell invalid %s" % skill_cell)
-		return
+		return false
 	if is_instance_valid(authored) and authored.is_inside_tree():
 		_fail("US-032: authored SkillTree was not superseded")
-		return
+		return false
 
 	for cell in egress:
 		if forest_tree_cells.has(cell) or cell == skill_cell:
 			_fail("US-032: egress cell occupied %s" % cell)
-			return
+			return false
 
 	# T005: sparse eligible ∩ pocket == ∅
 	var sparse: Array[Vector2i] = level.tree_scatter_eligible_cells()
 	for cell in pocket:
 		if sparse.has(cell):
 			_fail("US-032: sparse eligible intersects pocket at %s" % cell)
-			return
-	# Sparse trees must not live under ExitForestTrees / ScatteredTrees on pocket.
+			return false
 	var scattered: Node = level.get_node_or_null("ScatteredTrees")
 	var sparse_outside := 0
 	if scattered:
@@ -136,12 +145,11 @@ func _ready() -> void:
 			var cell: Vector2i = DungeonGrid.from_world(child.position)
 			if pocket.has(cell):
 				_fail("US-032: sparse tree inside pocket %s" % cell)
-				return
+				return false
 			sparse_outside += 1
-	# AC6: eligible outside pocket still gets US-024 sparse trees.
 	if sparse_outside < 1:
 		_fail("US-032: expected sparse trees outside pocket")
-		return
+		return false
 
 	# Peer seed match
 	var other := Node2D.new()
@@ -149,14 +157,14 @@ func _ready() -> void:
 	add_child(other)
 	await get_tree().process_frame
 	other.tree_scatter_density = 1.0
-	other.exit_forest_density = 0.78
+	other.exit_forest_density = 0.85
 	other.apply_map_interior(interior, dungeon, exit_a)
 	await get_tree().process_frame
 	var a_sig: Array[int] = _forest_signature(forest_parent)
 	var b_sig: Array[int] = _forest_signature(other.get_node("ExitForestTrees"))
 	if a_sig != b_sig:
 		_fail("US-032: exit forest seed must match across peers")
-		return
+		return false
 
 	# T004: fake exit move — clear old, place new
 	var old_pocket: Array = pocket.duplicate()
@@ -167,7 +175,7 @@ func _ready() -> void:
 	var egress_b: Array = plan_b.get("egress", [])
 	if pocket_b.is_empty():
 		_fail("US-032: pocket empty after exit move")
-		return
+		return false
 	var occupied_after: Dictionary = {}
 	var forest_after: Dictionary = {}
 	var skill_after := 0
@@ -182,22 +190,21 @@ func _ready() -> void:
 			forest_after[cell] = true
 	if skill_after != 1:
 		_fail("US-032: after exit move SkillTree count %d" % skill_after)
-		return
+		return false
 	if skill_cell_after == DungeonGrid.SENTINEL or not pocket_b.has(skill_cell_after):
 		_fail("US-032: after exit move SkillTree not in new pocket %s" % skill_cell_after)
-		return
+		return false
 	if egress_b.has(skill_cell_after):
 		_fail("US-032: after exit move SkillTree on new egress %s" % skill_cell_after)
-		return
+		return false
 	for cell in egress_b:
 		if forest_after.has(cell) or cell == skill_cell_after:
 			_fail("US-032: after exit move egress cell occupied %s" % cell)
-			return
-	# No orphan forest keyed only to old pocket (unless overlap with new pocket).
+			return false
 	for cell in old_pocket:
 		if occupied_after.has(cell) and not pocket_b.has(cell):
 			_fail("US-032: orphan forest at old pocket cell %s" % cell)
-			return
+			return false
 	var any_new := false
 	for cell in pocket_b:
 		if occupied_after.has(cell):
@@ -205,10 +212,76 @@ func _ready() -> void:
 			break
 	if not any_new:
 		_fail("US-032: no forest in new pocket after exit move")
-		return
+		return false
 
-	print("US-032 exit forest test passed")
-	get_tree().quit(0)
+	level.queue_free()
+	other.queue_free()
+	await get_tree().process_frame
+	return true
+
+
+func _run_room_center_and_density_suite() -> bool:
+	# Live geometry: exit room center is ~3 cells inside dungeon AABB (radius 2 + wall).
+	var dungeon := Rect2i(10, 5, 20, 12)
+	var interior: Rect2i = MapBounds.interior_from_dungeon_aabb(dungeon)
+	var exit_center := Vector2i(13, 10)
+
+	var level := Node2D.new()
+	level.set_script(load("res://_globals/level_manager.gd"))
+	add_child(level)
+	await get_tree().process_frame
+
+	# Confused knob: density=10 must mean max dense (1.0), not empty/break.
+	level.tree_scatter_density = 0.0
+	level.exit_forest_density = 10.0
+	level.apply_map_interior(interior, dungeon, exit_center)
+	await get_tree().process_frame
+
+	var plan: Dictionary = level.exit_forest_plan()
+	var pocket: Array = plan.get("pocket", [])
+	var placeable: Array = plan.get("placeable", [])
+	var landing: Vector2i = plan.get("landing", DungeonGrid.SENTINEL)
+	print("US-032 diag room-center: pocket=%d placeable=%d egress=%d landing=%s" % [
+		pocket.size(), placeable.size(), (plan.get("egress", []) as Array).size(), str(landing)
+	])
+	if landing == DungeonGrid.SENTINEL:
+		_fail("US-032: room-center exit must project an outside landing")
+		return false
+	if dungeon.has_point(landing):
+		_fail("US-032: projected landing still in dungeon %s" % landing)
+		return false
+	if pocket.is_empty() or placeable.is_empty():
+		_fail("US-032: room-center exit pocket/placeable empty (live bug regress)")
+		return false
+
+	var forest_parent: Node = level.get_node_or_null("ExitForestTrees")
+	if forest_parent == null:
+		_fail("US-032: ExitForestTrees missing for room-center")
+		return false
+	var tree_n := 0
+	var skill_n := 0
+	for child in forest_parent.get_children():
+		if child.is_in_group("exit_forest_skill_trees") or child.is_in_group("skill_trees"):
+			skill_n += 1
+		elif child.is_in_group("exit_forest_trees"):
+			tree_n += 1
+	if tree_n < 1:
+		_fail("US-032: room-center density=10 placed no trees")
+		return false
+	if skill_n != 1:
+		_fail("US-032: room-center SkillTree count %d" % skill_n)
+		return false
+	# Max dense: every placeable non-skill cell filled.
+	var expected_trees: int = placeable.size() - 1
+	if expected_trees < 1:
+		expected_trees = placeable.size()
+	if tree_n < maxi(expected_trees, 1):
+		_fail("US-032: density=10 should max-fill; trees=%d placeable=%d" % [tree_n, placeable.size()])
+		return false
+
+	level.queue_free()
+	await get_tree().process_frame
+	return true
 
 
 func _fail(message: String) -> void:

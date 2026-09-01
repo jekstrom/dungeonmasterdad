@@ -4,7 +4,8 @@ const TREE_TYPE_COUNT := 10
 
 @export var tree_scatter_density: float = 0.08
 @export var mine_scatter_count: int = 3
-@export var exit_forest_density: float = 0.78
+## Exit forest fill fraction in [0, 1] (not a 1–10 scale). Values >1 clamp to 1.0 = max dense.
+@export_range(0.0, 1.0, 0.01) var exit_forest_density: float = 0.85
 @export var exit_forest_pocket_radius: int = 2
 var _mine_scene: PackedScene = preload("res://doodads/mine.tscn")
 var _skill_tree_scene: PackedScene = preload("res://doodads/skill_tree.tscn")
@@ -194,11 +195,23 @@ func _physics_process(_delta: float) -> void:
 			enforce_body_interior(node)
 
 func commit_map_interior(interior: Rect2i) -> void:
-	if not Lobby.is_network_server():
+	# Host match: authoritative commit + peer sync.
+	# Offline / playground (OfflineMultiplayerPeer): still apply locally so
+	# generate_on_ready builds cliffs, sparse trees, and the exit forest.
+	var is_host := Lobby.is_network_server()
+	var offline := _is_offline_map_authority()
+	if not is_host and not offline:
 		return
 	apply_map_interior(interior, dungeon_cell_bounds(), _resolve_exit_cell())
 	SignalBus.map_bounds_committed.emit(interior)
-	_rpc_replace_overworld_map.rpc(build_map_sync_payload())
+	if is_host:
+		_rpc_replace_overworld_map.rpc(build_map_sync_payload())
+
+
+func _is_offline_map_authority() -> bool:
+	if not multiplayer.has_multiplayer_peer():
+		return true
+	return multiplayer.multiplayer_peer is OfflineMultiplayerPeer
 
 func apply_map_interior(interior: Rect2i, dungeon: Rect2i = Rect2i(), exit_cell: Vector2i = DungeonGrid.SENTINEL) -> void:
 	map_bounds.commit_interior(interior)
@@ -501,8 +514,13 @@ func rebuild_exit_forest() -> void:
 		return
 	var plan: Dictionary = exit_forest_plan()
 	var placeable: Array = plan.get("placeable", [])
+	var pocket_n: int = (plan.get("pocket", []) as Array).size()
+	var egress_n: int = (plan.get("egress", []) as Array).size()
 	if placeable.is_empty():
 		# Degenerate bounds: never punch dungeon cells; leave pocket empty.
+		print("US-032 exit forest: empty placeable (pocket=%d egress=%d exit=%s)" % [
+			pocket_n, egress_n, str(dungeon_exit_cell())
+		])
 		_supersede_authored_skill_trees(null)
 		return
 	var rng := RandomNumberGenerator.new()
@@ -514,7 +532,8 @@ func rebuild_exit_forest() -> void:
 			continue
 		place_set.append(cell)
 	_shuffle_cells(place_set, rng)
-	var density: float = clampf(exit_forest_density, 0.0, 1.0)
+	# Density is a 0–1 fill fraction; >1 (confused 1–10 knobs) => max dense.
+	var density: float = _exit_forest_planner.normalize_density(exit_forest_density)
 	var count: int = int(round(float(place_set.size()) * density))
 	count = mini(count, place_set.size())
 	# Dense forest should still read as woods when the pocket is tiny.
@@ -543,6 +562,13 @@ func rebuild_exit_forest() -> void:
 			# Keep interact group used by SkillTreeDoodad._ready.
 			parent.add_child(skill)
 	_supersede_authored_skill_trees(skill)
+	print("US-032 exit forest: pocket=%d egress=%d trees=%d skill=%s density=%.2f" % [
+		pocket_n,
+		egress_n,
+		count,
+		str(skill_cell) if skill != null else "none",
+		density
+	])
 
 
 func _exit_forest_seed(interior: Rect2i, dungeon: Rect2i, exit_cell: Vector2i) -> int:

@@ -1,10 +1,17 @@
 class_name ExitForestPlanner extends RefCounted
 ## US-032: pocket / egress / skill-tree cell plan for dense exit forest.
-## Pocket = interior outside cells near the live exit (Chebyshev radius).
-## Egress = exit door cell + at least one adjacent outside landing (kept clear).
+## Pocket = interior outside cells near the overworld landing beyond the live exit.
+## Egress = exit door/room cell + clear outside landing (kept free of trunks).
+##
+## Exit room centers sit several cells inside the dungeon AABB (room radius + wall
+## shell). Adjacent-only landing fails there — we project along preferred dirs
+## (west first for east-flush) until an eligible outside cell is found.
 
 const DEFAULT_POCKET_RADIUS := 2
-const DEFAULT_DENSITY := 0.78
+const DEFAULT_DENSITY := 0.85
+## How far to walk from exit_cell when no adjacent outside landing exists.
+## Covers room radius 2 + wall shell 1 with margin for larger rooms.
+const MAX_LANDING_PROJECT_STEPS := 8
 ## Prefer overworld face of an east-flush dungeon (west toward Paper Pushers).
 const PREFERRED_LANDING_DIRS: Array[Vector2i] = [
 	Vector2i.LEFT,
@@ -12,6 +19,7 @@ const PREFERRED_LANDING_DIRS: Array[Vector2i] = [
 	Vector2i.DOWN,
 	Vector2i.RIGHT,
 ]
+
 
 func plan(
 	map_bounds: MapBounds,
@@ -31,26 +39,43 @@ func plan(
 		west[cell] = true
 
 	var landing: Vector2i = _pick_landing(map_bounds, dungeon, exit_cell, west, building_blocked)
+	var approach: Array[Vector2i] = []
+	if landing == DungeonGrid.SENTINEL:
+		var projected: Dictionary = _project_landing(
+			map_bounds, dungeon, exit_cell, west, building_blocked
+		)
+		landing = projected.get("landing", DungeonGrid.SENTINEL)
+		for cell in projected.get("approach", []):
+			approach.append(cell)
+
 	var egress: Array[Vector2i] = []
 	var egress_set: Dictionary = {}
 	_add_unique(egress, egress_set, exit_cell)
 	if landing != DungeonGrid.SENTINEL:
 		_add_unique(egress, egress_set, landing)
-	else:
-		# Degenerate: no outside neighbor — still mark exit so we never plant on the door.
-		pass
+	# Keep the outside approach corridor clear so the DM can step out.
+	for cell in approach:
+		if _is_eligible_outside(map_bounds, dungeon, cell, west, building_blocked):
+			_add_unique(egress, egress_set, cell)
+
+	var radius: int = maxi(pocket_radius, 1)
+	# Anchor on landing (overworld) and exit (harness / edge-flush cases).
+	var anchors: Array[Vector2i] = []
+	if landing != DungeonGrid.SENTINEL:
+		anchors.append(landing)
+	anchors.append(exit_cell)
 
 	var pocket: Array[Vector2i] = []
 	var pocket_set: Dictionary = {}
-	var radius: int = maxi(pocket_radius, 1)
-	for y in range(exit_cell.y - radius, exit_cell.y + radius + 1):
-		for x in range(exit_cell.x - radius, exit_cell.x + radius + 1):
-			var cell := Vector2i(x, y)
-			if DungeonGrid.chebyshev(cell, exit_cell) > radius:
-				continue
-			if not _is_eligible_outside(map_bounds, dungeon, cell, west, building_blocked):
-				continue
-			_add_unique(pocket, pocket_set, cell)
+	for anchor in anchors:
+		for y in range(anchor.y - radius, anchor.y + radius + 1):
+			for x in range(anchor.x - radius, anchor.x + radius + 1):
+				var cell := Vector2i(x, y)
+				if DungeonGrid.chebyshev(cell, anchor) > radius:
+					continue
+				if not _is_eligible_outside(map_bounds, dungeon, cell, west, building_blocked):
+					continue
+				_add_unique(pocket, pocket_set, cell)
 
 	var placeable: Array[Vector2i] = []
 	for cell in pocket:
@@ -107,6 +132,13 @@ func seed_hash(interior: Rect2i, dungeon: Rect2i, exit_cell: Vector2i) -> int:
 	]))
 
 
+func normalize_density(raw: float) -> float:
+	## Fill fraction in [0, 1]. Values >1 (e.g. inspector "10") mean max dense.
+	if raw > 1.0:
+		return 1.0
+	return clampf(raw, 0.0, 1.0)
+
+
 func _empty_plan() -> Dictionary:
 	return {
 		"pocket": [] as Array[Vector2i],
@@ -129,6 +161,30 @@ func _pick_landing(
 		if _is_eligible_outside(map_bounds, dungeon, candidate, west, building_blocked):
 			return candidate
 	return DungeonGrid.SENTINEL
+
+
+func _project_landing(
+	map_bounds: MapBounds,
+	dungeon: Rect2i,
+	exit_cell: Vector2i,
+	west: Dictionary,
+	building_blocked: Dictionary
+) -> Dictionary:
+	## Walk each preferred dir from the exit until the first eligible outside cell.
+	for dir in PREFERRED_LANDING_DIRS:
+		var approach: Array[Vector2i] = []
+		var cursor: Vector2i = exit_cell
+		for _step in range(MAX_LANDING_PROJECT_STEPS):
+			cursor += dir
+			if _is_eligible_outside(map_bounds, dungeon, cursor, west, building_blocked):
+				return {"landing": cursor, "approach": approach}
+			# Still inside dungeon / blocked: keep walking; record nothing yet.
+			# Once we leave the dungeon AABB we only accept eligible outside.
+			if dungeon.size.x > 0 and dungeon.size.y > 0 and dungeon.has_point(cursor):
+				continue
+			# Off-map / cliff / west strip between dungeon and open overworld — stop this dir.
+			break
+	return {"landing": DungeonGrid.SENTINEL, "approach": [] as Array[Vector2i]}
 
 
 func _is_eligible_outside(
@@ -156,4 +212,3 @@ func _add_unique(list: Array[Vector2i], seen: Dictionary, cell: Vector2i) -> voi
 		return
 	seen[cell] = true
 	list.append(cell)
-
