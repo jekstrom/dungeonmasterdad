@@ -982,17 +982,17 @@ func is_combat_locked() -> bool:
 func wants_fire_staple(event: InputEvent) -> bool:
 	if is_combat_locked():
 		return false
+	# LMB is both `fire` and `primary_click`. Never staple-fire while placing
+	# (ghost active) or on the place click flush (_suppress_primary_staple_click).
+	if current_building_data != null:
+		return false
+	if ghost_building != null and is_instance_valid(ghost_building):
+		return false
+	if _suppress_primary_staple_click:
+		return false
 	if event.is_action_pressed("fire"):
 		return true
-	# LMB is also primary_click (building). Fire only when not placing.
-	# Dedicated `fire` action above still works while a ghost is up.
 	if event.is_action_pressed("primary_click"):
-		if current_building_data != null or ghost_building != null:
-			return false
-		# Place clears ghost in _unhandled_input before sibling/state handlers
-		# see the same LMB; suppress staple on that click.
-		if _suppress_primary_staple_click:
-			return false
 		return true
 	return false
 
