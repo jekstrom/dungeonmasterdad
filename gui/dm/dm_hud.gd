@@ -16,6 +16,7 @@ const MANA_BAR_WIDTH: float = 120.0
 @onready var respawn_overlay: Control = $RespawnOverlay
 @onready var respawn_label: Label = $RespawnOverlay/DmRespawnCountdown
 @onready var skill_tree: Control = $SkillTree
+@onready var minimap_widget: Control = $MinimapWidget
 
 func _ready() -> void:
 	turn_off()
@@ -37,6 +38,10 @@ func _ready() -> void:
 	_update_mana_meter(DmManager.current_mana, DmManager.max_mana)
 	_apply_unlock_visibility()
 	_on_respawn_countdown_changed(-1.0)
+	if minimap_widget and minimap_widget.has_method("configure"):
+		minimap_widget.configure(1)  # ROLE_DM
+	if minimap_widget:
+		minimap_widget.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 func _on_gremlin_button_pressed() -> void:
 	DmManager.request_cast(AbilityCatalog.GREMLIN)

@@ -7,6 +7,7 @@ extends CanvasLayer
 
 @onready var smoke_count: Label = $ResourceContainer/VBoxContainer/SmokeCount
 @onready var paper_count: Label = $ResourceContainer/VBoxContainer/PaperCount
+@onready var minimap_widget: Control = $MinimapWidget
 
 func _ready() -> void:
 	turn_off()
@@ -22,6 +23,10 @@ func _ready() -> void:
 	if build_office_max_button:
 		build_office_max_button.connect("button_down", on_build_office_max_button_pressed)
 	update_staple_magazine(20, 20)
+	if minimap_widget:
+		if minimap_widget.has_method("configure"):
+			minimap_widget.configure(0)  # ROLE_PP
+		_pass_world_clicks_through(minimap_widget)
 	_pass_world_clicks_through(self)
 
 func _pass_world_clicks_through(n: Node) -> void:

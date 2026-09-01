@@ -1,4 +1,4 @@
-[gd_scene load_steps=12 format=3 uid="uid://bglfuu7ga823v"]
+[gd_scene load_steps=13 format=3 uid="uid://bglfuu7ga823v"]
 
 [ext_resource type="Script" uid="uid://m8460fk6uai3" path="res://gui/player/player_hud.gd" id="1_3thna"]
 [ext_resource type="Texture2D" uid="uid://b3lnqh3d8v2xs" path="res://sprites/build_smoke_factory_icon.png" id="1_ou2ku"]
@@ -11,6 +11,7 @@
 [ext_resource type="Texture2D" uid="uid://ch1ms6d2jh3kq" path="res://sprites/office_max_icon_pressed.png" id="9_om_pressed"]
 [ext_resource type="Texture2D" uid="uid://baeho6l1y48y5" path="res://sprites/paper_factory_icon.png" id="10_paper"]
 [ext_resource type="Texture2D" uid="uid://dhxkblryx51qy" path="res://sprites/paper_factory_icon_pressed.png" id="11_paper_pressed"]
+[ext_resource type="PackedScene" path="res://gui/minimap/minimap_widget.tscn" id="12_minimap"]
 
 [node name="PlayerHud" type="CanvasLayer"]
 script = ExtResource("1_3thna")
@@ -162,3 +163,5 @@ unique_name_in_owner = true
 layout_mode = 2
 text = "20/20"
 vertical_alignment = 1
+
+[node name="MinimapWidget" parent="." instance=ExtResource("12_minimap")]
