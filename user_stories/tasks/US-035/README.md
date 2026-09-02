@@ -2,17 +2,15 @@
 
 **Story**: [US-035.md](../../US-035.md)  
 **Branch**: `035-dad-skill-tree-content`  
-**Status**: Todo
+**Status**: Signed — ready for Art/Gameplay
 
-Replace US-034 **Dad** placeholders with Frost / Fire / Control + **Dad All Powerful** labels, tooltips, and icons. **UI-only** (same as US-034). No spend/apply/US-021 activation. Markdown only until James signs — no Art/Gameplay handoff ping yet.
-
-Open defaults: UI-only unless James overrides. Entry path unchanged.
+Replace US-034 **Dad** placeholders with Frost / Fire / Control + **Dad All Powerful** labels, tooltips, and icons. **UI-only** (same as US-034). No spend/apply/US-021 activation. James signed at `8bc4850`. Open defaults (UI-only) locked unless overridden. Entry path unchanged.
 
 ## Order
 
 T001 Dad labels/rows first (needs US-034 Dad tab). T002 tooltips with or right after T001. T003 chrome/states reuse check. T004 Art parallel after names stable. T005 harness last.
 
-| ID | Task | Owner (after sign) | Depends on | Parallel |
+| ID | Task | Owner | Depends on | Parallel |
 |---|---|---|---|---|
 | [T001](T001-dad-labels-and-rows.md) | Dad 3×3 + ult labels; Frost/Fire/Control rows | Gameplay | US-034 Dad tab | |
 | [T002](T002-dad-tooltips.md) | Tooltips with locked Dad copy | Gameplay | T001 | with T003 |
