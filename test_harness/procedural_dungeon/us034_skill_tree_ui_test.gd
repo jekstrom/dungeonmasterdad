@@ -183,6 +183,9 @@ func _run_suite() -> bool:
 	var dad_ult: Button = tree.get("dad_ultimate")
 	if dad_ult == null or dad_ult.text != "Dad All Powerful":
 		return _fail("US-035: Dad ultimate missing")
+	# Same centered icon+label pair as TSB.
+	if dad_ult.alignment != HORIZONTAL_ALIGNMENT_CENTER:
+		return _fail("US-035: Dad All Powerful must center-align like TSB")
 	var dad_ult_tip: String = tree.tooltip_for_button(dad_ult)
 	if dad_ult_tip.find("Dad All Powerful") == -1 or dad_ult_tip.find("Become Dad, All Powerful.") == -1:
 		return _fail("US-035: Dad ultimate tooltip missing")

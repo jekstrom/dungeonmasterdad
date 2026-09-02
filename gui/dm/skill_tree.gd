@@ -140,12 +140,15 @@ func _ready() -> void:
 	_equalize_grid_cells(dad_grid)
 	_center_row_labels()
 	_apply_mock_lock_chrome()
+	# Ult bars: icon+label centered pair (same treatment for TSB and Dad All Powerful).
 	# TSB starts locked-grey like passives; bar fill only after click selection.
 	if dm_ultimate and DM_ULT_ICON:
 		var tsb_icon := load(DM_ULT_ICON) as Texture2D
 		if tsb_icon:
 			dm_ultimate.icon = tsb_icon
 		_style_tsb_label_layout(dm_ultimate)
+	if dad_ultimate:
+		_style_tsb_label_layout(dad_ultimate)
 	if tab_container:
 		tab_container.set_tab_title(0, "DM")
 		tab_container.set_tab_title(1, "Dad")
@@ -599,8 +602,8 @@ func _configure_ultimate(
 	btn.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	btn.custom_minimum_size = Vector2(0, max(NODE_BTN_MIN.y, btn.custom_minimum_size.y))
 	_apply_icon_inset(btn)
-	# TSB: icon then label, as a centered pair in the wide bar.
-	if node_id == "tsb" or btn == dm_ultimate:
+	# Wide ult bars (TSB / Dad All Powerful): icon then label as a centered pair.
+	if node_id == "tsb" or node_id == "dad_all_powerful" or btn == dm_ultimate or btn == dad_ultimate:
 		_style_tsb_label_layout(btn)
 	else:
 		btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
@@ -747,6 +750,7 @@ func _apply_icon_inset(btn: Button) -> void:
 	btn.add_theme_constant_override("icon_max_width", 28)
 
 
+## Centered icon+label pair for wide ultimate bars (TSB / Dad All Powerful).
 func _style_tsb_label_layout(btn: Button) -> void:
 	if btn == null:
 		return
