@@ -19,7 +19,7 @@ T001 shell/tabs first. T002 DM nodes + copy. T003 Dad placeholders parallel afte
 | [T003](T003-dad-tree-placeholders.md) | Dad 9 + ult placeholders | Gameplay | T001 | with T002 |
 | [T004](T004-node-tooltips.md) | Hover/focus tooltips name + short text | Gameplay | T002, T003 | |
 | [T005](T005-locked-unlocked-chrome.md) | Locked vs unlocked visuals only (no spend) | Gameplay | T002 | with T004 |
-| [T006](T006-skill-tree-art.md) | Node/tab/tooltip art | Art | T001; refine after T002 | with Gameplay |
+| [T006](T006-skill-tree-art.md) | Specific panel/tabs/node-states/icons/tooltip art checklist | Art | T001; refine after T002 | with Gameplay |
 | [T007](T007-verification-harness.md) | Open/close, tabs, labels, tooltips, no gameplay side effects | QA / Gameplay | T002–T005 | |
 
 ## Out of scope
