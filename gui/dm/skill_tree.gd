@@ -58,6 +58,10 @@ const DM_ULTIMATE: Dictionary = {
 ## remaining passives + ultimate look locked. Visual only — no spend/gates.
 const MOCK_UNLOCKED_PASSIVE_INDICES: Array[int] = [0, 3, 6]
 
+# Equal cell size: fit longest label ("Blind one-legged monkeys") with wrap + 28px icon.
+const NODE_BTN_MIN := Vector2(176, 72)
+const PANEL_MIN := Vector2(720, 520)
+
 @onready var tab_container: TabContainer = $Panel/Margin/VBox/TabContainer
 @onready var dm_grid: GridContainer = $Panel/Margin/VBox/TabContainer/DM/Body/PassivesGrid
 @onready var dm_ultimate: Button = $Panel/Margin/VBox/TabContainer/DM/UltimateButton
@@ -92,6 +96,8 @@ func _ready() -> void:
 	_wire_custom_tabs()
 	_build_dm_tree()
 	_build_dad_tree()
+	_equalize_grid_cells(dm_grid)
+	_equalize_grid_cells(dad_grid)
 	_apply_mock_lock_chrome()
 	# TSB ultimate uses opaque bar fill + octagon icon_tsb.
 	_apply_tsb_bar_fill(dm_ultimate)
@@ -244,7 +250,7 @@ func _apply_panel_art() -> void:
 		panel.add_theme_stylebox_override("panel", fill)
 	panel.modulate = Color(1, 1, 1, 1)
 	panel.self_modulate = Color(1, 1, 1, 1)
-	panel.custom_minimum_size = Vector2(480, 448)
+	panel.custom_minimum_size = PANEL_MIN
 
 
 func _apply_tooltip_art() -> void:
@@ -361,6 +367,17 @@ func _build_dad_tree() -> void:
 	)
 
 
+
+func _equalize_grid_cells(grid: GridContainer) -> void:
+	if grid == null:
+		return
+	for child in grid.get_children():
+		if child is Control:
+			var c := child as Control
+			c.custom_minimum_size = NODE_BTN_MIN
+			c.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			c.size_flags_vertical = Control.SIZE_EXPAND_FILL
+
 func _make_node_button(
 	label: String,
 	tip_name: String,
@@ -371,16 +388,20 @@ func _make_node_button(
 	var btn := Button.new()
 	btn.name = node_id
 	btn.text = label
-	btn.custom_minimum_size = Vector2(128, 56)
+	btn.custom_minimum_size = NODE_BTN_MIN
+	btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	btn.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	btn.focus_mode = Control.FOCUS_ALL
 	# Bottom TooltipPanel only — no Control/cursor native tooltip.
 	btn.tooltip_text = ""
-	# Long labels + expand_icon crushed 32px icons (Blind / Challenge Rating / Random Encounter).
+	# Keep icons readable; wrap long labels instead of clipping/crushing.
 	btn.expand_icon = false
-	btn.clip_text = true
+	btn.clip_text = false
+	btn.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	btn.add_theme_constant_override("icon_max_width", 28)
 	btn.icon_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	btn.vertical_icon_alignment = VERTICAL_ALIGNMENT_TOP
 	var icon_tex := load(icon_path) as Texture2D
 	if icon_tex:
 		btn.icon = icon_tex
@@ -407,12 +428,13 @@ func _configure_ultimate(
 	btn.focus_mode = Control.FOCUS_ALL
 	# Bottom TooltipPanel only — no Control/cursor native tooltip.
 	btn.tooltip_text = ""
-	# Long labels + expand_icon crushed 32px icons (Blind / Challenge Rating / Random Encounter).
 	btn.expand_icon = false
-	btn.clip_text = true
+	btn.clip_text = false
+	btn.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	btn.add_theme_constant_override("icon_max_width", 28)
 	btn.icon_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	btn.custom_minimum_size = Vector2(0, max(NODE_BTN_MIN.y, btn.custom_minimum_size.y))
 	var icon_tex := load(icon_path) as Texture2D
 	if icon_tex:
 		btn.icon = icon_tex
