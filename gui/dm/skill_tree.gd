@@ -375,7 +375,10 @@ func _make_node_button(
 	btn.focus_mode = Control.FOCUS_ALL
 	# Bottom TooltipPanel only — no Control/cursor native tooltip.
 	btn.tooltip_text = ""
-	btn.expand_icon = true
+	# Long labels + expand_icon crushed 32px icons (Blind / Challenge Rating / Random Encounter).
+	btn.expand_icon = false
+	btn.clip_text = true
+	btn.add_theme_constant_override("icon_max_width", 28)
 	btn.icon_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
 	var icon_tex := load(icon_path) as Texture2D
@@ -404,7 +407,10 @@ func _configure_ultimate(
 	btn.focus_mode = Control.FOCUS_ALL
 	# Bottom TooltipPanel only — no Control/cursor native tooltip.
 	btn.tooltip_text = ""
-	btn.expand_icon = true
+	# Long labels + expand_icon crushed 32px icons (Blind / Challenge Rating / Random Encounter).
+	btn.expand_icon = false
+	btn.clip_text = true
+	btn.add_theme_constant_override("icon_max_width", 28)
 	btn.icon_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
 	var icon_tex := load(icon_path) as Texture2D
@@ -441,6 +447,14 @@ func _set_lock_chrome(btn: Button, unlocked_looking: bool, owned_looking: bool) 
 		return
 	btn.set_meta("unlocked_looking", unlocked_looking)
 	btn.set_meta("owned_looking", owned_looking)
+	# DM TSB ultimate keeps tsb_bar_fill — never replace with node_locked/owned.
+	if btn == dm_ultimate or bool(btn.get_meta("tsb_bar", false)):
+		_apply_tsb_bar_fill(btn)
+		if unlocked_looking or owned_looking:
+			btn.add_theme_color_override("font_color", Color(0.95, 0.92, 0.75, 1))
+		else:
+			btn.add_theme_color_override("font_color", Color(0.7, 0.7, 0.75, 1))
+		return
 	# Keep buttons clickable for UI focus only; do not use disabled
 	# (disabled suppresses tooltips/hover in some themes).
 	var frame: Texture2D = _tex_locked
@@ -518,8 +532,10 @@ func _make_texture_style(tex: Texture2D) -> StyleBox:
 func _apply_tsb_bar_fill(btn: Button) -> void:
 	if btn == null:
 		return
+	btn.set_meta("tsb_bar", true)
 	var fill_tex := load(TEX_TSB_BAR_FILL) as Texture2D
 	if fill_tex == null:
+		push_warning("US-034: missing %s" % TEX_TSB_BAR_FILL)
 		return
 	var sb := StyleBoxTexture.new()
 	sb.texture = fill_tex
