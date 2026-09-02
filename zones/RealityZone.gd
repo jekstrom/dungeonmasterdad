@@ -468,4 +468,3 @@ func _rpc_request_spawn_pocket(origin: Vector2i, size: Vector2i, duration: float
 	if not _is_claim_host():
 		return
 	spawn_pocket(origin, size, duration)
-

@@ -25,7 +25,7 @@ func init() -> void:
 func enter() -> void:
 	_timer = 3
 	if DmUnlocks.dm_unlocks.has("spark"):
-		_timer = 1.5
+		_timer = 1
 	
 	original_pos = sprite.position
 	original_shadow_pos = shadow.position

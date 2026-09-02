@@ -43,6 +43,7 @@ func _ready() -> void:
 		DmManager.spawn_gremlin_cast.connect(spawn_gremlin)
 	if not DmManager.spawn_knight_cast.is_connected(spawn_knight):
 		DmManager.spawn_knight_cast.connect(spawn_knight)
+		
 	if not SignalBus.dungeon_generation_succeeded.is_connected(_on_dungeon_generation_succeeded):
 		SignalBus.dungeon_generation_succeeded.connect(_on_dungeon_generation_succeeded)
 
@@ -116,13 +117,18 @@ func spawn_gremlin() -> void:
 func spawn_knight() -> void:
 	if !multiplayer.is_server(): return
 	
-	print("spawning knight")
-	
-	var new_knight: Node = knight.instantiate()
-	_manual_spawn_seq += 1
-	new_knight.name = ("knight_%d" % _manual_spawn_seq).validate_node_name()
-
-	get_node(spawn_path).call_deferred("add_child", new_knight, true)
+	var number_knights = 1
+	if DmUnlocks.dm_unlocks.has("chain_lightning"):
+		number_knights = 3
+	for n in number_knights:
+		print("spawning knight")
+		
+		var new_knight: Node2D = knight.instantiate() as Node2D
+		_manual_spawn_seq += 1
+		new_knight.name = ("knight_%d" % _manual_spawn_seq).validate_node_name()
+		new_knight.position = Vector2(n + (randi() % 50), n + (randi() % 50))
+		
+		get_node(spawn_path).call_deferred("add_child", new_knight, true)
 	
 func cast_spell(spell_id: String) -> void:
 	if !multiplayer.is_server(): return
