@@ -106,6 +106,16 @@ func _run_suite() -> bool:
 		return _fail("US-034: ultimate should start locked-grey")
 	if bool(dm_ult.get_meta("owned_looking", false)):
 		return _fail("US-034: ultimate should start unselected")
+	var ult_sb = dm_ult.get_theme_stylebox("normal")
+	if ult_sb is StyleBoxTexture:
+		var ult_tex: Texture2D = (ult_sb as StyleBoxTexture).texture
+		if ult_tex and str(ult_tex.resource_path).find("tsb_bar_fill") != -1:
+			return _fail("US-034: TSB must not use tsb_bar_fill until selected")
+	var sample: Button = dm_btns[0]
+	var sample_sb = sample.get_theme_stylebox("normal")
+	if sample_sb:
+		if sample_sb.content_margin_left < 7.0:
+			return _fail("US-034: skill icons need left inset (content_margin_left>=8)")
 
 	# Dad tab placeholders
 	tree.select_tab("Dad")

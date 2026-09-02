@@ -101,12 +101,12 @@ func _ready() -> void:
 	_equalize_grid_cells(dad_grid)
 	_center_row_labels()
 	_apply_mock_lock_chrome()
-	# TSB ultimate uses opaque bar fill + octagon icon_tsb.
-	_apply_tsb_bar_fill(dm_ultimate)
+	# TSB starts locked-grey like passives; bar fill only after click selection.
 	if dm_ultimate and DM_ULT_ICON:
 		var tsb_icon := load(DM_ULT_ICON) as Texture2D
 		if tsb_icon:
 			dm_ultimate.icon = tsb_icon
+		_style_tsb_label_layout(dm_ultimate)
 	if tab_container:
 		tab_container.set_tab_title(0, "DM")
 		tab_container.set_tab_title(1, "Dad")
@@ -450,7 +450,7 @@ func _make_node_button(
 	btn.expand_icon = false
 	btn.clip_text = false
 	btn.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	btn.add_theme_constant_override("icon_max_width", 28)
+	_apply_icon_inset(btn)
 	btn.icon_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
 	btn.vertical_icon_alignment = VERTICAL_ALIGNMENT_CENTER
@@ -483,13 +483,11 @@ func _configure_ultimate(
 	btn.expand_icon = false
 	btn.clip_text = false
 	btn.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	btn.add_theme_constant_override("icon_max_width", 28)
 	btn.custom_minimum_size = Vector2(0, max(NODE_BTN_MIN.y, btn.custom_minimum_size.y))
+	_apply_icon_inset(btn)
 	# TSB: icon then label, as a centered pair in the wide bar.
 	if node_id == "tsb" or btn == dm_ultimate:
-		btn.alignment = HORIZONTAL_ALIGNMENT_CENTER
-		btn.icon_alignment = HORIZONTAL_ALIGNMENT_LEFT
-		btn.vertical_icon_alignment = VERTICAL_ALIGNMENT_CENTER
+		_style_tsb_label_layout(btn)
 	else:
 		btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		btn.icon_alignment = HORIZONTAL_ALIGNMENT_LEFT
@@ -527,9 +525,20 @@ func _set_lock_chrome(btn: Button, unlocked_looking: bool, owned_looking: bool) 
 		return
 	btn.set_meta("unlocked_looking", unlocked_looking)
 	btn.set_meta("owned_looking", owned_looking)
-	# DM TSB ultimate keeps tsb_bar_fill — never replace with node_locked/owned.
+	# DM ultimate: locked-grey until click; tsb_bar_fill only when selected/owned.
 	if btn == dm_ultimate or bool(btn.get_meta("tsb_bar", false)):
-		_apply_tsb_bar_fill(btn)
+		btn.set_meta("tsb_bar", true)
+		if owned_looking:
+			_apply_tsb_bar_fill(btn)
+		else:
+			var locked_sb := _make_texture_style(_tex_locked)
+			btn.add_theme_stylebox_override("normal", locked_sb)
+			btn.add_theme_stylebox_override("hover", locked_sb)
+			btn.add_theme_stylebox_override("pressed", locked_sb)
+			btn.add_theme_stylebox_override("focus", locked_sb)
+			_style_tsb_label_layout(btn)
+		btn.modulate = Color(1, 1, 1, 1)
+		btn.self_modulate = Color(1, 1, 1, 1)
 		if unlocked_looking or owned_looking:
 			btn.add_theme_color_override("font_color", Color(0.95, 0.92, 0.75, 1))
 		else:
@@ -587,7 +596,7 @@ func _make_texture_style(tex: Texture2D) -> StyleBox:
 	if tex == null:
 		var flat := StyleBoxFlat.new()
 		flat.bg_color = Color(40.0 / 255.0, 32.0 / 255.0, 28.0 / 255.0, 1.0)
-		flat.content_margin_left = 4
+		flat.content_margin_left = 8
 		flat.content_margin_right = 4
 		flat.content_margin_top = 3
 		flat.content_margin_bottom = 3
@@ -601,12 +610,30 @@ func _make_texture_style(tex: Texture2D) -> StyleBox:
 	sb.texture_margin_top = 8
 	sb.texture_margin_right = 8
 	sb.texture_margin_bottom = 8
-	sb.content_margin_left = 4
+	sb.content_margin_left = 8
 	sb.content_margin_right = 4
 	sb.content_margin_top = 3
 	sb.content_margin_bottom = 3
 	sb.draw_center = true
 	return sb
+
+
+
+## Keep icons slightly inset from the left chrome so they do not clip the border.
+func _apply_icon_inset(btn: Button) -> void:
+	if btn == null:
+		return
+	btn.add_theme_constant_override("h_separation", 6)
+	btn.add_theme_constant_override("icon_max_width", 28)
+
+
+func _style_tsb_label_layout(btn: Button) -> void:
+	if btn == null:
+		return
+	btn.alignment = HORIZONTAL_ALIGNMENT_CENTER
+	btn.icon_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	btn.vertical_icon_alignment = VERTICAL_ALIGNMENT_CENTER
+	_apply_icon_inset(btn)
 
 
 func _apply_tsb_bar_fill(btn: Button) -> void:
@@ -623,7 +650,7 @@ func _apply_tsb_bar_fill(btn: Button) -> void:
 	sb.texture_margin_top = 8
 	sb.texture_margin_right = 8
 	sb.texture_margin_bottom = 8
-	sb.content_margin_left = 6
+	sb.content_margin_left = 10
 	sb.content_margin_right = 6
 	sb.content_margin_top = 4
 	sb.content_margin_bottom = 4
@@ -632,10 +659,7 @@ func _apply_tsb_bar_fill(btn: Button) -> void:
 	btn.add_theme_stylebox_override("hover", sb)
 	btn.add_theme_stylebox_override("pressed", sb)
 	btn.add_theme_stylebox_override("focus", sb)
-	# Icon left of "TSB"; center the pair in the wide bar.
-	btn.alignment = HORIZONTAL_ALIGNMENT_CENTER
-	btn.icon_alignment = HORIZONTAL_ALIGNMENT_LEFT
-	btn.vertical_icon_alignment = VERTICAL_ALIGNMENT_CENTER
+	_style_tsb_label_layout(btn)
 	btn.modulate = Color(1, 1, 1, 1)
 	btn.self_modulate = Color(1, 1, 1, 1)
 
