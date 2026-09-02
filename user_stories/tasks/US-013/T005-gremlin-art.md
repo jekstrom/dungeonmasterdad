@@ -7,7 +7,7 @@
 
 ## Goal
 
-Deliver **gremlin-only** world sheet, spawn HUD icon, and optional death VFX per US-013 Required New Art Assets. **Forbidden:** goblin recolors, shared goblin atlases, goblin raid icons for this creature.
+Deliver **gremlin-only** world sheet, spawn HUD icon, and VFX per US-013 Required New Art Assets. **Forbidden:** goblin recolors, shared goblin atlases, goblin raid icons for this creature.
 
 ## Checklist
 
