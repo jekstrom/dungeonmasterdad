@@ -9,6 +9,7 @@
 [ext_resource type="PackedScene" uid="uid://dsls3d0radb5f" path="res://dm/dm.tscn" id="5_ynsuh"]
 [ext_resource type="PackedScene" uid="uid://ckwsvw4g8ewvf" path="res://game.tscn" id="6_4bqqs"]
 [ext_resource type="PackedScene" uid="uid://c5avpnnd3seqn" path="res://monsters/goblin.tscn" id="7_h1jm5"]
+[ext_resource type="PackedScene" uid="uid://bq7gremlin013us" path="res://monsters/gremlin.tscn" id="7_gremlin"]
 [ext_resource type="PackedScene" uid="uid://dcevmqir2nyr6" path="res://gui/hud.tscn" id="8_v7dth"]
 [ext_resource type="PackedScene" uid="uid://f15sgptli5oi" path="res://gui/dm/dm_hud.tscn" id="9_pi42a"]
 [ext_resource type="PackedScene" uid="uid://bglfuu7ga823v" path="res://gui/player/player_hud.tscn" id="12_te8jg"]
@@ -38,12 +39,12 @@ position = Vector2(128, 1024)
 base_radius = 256.0
 
 [node name="MultiplayerSpawner" type="MultiplayerSpawner" parent="." unique_id=1543425005]
-_spawnable_scenes = PackedStringArray("uid://cof1o04wsy0rc", "uid://dsls3d0radb5f", "uid://c5avpnnd3seqn", "uid://bebn5r64gbvmg", "uid://dkgdpjfkuciox")
+_spawnable_scenes = PackedStringArray("uid://cof1o04wsy0rc", "uid://dsls3d0radb5f", "uid://c5avpnnd3seqn", "uid://bebn5r64gbvmg", "uid://dkgdpjfkuciox", "uid://bq7gremlin013us")
 spawn_path = NodePath("..")
 script = ExtResource("5_o00ia")
 network_player = ExtResource("4_is3ju")
 dm_player = ExtResource("5_ynsuh")
-gremlin = ExtResource("7_h1jm5")
+gremlin = ExtResource("7_gremlin")
 knight = ExtResource("22_ymgag")
 
 [node name="DungeonGenerator" parent="." unique_id=281097532 instance=ExtResource("26_dungeon")]

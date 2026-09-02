@@ -2,6 +2,7 @@ class_name MonsterCatalog extends RefCounted
 
 const MONSTER_SCENES: Dictionary = {
 	"goblin": "res://monsters/goblin.tscn",
+	"gremlin": "res://monsters/gremlin.tscn",
 	"skeleton": "res://monsters/skeleton/skeleton.tscn",
 	"knight": "res://monsters/knight/knight.tscn",
 	"baja_boss": "res://monsters/baja_boss.tscn"
