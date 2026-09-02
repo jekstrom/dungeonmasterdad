@@ -2,9 +2,9 @@
 
 **Story**: [US-013.md](../../US-013.md)  
 **Branch**: `013-gremlins-relocate`  
-**Status**: Todo
+**Status**: Signed — ready for Art/Gameplay
 
-Gremlins pick up and drop world resources. **Gremlins ≠ goblins** — dedicated scene, sprites, VFX, HUD/skill icons. No goblin asset reuse.
+James signed at `7d868d8`. Gremlins pick up and drop world resources. **Gremlins ≠ goblins** — dedicated scene, sprites, VFX, HUD/skill icons. No goblin asset reuse.
 
 ## Order
 
