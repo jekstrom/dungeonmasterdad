@@ -5,4 +5,4 @@ func _ready() -> void:
 
 func _on_unlock(skill_name: String) -> void:
 	print(skill_name, "Unlocked")
-	DmManager.unlock("chain_lightning")
+	DmManager.unlock(skill_name)

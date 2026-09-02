@@ -12,7 +12,6 @@
 [ext_resource type="Texture2D" uid="uid://dc1c1aeu3ds04" path="res://gui/dm/skill_tree/row_control.png" id="10_row_control"]
 
 [node name="SkillTree" type="Control" unique_id=1792139390]
-visible = false
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0

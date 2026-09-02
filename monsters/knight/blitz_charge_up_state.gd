@@ -24,6 +24,9 @@ func init() -> void:
 	
 func enter() -> void:
 	_timer = 3
+	if DmUnlocks.dm_unlocks.has("spark"):
+		_timer = 1.5
+	
 	original_pos = sprite.position
 	original_shadow_pos = shadow.position
 	audio_stream_player_2d.stream = POWER_UP
