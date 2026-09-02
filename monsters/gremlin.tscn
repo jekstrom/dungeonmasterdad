@@ -1,0 +1,139 @@
+[gd_scene format=3 uid="uid://x0idbps0g0d7"]
+
+[ext_resource type="Script" uid="uid://dvvxkosm5ndvx" path="res://monsters/gremlin.gd" id="1_grem"]
+[ext_resource type="Texture2D" uid="uid://b1cnsd81lrudx" path="res://monsters/gremlin.png" id="2_sheet"]
+[ext_resource type="Texture2D" uid="uid://dnhaymu1d41d4" path="res://sprites/Shadow.png" id="3_shadow"]
+[ext_resource type="Script" uid="uid://bmnavawl3vkgc" path="res://monsters/enemy_state_machine.gd" id="4_sm"]
+[ext_resource type="Script" uid="uid://c7vcvctq0t7x8" path="res://monsters/states/enemy_state_idle.gd" id="5_idle"]
+[ext_resource type="AudioStream" uid="uid://dyanohy44dnan" path="res://monsters/hit_00.wav" id="6_hit"]
+[ext_resource type="Texture2D" uid="uid://ddhccwi6wxokb" path="res://monsters/gremlin_poof.png" id="7_poof"]
+[ext_resource type="PackedScene" uid="uid://cmhep8oix5sk6" path="res://hurtbox.tscn" id="8_hurt"]
+[ext_resource type="PackedScene" uid="uid://c1c212xev4n6e" path="res://hitbox.tscn" id="9_hitbox"]
+
+[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_body"]
+radius = 6.0
+height = 18.0
+
+[sub_resource type="Animation" id="Animation_reset"]
+length = 0.001
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Sprite2D:frame")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": [0]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_root"]
+_data = {
+&"RESET": SubResource("Animation_reset")
+}
+
+[sub_resource type="Animation" id="Animation_poof"]
+resource_name = "destroy"
+length = 0.4
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath(".:frame")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.1, 0.2, 0.3),
+"transitions": PackedFloat32Array(1, 1, 1, 1),
+"update": 1,
+"values": [0, 1, 2, 3]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath(".:visible")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0, 0.4),
+"transitions": PackedFloat32Array(1, 1),
+"update": 1,
+"values": [true, false]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_poof"]
+_data = {
+&"destroy": SubResource("Animation_poof")
+}
+
+[sub_resource type="SceneReplicationConfig" id="SceneReplicationConfig_grem"]
+properties/0/path = NodePath(".:position")
+properties/0/spawn = true
+properties/0/replication_mode = 1
+properties/1/path = NodePath(".:hp")
+properties/1/spawn = true
+properties/1/replication_mode = 2
+properties/2/path = NodePath(".:carried_item_path")
+properties/2/spawn = true
+properties/2/replication_mode = 2
+
+[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_hit"]
+radius = 6.0
+height = 18.0
+
+[node name="Gremlin" type="CharacterBody2D" unique_id=11523826 groups=["gremlins", "monsters"]]
+collision_layer = 4
+collision_mask = 16
+script = ExtResource("1_grem")
+inland_bias_strength = 0.0
+health_bar_title = "Gremlin"
+
+[node name="Sprite2D" type="Sprite2D" parent="." unique_id=1740566042]
+texture_filter = 1
+texture = ExtResource("2_sheet")
+hframes = 8
+vframes = 3
+
+[node name="shadow" type="Sprite2D" parent="." unique_id=190651615]
+position = Vector2(0, 8)
+scale = Vector2(0.5, 0.5)
+texture = ExtResource("3_shadow")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1810627249]
+shape = SubResource("CapsuleShape2D_body")
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=1801404040]
+libraries/ = SubResource("AnimationLibrary_root")
+
+[node name="EnemyStateMachine" type="Node" parent="." unique_id=100565076]
+script = ExtResource("4_sm")
+
+[node name="idle" type="Node" parent="EnemyStateMachine" unique_id=930643945 node_paths=PackedStringArray("next_state")]
+script = ExtResource("5_idle")
+next_state = NodePath(".")
+
+[node name="AudioStreamPlayer2D" type="AudioStreamPlayer2D" parent="." unique_id=283177249]
+stream = ExtResource("6_hit")
+
+[node name="destroyEffectSprite" type="Sprite2D" parent="." unique_id=936794900]
+visible = false
+texture_filter = 1
+texture = ExtResource("7_poof")
+hframes = 4
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="destroyEffectSprite" unique_id=1967281499]
+libraries/ = SubResource("AnimationLibrary_poof")
+
+[node name="MultiplayerSynchronizer" type="MultiplayerSynchronizer" parent="." unique_id=2073847345]
+replication_config = SubResource("SceneReplicationConfig_grem")
+
+[node name="Hitbox" parent="." unique_id=813583086 instance=ExtResource("9_hitbox")]
+collision_layer = 8
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Hitbox" unique_id=1431432316]
+position = Vector2(0, -4)
+shape = SubResource("CapsuleShape2D_hit")
+
+[node name="Hurtbox" parent="." unique_id=917418781 instance=ExtResource("8_hurt")]
+monitoring = false

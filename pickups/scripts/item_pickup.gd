@@ -17,6 +17,7 @@ var can_be_picked_up: bool = false
 var debug = false
 
 func _ready() -> void:
+	add_to_group("item_pickup")
 	update_texture()
 	if Engine.is_editor_hint():
 		can_be_picked_up = true  # Skip grace period in editor
@@ -311,3 +312,26 @@ func _disable_pickup():
 func _server_cleanup():
 	if multiplayer.is_server() and is_inside_tree() and not is_queued_for_deletion():
 		ItemPickupPool.return_to_pool(self)
+
+
+## US-013: host-only claim for gremlin relocate (not player inventory).
+## Returns item resource path on success, "" if already taken / invalid.
+func claim_for_gremlin(gremlin: Node) -> String:
+	if not multiplayer.is_server():
+		return ""
+	if not is_inside_tree() or is_queued_for_deletion() or not visible:
+		return ""
+	if not can_be_picked_up:
+		return ""
+	if item_data == null or item_data.resource_path.is_empty():
+		return ""
+	if gremlin == null or not is_instance_valid(gremlin):
+		return ""
+	if global_position.distance_to(gremlin.global_position) > 40.0:
+		return ""
+	var path := str(item_data.resource_path)
+	_disable_pickup()
+	if multiplayer.is_server():
+		update_client.rpc()
+		call_deferred("_server_cleanup")
+	return path
