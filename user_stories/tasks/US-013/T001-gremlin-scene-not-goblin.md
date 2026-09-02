@@ -7,7 +7,7 @@
 
 ## Goal
 
-Ship `monsters/gremlin.tscn` (or equivalent) as the DM gremlin spawn. **Remove** any path that instances `monsters/goblin.tscn` for the gremlin summon. Wire HUD spawn to the gremlin scene. Visuals use gremlin sheet (T005).
+Ship `monsters/gremlin.tscn` (or equivalent) as the DM gremlin spawn. **Remove** any path that instances `monsters/goblin.tscn` for the gremlin summon. Wire HUD spawn to the gremlin scene. Visuals use gremlin sheet (T005). Scene must be ready for T007 speed, T008 staples hurtbox, and T003 navigation/flee hooks (can stub until those tasks land).
 
 ## Files
 
