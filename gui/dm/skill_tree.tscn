@@ -1,85 +1,145 @@
-[gd_scene format=3 uid="uid://lf81agyh5j08"]
+[gd_scene load_steps=2 format=3 uid="uid://lf81agyh5j08"]
 
-[node name="SkillTree" type="Control" unique_id=51537354]
+[ext_resource type="Script" path="res://gui/dm/skill_tree.gd" id="1_skill"]
+
+[node name="SkillTree" type="Control"]
+visible = false
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-size_flags_horizontal = 4
-size_flags_vertical = 4
+mouse_filter = 0
+script = ExtResource("1_skill")
 
-[node name="MarginContainer2" type="MarginContainer" parent="." unique_id=1930302200]
+[node name="Dim" type="ColorRect" parent="."]
 layout_mode = 1
-offset_right = 467.0
-offset_bottom = 436.0
-theme_override_constants/margin_left = 50
-theme_override_constants/margin_top = 50
-theme_override_constants/margin_right = 50
-theme_override_constants/margin_bottom = 50
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 0
+color = Color(0, 0, 0, 0.35)
 
-[node name="ColorRect" type="ColorRect" parent="MarginContainer2" unique_id=263905519]
-modulate = Color(1, 1, 1, 0.8)
+[node name="Panel" type="PanelContainer" parent="."]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -280.0
+offset_top = -250.0
+offset_right = 280.0
+offset_bottom = 250.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Margin" type="MarginContainer" parent="Panel"]
 layout_mode = 2
-color = Color(0.2231029, 0.2231029, 0.22310287, 1)
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 12
 
-[node name="MarginContainer" type="MarginContainer" parent="MarginContainer2" unique_id=1281882803]
+[node name="VBox" type="VBoxContainer" parent="Panel/Margin"]
 layout_mode = 2
-theme_override_constants/margin_left = 100
-theme_override_constants/margin_top = 100
-theme_override_constants/margin_right = 100
-theme_override_constants/margin_bottom = 100
+theme_override_constants/separation = 10
 
-[node name="FlowContainer" type="FlowContainer" parent="MarginContainer2/MarginContainer" unique_id=502069013]
+[node name="Title" type="Label" parent="Panel/Margin/VBox"]
 layout_mode = 2
-size_flags_horizontal = 4
-size_flags_vertical = 4
+theme_override_font_sizes/font_size = 20
+text = "Skill Tree"
+horizontal_alignment = 1
 
-[node name="GridContainer" type="GridContainer" parent="MarginContainer2/MarginContainer/FlowContainer" unique_id=1499966758]
+[node name="TabContainer" type="TabContainer" parent="Panel/Margin/VBox"]
 layout_mode = 2
-size_flags_horizontal = 4
-size_flags_vertical = 4
-columns = 3
+size_flags_vertical = 3
+current_tab = 0
 
-[node name="Button" type="Button" parent="MarginContainer2/MarginContainer/FlowContainer/GridContainer" unique_id=304751823]
+[node name="DM" type="VBoxContainer" parent="Panel/Margin/VBox/TabContainer"]
 layout_mode = 2
-text = "Skill 1"
+theme_override_constants/separation = 8
 
-[node name="Button2" type="Button" parent="MarginContainer2/MarginContainer/FlowContainer/GridContainer" unique_id=709755920]
+[node name="Hint" type="Label" parent="Panel/Margin/VBox/TabContainer/DM"]
 layout_mode = 2
-text = "Skill 2"
+theme_override_font_sizes/font_size = 12
+text = "Lightning / Gremlins / Goblins — UI preview (no spend)"
+autowrap_mode = 2
 
-[node name="Button3" type="Button" parent="MarginContainer2/MarginContainer/FlowContainer/GridContainer" unique_id=1804494676]
+[node name="Body" type="HBoxContainer" parent="Panel/Margin/VBox/TabContainer/DM"]
 layout_mode = 2
-text = "Skill 3"
+size_flags_vertical = 3
+theme_override_constants/separation = 8
 
-[node name="Button4" type="Button" parent="MarginContainer2/MarginContainer/FlowContainer/GridContainer" unique_id=636503218]
+
+[node name="RowLabelsLive" type="VBoxContainer" parent="Panel/Margin/VBox/TabContainer/DM/Body"]
 layout_mode = 2
-text = "Skill 4"
+theme_override_constants/separation = 12
 
-[node name="Button5" type="Button" parent="MarginContainer2/MarginContainer/FlowContainer/GridContainer" unique_id=883423552]
+[node name="Lightning" type="Label" parent="Panel/Margin/VBox/TabContainer/DM/Body/RowLabelsLive"]
+custom_minimum_size = Vector2(88, 48)
 layout_mode = 2
-text = "Skill 5"
+text = "Lightning"
+vertical_alignment = 1
 
-[node name="Button6" type="Button" parent="MarginContainer2/MarginContainer/FlowContainer/GridContainer" unique_id=725119211]
+[node name="Gremlins" type="Label" parent="Panel/Margin/VBox/TabContainer/DM/Body/RowLabelsLive"]
+custom_minimum_size = Vector2(88, 48)
 layout_mode = 2
-text = "Skill 6"
+text = "Gremlins"
+vertical_alignment = 1
 
-[node name="Button7" type="Button" parent="MarginContainer2/MarginContainer/FlowContainer/GridContainer" unique_id=401595256]
+[node name="Goblins" type="Label" parent="Panel/Margin/VBox/TabContainer/DM/Body/RowLabelsLive"]
+custom_minimum_size = Vector2(88, 48)
 layout_mode = 2
-text = "Skill 7"
+text = "Goblins"
+vertical_alignment = 1
 
-[node name="Button8" type="Button" parent="MarginContainer2/MarginContainer/FlowContainer/GridContainer" unique_id=375925856]
-layout_mode = 2
-text = "Skill 8"
-
-[node name="Button9" type="Button" parent="MarginContainer2/MarginContainer/FlowContainer/GridContainer" unique_id=1429469482]
-layout_mode = 2
-text = "Skill 9"
-
-[node name="Button" type="Button" parent="MarginContainer2/MarginContainer/FlowContainer" unique_id=1919623363]
+[node name="PassivesGrid" type="GridContainer" parent="Panel/Margin/VBox/TabContainer/DM/Body"]
 layout_mode = 2
 size_flags_horizontal = 3
-size_flags_vertical = 4
-text = "Ultimate"
+theme_override_constants/h_separation = 8
+theme_override_constants/v_separation = 8
+columns = 3
+
+[node name="UltimateButton" type="Button" parent="Panel/Margin/VBox/TabContainer/DM"]
+custom_minimum_size = Vector2(0, 52)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "TSB"
+
+[node name="Dad" type="VBoxContainer" parent="Panel/Margin/VBox/TabContainer"]
+visible = false
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Hint" type="Label" parent="Panel/Margin/VBox/TabContainer/Dad"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+text = "Dad tree placeholders"
+autowrap_mode = 2
+
+[node name="PassivesGrid" type="GridContainer" parent="Panel/Margin/VBox/TabContainer/Dad"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/h_separation = 8
+theme_override_constants/v_separation = 8
+columns = 3
+
+[node name="UltimateButton" type="Button" parent="Panel/Margin/VBox/TabContainer/Dad"]
+custom_minimum_size = Vector2(0, 52)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Dad Ultimate"
+
+[node name="TooltipPanel" type="PanelContainer" parent="Panel/Margin/VBox"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 64)
+
+[node name="TooltipLabel" type="Label" parent="Panel/Margin/VBox/TooltipPanel"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
+text = ""
+autowrap_mode = 3

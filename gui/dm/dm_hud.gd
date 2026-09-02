@@ -110,7 +110,12 @@ func _apply_unlock_visibility() -> void:
 		blizzard.visible = bool(DmUnlocks.dm_unlocks.get(AbilityCatalog.BEMIDJI_BLIZZARD, false))
 
 func _toggle_skill_tree_hud() -> void:
-	skill_tree.visible = !skill_tree.visible
+	if skill_tree == null:
+		return
+	if skill_tree.has_method("toggle_panel"):
+		skill_tree.toggle_panel()
+	else:
+		skill_tree.visible = not skill_tree.visible
 
 func _input(event: InputEvent) -> void:
 	# F10 via _input so focused ability buttons / GUI cannot swallow it before unhandled.
