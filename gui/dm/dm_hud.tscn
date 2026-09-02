@@ -1,4 +1,4 @@
-[gd_scene load_steps=14 format=3 uid="uid://f15sgptli5oi"]
+[gd_scene format=3 uid="uid://f15sgptli5oi"]
 
 [ext_resource type="Script" uid="uid://bsgw0ccsyq6ll" path="res://gui/dm/dm_hud.gd" id="1_a1hl1"]
 [ext_resource type="PackedScene" uid="uid://lf81agyh5j08" path="res://gui/dm/skill_tree.tscn" id="2_a3llk"]
@@ -17,6 +17,7 @@
 script = ExtResource("1_a1hl1")
 
 [node name="SkillTree" parent="." unique_id=51537354 instance=ExtResource("2_a3llk")]
+visible = true
 
 [node name="RespawnOverlay" type="CenterContainer" parent="." unique_id=405638812]
 unique_name_in_owner = true
@@ -186,5 +187,6 @@ texture_normal = ExtResource("8_blizzard")
 texture_pressed = ExtResource("9_blizzard")
 stretch_mode = 0
 
-[node name="MinimapWidget" parent="." instance=ExtResource("10_minimap")]
+[node name="MinimapWidget" parent="." unique_id=1342669474 instance=ExtResource("10_minimap")]
+layout_mode = 3
 role_is_dm = true

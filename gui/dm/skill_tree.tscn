@@ -1,17 +1,17 @@
-[gd_scene load_steps=15 format=3 uid="uid://lf81agyh5j08"]
+[gd_scene format=3 uid="uid://lf81agyh5j08"]
 
-[ext_resource type="Script" path="res://gui/dm/skill_tree.gd" id="1_skill"]
-[ext_resource type="Texture2D" path="res://gui/dm/skill_tree/tab_dm_active.png" id="2_tab_dm"]
-[ext_resource type="Texture2D" path="res://gui/dm/skill_tree/tab_dad_idle.png" id="3_tab_dad"]
-[ext_resource type="Texture2D" path="res://gui/dm/skill_tree/row_lightning.png" id="4_row_l"]
-[ext_resource type="Texture2D" path="res://gui/dm/skill_tree/row_gremlins.png" id="5_row_gr"]
-[ext_resource type="Texture2D" path="res://gui/dm/skill_tree/row_goblins.png" id="6_row_go"]
-[ext_resource type="Texture2D" path="res://gui/dm/skill_tree/row_frost.png" id="8_row_frost"]
-[ext_resource type="Texture2D" path="res://gui/dm/skill_tree/row_fire.png" id="9_row_fire"]
-[ext_resource type="Texture2D" path="res://gui/dm/skill_tree/row_control.png" id="10_row_control"]
-[ext_resource type="Texture2D" path="res://gui/dm/skill_tree/tooltip_arrow.png" id="7_tip_arrow"]
+[ext_resource type="Script" uid="uid://deabg7mnyr85r" path="res://gui/dm/skill_tree.gd" id="1_skill"]
+[ext_resource type="Texture2D" uid="uid://blb3pb5g6m87e" path="res://gui/dm/skill_tree/tab_dm_active.png" id="2_tab_dm"]
+[ext_resource type="Texture2D" uid="uid://beamnwi8cd2wh" path="res://gui/dm/skill_tree/tab_dad_idle.png" id="3_tab_dad"]
+[ext_resource type="Texture2D" uid="uid://btls1na1i53i7" path="res://gui/dm/skill_tree/row_lightning.png" id="4_row_l"]
+[ext_resource type="Texture2D" uid="uid://d1gbofxstufov" path="res://gui/dm/skill_tree/row_gremlins.png" id="5_row_gr"]
+[ext_resource type="Texture2D" uid="uid://bwvr6daemm7ip" path="res://gui/dm/skill_tree/row_goblins.png" id="6_row_go"]
+[ext_resource type="Texture2D" uid="uid://c8i4fguhjy116" path="res://gui/dm/skill_tree/tooltip_arrow.png" id="7_tip_arrow"]
+[ext_resource type="Texture2D" uid="uid://bbqxaql6mshmr" path="res://gui/dm/skill_tree/row_frost.png" id="8_row_frost"]
+[ext_resource type="Texture2D" uid="uid://ct2xy5yq63vvl" path="res://gui/dm/skill_tree/row_fire.png" id="9_row_fire"]
+[ext_resource type="Texture2D" uid="uid://dc1c1aeu3ds04" path="res://gui/dm/skill_tree/row_control.png" id="10_row_control"]
 
-[node name="SkillTree" type="Control"]
+[node name="SkillTree" type="Control" unique_id=1792139390]
 visible = false
 layout_mode = 3
 anchors_preset = 15
@@ -19,20 +19,18 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-mouse_filter = 0
 script = ExtResource("1_skill")
 
-[node name="Dim" type="ColorRect" parent="."]
+[node name="Dim" type="ColorRect" parent="." unique_id=1446333672]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-mouse_filter = 0
 color = Color(0, 0, 0, 0.35)
 
-[node name="OpaqueFill" type="ColorRect" parent="."]
+[node name="OpaqueFill" type="ColorRect" parent="." unique_id=1454222917]
 custom_minimum_size = Vector2(720, 520)
 layout_mode = 1
 anchors_preset = 8
@@ -49,7 +47,7 @@ grow_vertical = 2
 mouse_filter = 2
 color = Color(0.11, 0.086, 0.07, 1)
 
-[node name="Panel" type="PanelContainer" parent="."]
+[node name="Panel" type="PanelContainer" parent="." unique_id=1658697593]
 custom_minimum_size = Vector2(720, 520)
 layout_mode = 1
 anchors_preset = 8
@@ -64,245 +62,245 @@ offset_bottom = 260.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="Margin" type="MarginContainer" parent="Panel"]
+[node name="Margin" type="MarginContainer" parent="Panel" unique_id=1620972721]
 layout_mode = 2
 theme_override_constants/margin_left = 12
 theme_override_constants/margin_top = 0
 theme_override_constants/margin_right = 12
 theme_override_constants/margin_bottom = 12
 
-[node name="VBox" type="VBoxContainer" parent="Panel/Margin"]
+[node name="VBox" type="VBoxContainer" parent="Panel/Margin" unique_id=1814940265]
 layout_mode = 2
 theme_override_constants/separation = 4
 
-[node name="HeaderRow" type="HBoxContainer" parent="Panel/Margin/VBox"]
+[node name="HeaderRow" type="HBoxContainer" parent="Panel/Margin/VBox" unique_id=901862577]
 custom_minimum_size = Vector2(0, 32)
 layout_mode = 2
 size_flags_vertical = 0
 theme_override_constants/separation = 8
 alignment = 1
 
-[node name="Title" type="Label" parent="Panel/Margin/VBox/HeaderRow"]
+[node name="Title" type="Label" parent="Panel/Margin/VBox/HeaderRow" unique_id=1002824961]
 custom_minimum_size = Vector2(0, 28)
 layout_mode = 2
 size_flags_horizontal = 3
-size_flags_vertical = 4
 theme_override_font_sizes/font_size = 18
-text = "Skill Tree"
-horizontal_alignment = 0
+text = "The Skill Tree"
 vertical_alignment = 1
 
-[node name="TabBar" type="HBoxContainer" parent="Panel/Margin/VBox/HeaderRow"]
+[node name="TabBar" type="HBoxContainer" parent="Panel/Margin/VBox/HeaderRow" unique_id=1390860519]
 layout_mode = 2
 size_flags_horizontal = 0
 size_flags_vertical = 4
-alignment = 2
 theme_override_constants/separation = 4
+alignment = 2
 
-[node name="TabDM" type="TextureButton" parent="Panel/Margin/VBox/HeaderRow/TabBar"]
+[node name="TabDM" type="TextureButton" parent="Panel/Margin/VBox/HeaderRow/TabBar" unique_id=1040321688]
 custom_minimum_size = Vector2(96, 32)
 layout_mode = 2
 focus_mode = 0
 texture_normal = ExtResource("2_tab_dm")
 stretch_mode = 5
 
-[node name="TabDad" type="TextureButton" parent="Panel/Margin/VBox/HeaderRow/TabBar"]
+[node name="TabDad" type="TextureButton" parent="Panel/Margin/VBox/HeaderRow/TabBar" unique_id=393003682]
 custom_minimum_size = Vector2(96, 32)
 layout_mode = 2
 focus_mode = 0
 texture_normal = ExtResource("3_tab_dad")
 stretch_mode = 5
 
-[node name="TabShelf" type="ColorRect" parent="Panel/Margin/VBox"]
+[node name="TabShelf" type="ColorRect" parent="Panel/Margin/VBox" unique_id=433592122]
 custom_minimum_size = Vector2(0, 6)
 layout_mode = 2
 size_flags_vertical = 0
 mouse_filter = 2
 color = Color(0.11, 0.086, 0.07, 1)
 
-[node name="TabContainer" type="TabContainer" parent="Panel/Margin/VBox"]
+[node name="TabContainer" type="TabContainer" parent="Panel/Margin/VBox" unique_id=526153922]
+clip_contents = true
 layout_mode = 2
 size_flags_vertical = 3
-clip_contents = true
 current_tab = 0
 tabs_visible = false
 
-[node name="DM" type="VBoxContainer" parent="Panel/Margin/VBox/TabContainer"]
+[node name="DM" type="VBoxContainer" parent="Panel/Margin/VBox/TabContainer" unique_id=1091077588]
 layout_mode = 2
 theme_override_constants/separation = 8
+metadata/_tab_index = 0
 
-[node name="Body" type="HBoxContainer" parent="Panel/Margin/VBox/TabContainer/DM"]
+[node name="Body" type="HBoxContainer" parent="Panel/Margin/VBox/TabContainer/DM" unique_id=43919072]
 layout_mode = 2
 size_flags_vertical = 3
 theme_override_constants/separation = 8
 
-[node name="RowLabelsLive" type="VBoxContainer" parent="Panel/Margin/VBox/TabContainer/DM/Body"]
+[node name="RowLabelsLive" type="VBoxContainer" parent="Panel/Margin/VBox/TabContainer/DM/Body" unique_id=568724936]
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="Lightning" type="HBoxContainer" parent="Panel/Margin/VBox/TabContainer/DM/Body/RowLabelsLive"]
+[node name="Lightning" type="HBoxContainer" parent="Panel/Margin/VBox/TabContainer/DM/Body/RowLabelsLive" unique_id=484175361]
 custom_minimum_size = Vector2(120, 64)
 layout_mode = 2
 theme_override_constants/separation = 6
 alignment = 1
 
-[node name="Icon" type="TextureRect" parent="Panel/Margin/VBox/TabContainer/DM/Body/RowLabelsLive/Lightning"]
+[node name="Icon" type="TextureRect" parent="Panel/Margin/VBox/TabContainer/DM/Body/RowLabelsLive/Lightning" unique_id=681332504]
 custom_minimum_size = Vector2(32, 32)
 layout_mode = 2
 texture = ExtResource("4_row_l")
 expand_mode = 1
 stretch_mode = 5
 
-[node name="Label" type="Label" parent="Panel/Margin/VBox/TabContainer/DM/Body/RowLabelsLive/Lightning"]
+[node name="Label" type="Label" parent="Panel/Margin/VBox/TabContainer/DM/Body/RowLabelsLive/Lightning" unique_id=139565224]
 layout_mode = 2
 size_flags_vertical = 3
 text = "Lightning"
 vertical_alignment = 1
 
-[node name="Gremlins" type="HBoxContainer" parent="Panel/Margin/VBox/TabContainer/DM/Body/RowLabelsLive"]
+[node name="Gremlins" type="HBoxContainer" parent="Panel/Margin/VBox/TabContainer/DM/Body/RowLabelsLive" unique_id=530325399]
 custom_minimum_size = Vector2(120, 64)
 layout_mode = 2
 theme_override_constants/separation = 6
 alignment = 1
 
-[node name="Icon" type="TextureRect" parent="Panel/Margin/VBox/TabContainer/DM/Body/RowLabelsLive/Gremlins"]
+[node name="Icon" type="TextureRect" parent="Panel/Margin/VBox/TabContainer/DM/Body/RowLabelsLive/Gremlins" unique_id=1463517594]
 custom_minimum_size = Vector2(32, 32)
 layout_mode = 2
 texture = ExtResource("5_row_gr")
 expand_mode = 1
 stretch_mode = 5
 
-[node name="Label" type="Label" parent="Panel/Margin/VBox/TabContainer/DM/Body/RowLabelsLive/Gremlins"]
+[node name="Label" type="Label" parent="Panel/Margin/VBox/TabContainer/DM/Body/RowLabelsLive/Gremlins" unique_id=1423623134]
 layout_mode = 2
 size_flags_vertical = 3
 text = "Gremlins"
 vertical_alignment = 1
 
-[node name="Goblins" type="HBoxContainer" parent="Panel/Margin/VBox/TabContainer/DM/Body/RowLabelsLive"]
+[node name="Goblins" type="HBoxContainer" parent="Panel/Margin/VBox/TabContainer/DM/Body/RowLabelsLive" unique_id=1335483898]
 custom_minimum_size = Vector2(120, 64)
 layout_mode = 2
 theme_override_constants/separation = 6
 alignment = 1
 
-[node name="Icon" type="TextureRect" parent="Panel/Margin/VBox/TabContainer/DM/Body/RowLabelsLive/Goblins"]
+[node name="Icon" type="TextureRect" parent="Panel/Margin/VBox/TabContainer/DM/Body/RowLabelsLive/Goblins" unique_id=2025288633]
 custom_minimum_size = Vector2(32, 32)
 layout_mode = 2
 texture = ExtResource("6_row_go")
 expand_mode = 1
 stretch_mode = 5
 
-[node name="Label" type="Label" parent="Panel/Margin/VBox/TabContainer/DM/Body/RowLabelsLive/Goblins"]
+[node name="Label" type="Label" parent="Panel/Margin/VBox/TabContainer/DM/Body/RowLabelsLive/Goblins" unique_id=1617928859]
 layout_mode = 2
 size_flags_vertical = 3
 text = "Goblins"
 vertical_alignment = 1
 
-[node name="PassivesGrid" type="GridContainer" parent="Panel/Margin/VBox/TabContainer/DM/Body"]
+[node name="PassivesGrid" type="GridContainer" parent="Panel/Margin/VBox/TabContainer/DM/Body" unique_id=1267207948]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/h_separation = 6
 theme_override_constants/v_separation = 6
 columns = 3
 
-[node name="UltimateButton" type="Button" parent="Panel/Margin/VBox/TabContainer/DM"]
+[node name="UltimateButton" type="Button" parent="Panel/Margin/VBox/TabContainer/DM" unique_id=1102991823]
 custom_minimum_size = Vector2(0, 72)
 layout_mode = 2
 size_flags_horizontal = 3
 text = "TSB"
 
-[node name="Dad" type="VBoxContainer" parent="Panel/Margin/VBox/TabContainer"]
+[node name="Dad" type="VBoxContainer" parent="Panel/Margin/VBox/TabContainer" unique_id=605438021]
 visible = false
 layout_mode = 2
 theme_override_constants/separation = 8
+metadata/_tab_index = 1
 
-[node name="Body" type="HBoxContainer" parent="Panel/Margin/VBox/TabContainer/Dad"]
+[node name="Body" type="HBoxContainer" parent="Panel/Margin/VBox/TabContainer/Dad" unique_id=130031991]
 layout_mode = 2
 size_flags_vertical = 3
 theme_override_constants/separation = 8
 
-[node name="RowLabelsLive" type="VBoxContainer" parent="Panel/Margin/VBox/TabContainer/Dad/Body"]
+[node name="RowLabelsLive" type="VBoxContainer" parent="Panel/Margin/VBox/TabContainer/Dad/Body" unique_id=121121032]
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="Frost" type="HBoxContainer" parent="Panel/Margin/VBox/TabContainer/Dad/Body/RowLabelsLive"]
+[node name="Frost" type="HBoxContainer" parent="Panel/Margin/VBox/TabContainer/Dad/Body/RowLabelsLive" unique_id=461334069]
 custom_minimum_size = Vector2(120, 64)
 layout_mode = 2
 theme_override_constants/separation = 6
 alignment = 1
 
-[node name="Icon" type="TextureRect" parent="Panel/Margin/VBox/TabContainer/Dad/Body/RowLabelsLive/Frost"]
+[node name="Icon" type="TextureRect" parent="Panel/Margin/VBox/TabContainer/Dad/Body/RowLabelsLive/Frost" unique_id=1224273138]
 custom_minimum_size = Vector2(32, 32)
 layout_mode = 2
 texture = ExtResource("8_row_frost")
 expand_mode = 1
 stretch_mode = 5
 
-[node name="Label" type="Label" parent="Panel/Margin/VBox/TabContainer/Dad/Body/RowLabelsLive/Frost"]
+[node name="Label" type="Label" parent="Panel/Margin/VBox/TabContainer/Dad/Body/RowLabelsLive/Frost" unique_id=418990612]
 layout_mode = 2
 size_flags_vertical = 3
 text = "Frost"
 vertical_alignment = 1
 
-[node name="Fire" type="HBoxContainer" parent="Panel/Margin/VBox/TabContainer/Dad/Body/RowLabelsLive"]
+[node name="Fire" type="HBoxContainer" parent="Panel/Margin/VBox/TabContainer/Dad/Body/RowLabelsLive" unique_id=610599603]
 custom_minimum_size = Vector2(120, 64)
 layout_mode = 2
 theme_override_constants/separation = 6
 alignment = 1
 
-[node name="Icon" type="TextureRect" parent="Panel/Margin/VBox/TabContainer/Dad/Body/RowLabelsLive/Fire"]
+[node name="Icon" type="TextureRect" parent="Panel/Margin/VBox/TabContainer/Dad/Body/RowLabelsLive/Fire" unique_id=938378432]
 custom_minimum_size = Vector2(32, 32)
 layout_mode = 2
 texture = ExtResource("9_row_fire")
 expand_mode = 1
 stretch_mode = 5
 
-[node name="Label" type="Label" parent="Panel/Margin/VBox/TabContainer/Dad/Body/RowLabelsLive/Fire"]
+[node name="Label" type="Label" parent="Panel/Margin/VBox/TabContainer/Dad/Body/RowLabelsLive/Fire" unique_id=375840767]
 layout_mode = 2
 size_flags_vertical = 3
 text = "Fire"
 vertical_alignment = 1
 
-[node name="Control" type="HBoxContainer" parent="Panel/Margin/VBox/TabContainer/Dad/Body/RowLabelsLive"]
+[node name="Control" type="HBoxContainer" parent="Panel/Margin/VBox/TabContainer/Dad/Body/RowLabelsLive" unique_id=1446657077]
 custom_minimum_size = Vector2(120, 64)
 layout_mode = 2
 theme_override_constants/separation = 6
 alignment = 1
 
-[node name="Icon" type="TextureRect" parent="Panel/Margin/VBox/TabContainer/Dad/Body/RowLabelsLive/Control"]
+[node name="Icon" type="TextureRect" parent="Panel/Margin/VBox/TabContainer/Dad/Body/RowLabelsLive/Control" unique_id=46217837]
 custom_minimum_size = Vector2(32, 32)
 layout_mode = 2
 texture = ExtResource("10_row_control")
 expand_mode = 1
 stretch_mode = 5
 
-[node name="Label" type="Label" parent="Panel/Margin/VBox/TabContainer/Dad/Body/RowLabelsLive/Control"]
+[node name="Label" type="Label" parent="Panel/Margin/VBox/TabContainer/Dad/Body/RowLabelsLive/Control" unique_id=66219251]
 layout_mode = 2
 size_flags_vertical = 3
 text = "Control"
 vertical_alignment = 1
 
-[node name="PassivesGrid" type="GridContainer" parent="Panel/Margin/VBox/TabContainer/Dad/Body"]
+[node name="PassivesGrid" type="GridContainer" parent="Panel/Margin/VBox/TabContainer/Dad/Body" unique_id=1047628321]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/h_separation = 6
 theme_override_constants/v_separation = 6
 columns = 3
 
-[node name="UltimateButton" type="Button" parent="Panel/Margin/VBox/TabContainer/Dad"]
+[node name="UltimateButton" type="Button" parent="Panel/Margin/VBox/TabContainer/Dad" unique_id=902452150]
 custom_minimum_size = Vector2(0, 72)
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Dad All Powerful"
 
-[node name="TooltipPanel" type="PanelContainer" parent="Panel/Margin/VBox"]
-layout_mode = 2
+[node name="TooltipPanel" type="PanelContainer" parent="Panel/Margin/VBox" unique_id=223443177]
 custom_minimum_size = Vector2(0, 72)
+layout_mode = 2
 
-[node name="TooltipVBox" type="VBoxContainer" parent="Panel/Margin/VBox/TooltipPanel"]
+[node name="TooltipVBox" type="VBoxContainer" parent="Panel/Margin/VBox/TooltipPanel" unique_id=1261018006]
 layout_mode = 2
 theme_override_constants/separation = 2
 
-[node name="TooltipArrow" type="TextureRect" parent="Panel/Margin/VBox/TooltipPanel/TooltipVBox"]
+[node name="TooltipArrow" type="TextureRect" parent="Panel/Margin/VBox/TooltipPanel/TooltipVBox" unique_id=793418379]
 custom_minimum_size = Vector2(16, 12)
 layout_mode = 2
 size_flags_horizontal = 0
@@ -310,8 +308,7 @@ texture = ExtResource("7_tip_arrow")
 expand_mode = 1
 stretch_mode = 5
 
-[node name="TooltipLabel" type="Label" parent="Panel/Margin/VBox/TooltipPanel/TooltipVBox"]
+[node name="TooltipLabel" type="Label" parent="Panel/Margin/VBox/TooltipPanel/TooltipVBox" unique_id=1914366892]
 layout_mode = 2
 theme_override_font_sizes/font_size = 13
-text = ""
 autowrap_mode = 3
