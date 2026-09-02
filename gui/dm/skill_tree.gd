@@ -54,9 +54,9 @@ const DM_ULTIMATE: Dictionary = {
 	"effect": "Summon the TSB.",
 }
 
-## Mock chrome (US-034 Open defaults): first column of each row looks available;
-## remaining passives + ultimate look locked. Visual only — no spend/gates.
-const MOCK_UNLOCKED_PASSIVE_INDICES: Array[int] = [0, 3, 6]
+## Open with no pre-selected / mock-unlocked gold. All nodes start locked-grey;
+## selection chrome only after click (UI-only — no spend/gates).
+const MOCK_UNLOCKED_PASSIVE_INDICES: Array[int] = []
 
 # Equal cell size: fit longest label ("Blind one-legged monkeys") with wrap + 28px icon.
 const NODE_BTN_MIN := Vector2(176, 64)
@@ -99,6 +99,7 @@ func _ready() -> void:
 	_build_dad_tree()
 	_equalize_grid_cells(dm_grid)
 	_equalize_grid_cells(dad_grid)
+	_center_row_labels()
 	_apply_mock_lock_chrome()
 	# TSB ultimate uses opaque bar fill + octagon icon_tsb.
 	_apply_tsb_bar_fill(dm_ultimate)
@@ -391,6 +392,34 @@ func _build_dad_tree() -> void:
 
 
 
+
+## Match row-label column height to skill rows and vertically center icon+text.
+func _center_row_labels() -> void:
+	var live := get_node_or_null("Panel/Margin/VBox/TabContainer/DM/Body/RowLabelsLive") as VBoxContainer
+	if live == null or dm_grid == null:
+		return
+	var row_h: float = NODE_BTN_MIN.y
+	if dm_grid.get_child_count() > 0:
+		var sample := dm_grid.get_child(0) as Control
+		if sample:
+			row_h = maxf(row_h, sample.custom_minimum_size.y)
+	live.add_theme_constant_override("separation", dm_grid.get_theme_constant("v_separation"))
+	for row in live.get_children():
+		if not (row is HBoxContainer):
+			continue
+		var hb := row as HBoxContainer
+		hb.custom_minimum_size = Vector2(maxf(120.0, hb.custom_minimum_size.x), row_h)
+		hb.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		hb.alignment = BoxContainer.ALIGNMENT_CENTER
+		for child in hb.get_children():
+			if child is TextureRect:
+				(child as TextureRect).size_flags_vertical = Control.SIZE_SHRINK_CENTER
+			elif child is Label:
+				var lab := child as Label
+				lab.size_flags_vertical = Control.SIZE_EXPAND_FILL
+				lab.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+
+
 func _equalize_grid_cells(grid: GridContainer) -> void:
 	if grid == null:
 		return
@@ -456,10 +485,10 @@ func _configure_ultimate(
 	btn.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	btn.add_theme_constant_override("icon_max_width", 28)
 	btn.custom_minimum_size = Vector2(0, max(NODE_BTN_MIN.y, btn.custom_minimum_size.y))
-	# Center TSB (and Dad ultimate) icon+label in the wide bar.
+	# TSB: icon then label, as a centered pair in the wide bar.
 	if node_id == "tsb" or btn == dm_ultimate:
 		btn.alignment = HORIZONTAL_ALIGNMENT_CENTER
-		btn.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		btn.icon_alignment = HORIZONTAL_ALIGNMENT_LEFT
 		btn.vertical_icon_alignment = VERTICAL_ALIGNMENT_CENTER
 	else:
 		btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
@@ -484,13 +513,12 @@ func _configure_ultimate(
 
 
 func _apply_mock_lock_chrome() -> void:
+	# Every passive + ultimate starts grey/unselected (locked chrome).
 	for i in range(_dm_buttons.size()):
-		var unlocked: bool = i in MOCK_UNLOCKED_PASSIVE_INDICES
-		_set_lock_chrome(_dm_buttons[i], unlocked, false)
+		_set_lock_chrome(_dm_buttons[i], false, false)
 	_set_lock_chrome(dm_ultimate, false, false)
 	for i in range(_dad_buttons.size()):
-		var unlocked: bool = i in MOCK_UNLOCKED_PASSIVE_INDICES
-		_set_lock_chrome(_dad_buttons[i], unlocked, false)
+		_set_lock_chrome(_dad_buttons[i], false, false)
 	_set_lock_chrome(dad_ultimate, false, false)
 
 
@@ -604,9 +632,9 @@ func _apply_tsb_bar_fill(btn: Button) -> void:
 	btn.add_theme_stylebox_override("hover", sb)
 	btn.add_theme_stylebox_override("pressed", sb)
 	btn.add_theme_stylebox_override("focus", sb)
-	# Center icon + label in the wide ultimate bar.
+	# Icon left of "TSB"; center the pair in the wide bar.
 	btn.alignment = HORIZONTAL_ALIGNMENT_CENTER
-	btn.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	btn.icon_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	btn.vertical_icon_alignment = VERTICAL_ALIGNMENT_CENTER
 	btn.modulate = Color(1, 1, 1, 1)
 	btn.self_modulate = Color(1, 1, 1, 1)

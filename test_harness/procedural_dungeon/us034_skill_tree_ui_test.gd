@@ -95,19 +95,17 @@ func _run_suite() -> bool:
 	if panel_tip.find("Overcharged") == -1 or panel_tip.find("Increase distance traveled by knightlings.") == -1:
 		return _fail("US-034: bottom TooltipPanel must update on hover (got %s)" % panel_tip)
 
-	# Locked vs unlocked chrome distinct (mock: first column unlocked)
-	var unlocked_count := 0
-	var locked_count := 0
+	# Open state: no mock gold — every passive + ult starts locked-grey / unselected.
 	for i in range(dm_btns.size()):
 		var b: Button = dm_btns[i]
 		if tree.is_button_unlocked_looking(b):
-			unlocked_count += 1
-		else:
-			locked_count += 1
-	if unlocked_count == 0 or locked_count == 0:
-		return _fail("US-034: need both locked and unlocked chrome on DM passives")
+			return _fail("US-034: DM passive %s should start locked-grey" % b.name)
+		if bool(b.get_meta("owned_looking", false)):
+			return _fail("US-034: DM passive %s should start unselected" % b.name)
 	if tree.is_button_unlocked_looking(dm_ult):
-		return _fail("US-034: mock ultimate should look locked")
+		return _fail("US-034: ultimate should start locked-grey")
+	if bool(dm_ult.get_meta("owned_looking", false)):
+		return _fail("US-034: ultimate should start unselected")
 
 	# Dad tab placeholders
 	tree.select_tab("Dad")
@@ -149,6 +147,18 @@ func _run_suite() -> bool:
 		if btn is BaseButton:
 			btn.emit_signal("pressed")
 	await get_tree().process_frame
+
+	# Selection chrome only after click (UI-only).
+	var last: Button = tree.get("_selected_btn")
+	if last == null or not bool(last.get_meta("owned_looking", false)):
+		return _fail("US-034: clicked node should show selection chrome")
+	# Prior passives stay unselected/grey (not mock-unlocked).
+	for i in range(dm_btns.size()):
+		var b2: Button = dm_btns[i]
+		if b2 == last:
+			continue
+		if bool(b2.get_meta("owned_looking", false)):
+			return _fail("US-034: non-selected %s should not keep owned chrome" % b2.name)
 
 	if DmManager.current_mana != mana_before:
 		return _fail("US-034: node click must not change mana")

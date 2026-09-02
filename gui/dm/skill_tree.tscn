@@ -123,9 +123,10 @@ layout_mode = 2
 theme_override_constants/separation = 8
 
 [node name="Lightning" type="HBoxContainer" parent="Panel/Margin/VBox/TabContainer/DM/Body/RowLabelsLive"]
-custom_minimum_size = Vector2(120, 56)
+custom_minimum_size = Vector2(120, 64)
 layout_mode = 2
 theme_override_constants/separation = 6
+alignment = 1
 
 [node name="Icon" type="TextureRect" parent="Panel/Margin/VBox/TabContainer/DM/Body/RowLabelsLive/Lightning"]
 custom_minimum_size = Vector2(32, 32)
@@ -141,9 +142,10 @@ text = "Lightning"
 vertical_alignment = 1
 
 [node name="Gremlins" type="HBoxContainer" parent="Panel/Margin/VBox/TabContainer/DM/Body/RowLabelsLive"]
-custom_minimum_size = Vector2(120, 56)
+custom_minimum_size = Vector2(120, 64)
 layout_mode = 2
 theme_override_constants/separation = 6
+alignment = 1
 
 [node name="Icon" type="TextureRect" parent="Panel/Margin/VBox/TabContainer/DM/Body/RowLabelsLive/Gremlins"]
 custom_minimum_size = Vector2(32, 32)
@@ -159,9 +161,10 @@ text = "Gremlins"
 vertical_alignment = 1
 
 [node name="Goblins" type="HBoxContainer" parent="Panel/Margin/VBox/TabContainer/DM/Body/RowLabelsLive"]
-custom_minimum_size = Vector2(120, 56)
+custom_minimum_size = Vector2(120, 64)
 layout_mode = 2
 theme_override_constants/separation = 6
+alignment = 1
 
 [node name="Icon" type="TextureRect" parent="Panel/Margin/VBox/TabContainer/DM/Body/RowLabelsLive/Goblins"]
 custom_minimum_size = Vector2(32, 32)
