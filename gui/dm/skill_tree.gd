@@ -20,6 +20,7 @@ const TEX_TOOLTIP_BG := ART + "tooltip_bg.png"
 const TEX_TOOLTIP_ARROW := ART + "tooltip_arrow.png"
 const TEX_CONNECTOR_H := ART + "connector_h.png"
 const TEX_CONNECTOR_V := ART + "connector_v.png"
+const TEX_TSB_BAR_FILL := ART + "tsb_bar_fill.png"
 
 const DM_ICON_PATHS: Array[String] = [
 	ART + "icon_overcharged.png",
@@ -64,6 +65,7 @@ const MOCK_UNLOCKED_PASSIVE_INDICES: Array[int] = [0, 3, 6]
 @onready var dad_ultimate: Button = $Panel/Margin/VBox/TabContainer/Dad/UltimateButton
 @onready var tooltip_label: Label = $Panel/Margin/VBox/TooltipPanel/TooltipVBox/TooltipLabel
 @onready var tooltip_panel: PanelContainer = $Panel/Margin/VBox/TooltipPanel
+@onready var opaque_fill: ColorRect = $OpaqueFill
 @onready var panel: PanelContainer = $Panel
 @onready var tab_bar: HBoxContainer = $Panel/Margin/VBox/TabBar
 @onready var tab_dm_btn: TextureButton = $Panel/Margin/VBox/TabBar/TabDM
@@ -91,6 +93,12 @@ func _ready() -> void:
 	_build_dm_tree()
 	_build_dad_tree()
 	_apply_mock_lock_chrome()
+	# TSB ultimate uses opaque bar fill + octagon icon_tsb.
+	_apply_tsb_bar_fill(dm_ultimate)
+	if dm_ultimate and DM_ULT_ICON:
+		var tsb_icon := load(DM_ULT_ICON) as Texture2D
+		if tsb_icon:
+			dm_ultimate.icon = tsb_icon
 	if tab_container:
 		tab_container.set_tab_title(0, "DM")
 		tab_container.set_tab_title(1, "Dad")
@@ -117,6 +125,7 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func open_panel() -> void:
 	visible = true
+	_sync_opaque_window_fill()
 	if tab_container:
 		tab_container.current_tab = 0
 	_refresh_tab_art()
@@ -208,40 +217,67 @@ func is_button_unlocked_looking(btn: Button) -> bool:
 func _apply_panel_art() -> void:
 	if panel == null:
 		return
+	_sync_opaque_window_fill()
+	# Art panel_frame is opaque-filled; still keep StyleBoxFlat underlay as belt-and-suspenders.
+	var fill := StyleBoxFlat.new()
+	fill.bg_color = Color(0.11, 0.086, 0.07, 1.0)
+	fill.content_margin_left = 20
+	fill.content_margin_right = 20
+	fill.content_margin_top = 16
+	fill.content_margin_bottom = 16
+	fill.set_corner_radius_all(6)
 	var tex := load(TEX_PANEL) as Texture2D
-	if tex == null:
-		return
-	var sb := StyleBoxTexture.new()
-	sb.texture = tex
-	sb.texture_margin_left = 24
-	sb.texture_margin_top = 24
-	sb.texture_margin_right = 24
-	sb.texture_margin_bottom = 24
-	sb.content_margin_left = 20
-	sb.content_margin_right = 20
-	sb.content_margin_top = 16
-	sb.content_margin_bottom = 16
-	panel.add_theme_stylebox_override("panel", sb)
+	if tex != null:
+		var sb := StyleBoxTexture.new()
+		sb.texture = tex
+		sb.texture_margin_left = 24
+		sb.texture_margin_top = 24
+		sb.texture_margin_right = 24
+		sb.texture_margin_bottom = 24
+		sb.content_margin_left = 20
+		sb.content_margin_right = 20
+		sb.content_margin_top = 16
+		sb.content_margin_bottom = 16
+		sb.draw_center = true
+		panel.add_theme_stylebox_override("panel", sb)
+	else:
+		panel.add_theme_stylebox_override("panel", fill)
+	panel.modulate = Color(1, 1, 1, 1)
+	panel.self_modulate = Color(1, 1, 1, 1)
 	panel.custom_minimum_size = Vector2(480, 448)
 
 
 func _apply_tooltip_art() -> void:
 	if tooltip_panel == null:
 		return
+	# Opaque flat under art so tooltip never bleeds dungeon.
+	var flat := StyleBoxFlat.new()
+	flat.bg_color = Color(0.05, 0.04, 0.03, 1.0)
+	flat.content_margin_left = 10
+	flat.content_margin_right = 10
+	flat.content_margin_top = 8
+	flat.content_margin_bottom = 8
+	flat.set_corner_radius_all(4)
+	flat.border_color = Color(0.75, 0.62, 0.28, 1.0)
+	flat.set_border_width_all(2)
 	var tex := load(TEX_TOOLTIP_BG) as Texture2D
-	if tex == null:
-		return
-	var sb := StyleBoxTexture.new()
-	sb.texture = tex
-	sb.texture_margin_left = 8
-	sb.texture_margin_top = 8
-	sb.texture_margin_right = 8
-	sb.texture_margin_bottom = 8
-	sb.content_margin_left = 10
-	sb.content_margin_right = 10
-	sb.content_margin_top = 8
-	sb.content_margin_bottom = 8
-	tooltip_panel.add_theme_stylebox_override("panel", sb)
+	if tex != null:
+		var sb := StyleBoxTexture.new()
+		sb.texture = tex
+		sb.texture_margin_left = 8
+		sb.texture_margin_top = 8
+		sb.texture_margin_right = 8
+		sb.texture_margin_bottom = 8
+		sb.content_margin_left = 10
+		sb.content_margin_right = 10
+		sb.content_margin_top = 8
+		sb.content_margin_bottom = 8
+		sb.draw_center = true
+		tooltip_panel.add_theme_stylebox_override("panel", sb)
+	else:
+		tooltip_panel.add_theme_stylebox_override("panel", flat)
+	tooltip_panel.modulate = Color(1, 1, 1, 1)
+	tooltip_panel.self_modulate = Color(1, 1, 1, 1)
 	var arrow := tooltip_panel.get_node_or_null("TooltipVBox/TooltipArrow") as TextureRect
 	if arrow:
 		arrow.texture = load(TEX_TOOLTIP_ARROW) as Texture2D
@@ -419,44 +455,54 @@ func _set_lock_chrome(btn: Button, unlocked_looking: bool, owned_looking: bool) 
 	btn.add_theme_stylebox_override("focus", sb)
 	# Never use modulate alpha for lock state — keeps faces opaque.
 	btn.modulate = Color(1, 1, 1, 1)
+	btn.self_modulate = Color(1, 1, 1, 1)
 	if unlocked_looking or owned_looking:
 		btn.add_theme_color_override("font_color", Color(0.95, 0.92, 0.75, 1))
 	else:
 		btn.add_theme_color_override("font_color", Color(0.7, 0.7, 0.75, 1))
 
 
-## available/owned frames are hollow chrome; bake an opaque fill under the rim
-## so StyleBoxTexture button faces are solid without inventing new art.
-func _opaque_node_frame(tex: Texture2D) -> Texture2D:
+## Sibling ColorRect behind Panel — whole Skill Tree window stays opaque even if art slips.
+func _sync_opaque_window_fill() -> void:
+	if opaque_fill == null or panel == null:
+		return
+	opaque_fill.color = Color(0.11, 0.086, 0.07, 1.0)
+	opaque_fill.modulate = Color(1, 1, 1, 1)
+	opaque_fill.self_modulate = Color(1, 1, 1, 1)
+	opaque_fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	opaque_fill.custom_minimum_size = panel.custom_minimum_size
+	opaque_fill.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+	opaque_fill.anchor_left = panel.anchor_left
+	opaque_fill.anchor_top = panel.anchor_top
+	opaque_fill.anchor_right = panel.anchor_right
+	opaque_fill.anchor_bottom = panel.anchor_bottom
+	opaque_fill.offset_left = panel.offset_left
+	opaque_fill.offset_top = panel.offset_top
+	opaque_fill.offset_right = panel.offset_right
+	opaque_fill.offset_bottom = panel.offset_bottom
+	opaque_fill.z_index = panel.z_index - 1
+	# Keep fill under Panel in tree order.
+	var fill_i := opaque_fill.get_index()
+	var panel_i := panel.get_index()
+	if fill_i > panel_i:
+		move_child(opaque_fill, panel_i)
+
+
+func _make_texture_style(tex: Texture2D) -> StyleBox:
+	# Art node_*.png are opaque fills now; Flat fallback if texture missing.
 	if tex == null:
-		return null
-	var key: String = tex.resource_path if not tex.resource_path.is_empty() else str(tex.get_instance_id())
-	if _opaque_frame_cache.has(key):
-		return _opaque_frame_cache[key] as Texture2D
-	var src := tex.get_image()
-	if src == null:
-		_opaque_frame_cache[key] = tex
-		return tex
-	var img := src.duplicate()
-	if img.get_format() != Image.FORMAT_RGBA8:
-		img.convert(Image.FORMAT_RGBA8)
-	# Match locked center chrome (~40,32,28) so hollow frames stay solid.
-	var fill := Color(40.0 / 255.0, 32.0 / 255.0, 28.0 / 255.0, 1.0)
-	for y in range(img.get_height()):
-		for x in range(img.get_width()):
-			var c: Color = img.get_pixel(x, y)
-			if c.a < 0.01:
-				img.set_pixel(x, y, fill)
-	var out := ImageTexture.create_from_image(img)
-	_opaque_frame_cache[key] = out
-	return out
-
-
-func _make_texture_style(tex: Texture2D) -> StyleBoxTexture:
+		var flat := StyleBoxFlat.new()
+		flat.bg_color = Color(40.0 / 255.0, 32.0 / 255.0, 28.0 / 255.0, 1.0)
+		flat.content_margin_left = 8
+		flat.content_margin_right = 8
+		flat.content_margin_top = 6
+		flat.content_margin_bottom = 6
+		flat.set_corner_radius_all(4)
+		flat.border_color = Color(0.55, 0.55, 0.58, 1.0)
+		flat.set_border_width_all(2)
+		return flat
 	var sb := StyleBoxTexture.new()
-	if tex:
-		sb.texture = _opaque_node_frame(tex)
-	# Border thickness in art is ~12px on 64px frames; keep 9-slice rim intact.
+	sb.texture = tex
 	sb.texture_margin_left = 12
 	sb.texture_margin_top = 12
 	sb.texture_margin_right = 12
@@ -467,6 +513,31 @@ func _make_texture_style(tex: Texture2D) -> StyleBoxTexture:
 	sb.content_margin_bottom = 6
 	sb.draw_center = true
 	return sb
+
+
+func _apply_tsb_bar_fill(btn: Button) -> void:
+	if btn == null:
+		return
+	var fill_tex := load(TEX_TSB_BAR_FILL) as Texture2D
+	if fill_tex == null:
+		return
+	var sb := StyleBoxTexture.new()
+	sb.texture = fill_tex
+	sb.texture_margin_left = 8
+	sb.texture_margin_top = 8
+	sb.texture_margin_right = 8
+	sb.texture_margin_bottom = 8
+	sb.content_margin_left = 10
+	sb.content_margin_right = 10
+	sb.content_margin_top = 6
+	sb.content_margin_bottom = 6
+	sb.draw_center = true
+	btn.add_theme_stylebox_override("normal", sb)
+	btn.add_theme_stylebox_override("hover", sb)
+	btn.add_theme_stylebox_override("pressed", sb)
+	btn.add_theme_stylebox_override("focus", sb)
+	btn.modulate = Color(1, 1, 1, 1)
+	btn.self_modulate = Color(1, 1, 1, 1)
 
 
 func _on_node_pressed(_btn: Button) -> void:
