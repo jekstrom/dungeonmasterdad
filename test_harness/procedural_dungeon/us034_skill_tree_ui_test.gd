@@ -79,6 +79,22 @@ func _run_suite() -> bool:
 	if ult_tip.find("TSB") == -1 or ult_tip.find("Summon the TSB.") == -1:
 		return _fail("US-034: TSB tooltip must include name + effect")
 
+	# Native/cursor Control tooltips must be disabled; bottom TooltipPanel only.
+	for btn in tree.get_all_node_buttons():
+		if btn == null:
+			continue
+		if str(btn.tooltip_text) != "":
+			return _fail("US-034: native tooltip_text must be empty on %s" % btn.name)
+	var tip_label: Label = tree.get("tooltip_label")
+	if tip_label == null:
+		return _fail("US-034: TooltipLabel missing")
+	var hover_btn: Button = dm_btns[0]
+	hover_btn.emit_signal("mouse_entered")
+	await get_tree().process_frame
+	var panel_tip: String = tip_label.text
+	if panel_tip.find("Overcharged") == -1 or panel_tip.find("Increase distance traveled by knightlings.") == -1:
+		return _fail("US-034: bottom TooltipPanel must update on hover (got %s)" % panel_tip)
+
 	# Locked vs unlocked chrome distinct (mock: first column unlocked)
 	var unlocked_count := 0
 	var locked_count := 0

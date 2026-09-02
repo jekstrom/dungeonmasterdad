@@ -76,6 +76,7 @@ var _selected_btn: Button = null
 var _tex_locked: Texture2D
 var _tex_available: Texture2D
 var _tex_owned: Texture2D
+var _opaque_frame_cache: Dictionary = {}
 
 
 func _ready() -> void:
@@ -189,7 +190,13 @@ func current_tab_name() -> String:
 func tooltip_for_button(btn: Button) -> String:
 	if btn == null:
 		return ""
-	return str(btn.tooltip_text)
+	if btn.has_meta("tooltip_copy"):
+		return str(btn.get_meta("tooltip_copy"))
+	var tip_name := str(btn.get_meta("skill_name", ""))
+	var tip_effect := str(btn.get_meta("skill_effect", ""))
+	if tip_name.is_empty() and tip_effect.is_empty():
+		return ""
+	return "%s\n%s" % [tip_name, tip_effect]
 
 
 func is_button_unlocked_looking(btn: Button) -> bool:
@@ -243,10 +250,12 @@ func _apply_tooltip_art() -> void:
 func _wire_custom_tabs() -> void:
 	if tab_dm_btn:
 		tab_dm_btn.focus_mode = Control.FOCUS_NONE
+		tab_dm_btn.tooltip_text = ""
 		if not tab_dm_btn.pressed.is_connected(_on_tab_dm_pressed):
 			tab_dm_btn.pressed.connect(_on_tab_dm_pressed)
 	if tab_dad_btn:
 		tab_dad_btn.focus_mode = Control.FOCUS_NONE
+		tab_dad_btn.tooltip_text = ""
 		if not tab_dad_btn.pressed.is_connected(_on_tab_dad_pressed):
 			tab_dad_btn.pressed.connect(_on_tab_dad_pressed)
 
@@ -328,7 +337,8 @@ func _make_node_button(
 	btn.text = label
 	btn.custom_minimum_size = Vector2(128, 56)
 	btn.focus_mode = Control.FOCUS_ALL
-	btn.tooltip_text = "%s\n%s" % [tip_name, tip_effect]
+	# Bottom TooltipPanel only — no Control/cursor native tooltip.
+	btn.tooltip_text = ""
 	btn.expand_icon = true
 	btn.icon_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
@@ -338,6 +348,7 @@ func _make_node_button(
 	btn.set_meta("skill_id", node_id)
 	btn.set_meta("skill_name", tip_name)
 	btn.set_meta("skill_effect", tip_effect)
+	btn.set_meta("tooltip_copy", "%s\n%s" % [tip_name, tip_effect])
 	btn.pressed.connect(_on_node_pressed.bind(btn))
 	btn.mouse_entered.connect(_on_node_hover.bind(btn))
 	btn.focus_entered.connect(_on_node_hover.bind(btn))
@@ -355,7 +366,8 @@ func _configure_ultimate(
 		return
 	btn.text = tip_name
 	btn.focus_mode = Control.FOCUS_ALL
-	btn.tooltip_text = "%s\n%s" % [tip_name, tip_effect]
+	# Bottom TooltipPanel only — no Control/cursor native tooltip.
+	btn.tooltip_text = ""
 	btn.expand_icon = true
 	btn.icon_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
@@ -365,6 +377,7 @@ func _configure_ultimate(
 	btn.set_meta("skill_id", node_id)
 	btn.set_meta("skill_name", tip_name)
 	btn.set_meta("skill_effect", tip_effect)
+	btn.set_meta("tooltip_copy", "%s\n%s" % [tip_name, tip_effect])
 	for conn in btn.pressed.get_connections():
 		btn.pressed.disconnect(conn["callable"])
 	for conn in btn.mouse_entered.get_connections():
@@ -404,26 +417,55 @@ func _set_lock_chrome(btn: Button, unlocked_looking: bool, owned_looking: bool) 
 	btn.add_theme_stylebox_override("hover", sb)
 	btn.add_theme_stylebox_override("pressed", sb)
 	btn.add_theme_stylebox_override("focus", sb)
+	# Never use modulate alpha for lock state — keeps faces opaque.
+	btn.modulate = Color(1, 1, 1, 1)
 	if unlocked_looking or owned_looking:
-		btn.modulate = Color(1, 1, 1, 1)
 		btn.add_theme_color_override("font_color", Color(0.95, 0.92, 0.75, 1))
 	else:
-		btn.modulate = Color(0.78, 0.78, 0.82, 1)
 		btn.add_theme_color_override("font_color", Color(0.7, 0.7, 0.75, 1))
+
+
+## available/owned frames are hollow chrome; bake an opaque fill under the rim
+## so StyleBoxTexture button faces are solid without inventing new art.
+func _opaque_node_frame(tex: Texture2D) -> Texture2D:
+	if tex == null:
+		return null
+	var key: String = tex.resource_path if not tex.resource_path.is_empty() else str(tex.get_instance_id())
+	if _opaque_frame_cache.has(key):
+		return _opaque_frame_cache[key] as Texture2D
+	var src := tex.get_image()
+	if src == null:
+		_opaque_frame_cache[key] = tex
+		return tex
+	var img := src.duplicate()
+	if img.get_format() != Image.FORMAT_RGBA8:
+		img.convert(Image.FORMAT_RGBA8)
+	# Match locked center chrome (~40,32,28) so hollow frames stay solid.
+	var fill := Color(40.0 / 255.0, 32.0 / 255.0, 28.0 / 255.0, 1.0)
+	for y in range(img.get_height()):
+		for x in range(img.get_width()):
+			var c: Color = img.get_pixel(x, y)
+			if c.a < 0.01:
+				img.set_pixel(x, y, fill)
+	var out := ImageTexture.create_from_image(img)
+	_opaque_frame_cache[key] = out
+	return out
 
 
 func _make_texture_style(tex: Texture2D) -> StyleBoxTexture:
 	var sb := StyleBoxTexture.new()
 	if tex:
-		sb.texture = tex
-	sb.texture_margin_left = 8
-	sb.texture_margin_top = 8
-	sb.texture_margin_right = 8
-	sb.texture_margin_bottom = 8
+		sb.texture = _opaque_node_frame(tex)
+	# Border thickness in art is ~12px on 64px frames; keep 9-slice rim intact.
+	sb.texture_margin_left = 12
+	sb.texture_margin_top = 12
+	sb.texture_margin_right = 12
+	sb.texture_margin_bottom = 12
 	sb.content_margin_left = 8
 	sb.content_margin_right = 8
 	sb.content_margin_top = 6
 	sb.content_margin_bottom = 6
+	sb.draw_center = true
 	return sb
 
 
@@ -448,7 +490,7 @@ func _on_node_hover(btn: Button) -> void:
 func _show_tooltip_for(btn: Button) -> void:
 	if btn == null:
 		return
-	_focused_tooltip_text = str(btn.tooltip_text)
+	_focused_tooltip_text = tooltip_for_button(btn)
 	if tooltip_label:
 		tooltip_label.text = _focused_tooltip_text
 
