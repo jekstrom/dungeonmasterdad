@@ -93,3 +93,6 @@ signal fantasy_pocket_expired(pocket_id: int)
 signal fantasy_claim_changed
 @warning_ignore("unused_signal")
 signal fantasy_pocket_requested(origin: Vector2i, size: Vector2i, duration: float)
+
+@warning_ignore("unused_signal")
+signal unlock_skill(skill_name: String)

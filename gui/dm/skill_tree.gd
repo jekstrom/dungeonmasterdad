@@ -100,9 +100,9 @@ const PAGE_BG := Color(0.11, 0.086, 0.07, 1.0)
 
 @onready var tab_container: TabContainer = $Panel/Margin/VBox/TabContainer
 @onready var dm_grid: GridContainer = $Panel/Margin/VBox/TabContainer/DM/Body/PassivesGrid
-@onready var dm_ultimate: Button = $Panel/Margin/VBox/TabContainer/DM/UltimateButton
+@onready var dm_ultimate: Button = $Panel/Margin/VBox/TabContainer/DM/DMUltimateButton
 @onready var dad_grid: GridContainer = $Panel/Margin/VBox/TabContainer/Dad/Body/PassivesGrid
-@onready var dad_ultimate: Button = $Panel/Margin/VBox/TabContainer/Dad/UltimateButton
+@onready var dad_ultimate: Button = $Panel/Margin/VBox/TabContainer/Dad/DadUltimateButton
 @onready var tooltip_label: Label = $Panel/Margin/VBox/TooltipPanel/TooltipVBox/TooltipLabel
 @onready var tooltip_panel: PanelContainer = $Panel/Margin/VBox/TooltipPanel
 @onready var opaque_fill: ColorRect = $OpaqueFill
@@ -268,8 +268,6 @@ func is_button_unlocked_looking(btn: Button) -> bool:
 	return bool(btn.get_meta("unlocked_looking", false))
 
 
-
-## Title left, vertically centered in the light-brown header band (Art y≈13–41).
 func _place_title_in_header() -> void:
 	var margin := get_node_or_null("Panel/Margin") as MarginContainer
 	if margin:
@@ -800,6 +798,8 @@ func _on_node_pressed(_btn: Button) -> void:
 	_selected_btn = _btn
 	var unlocked: bool = bool(_btn.get_meta("unlocked_looking", false))
 	_set_lock_chrome(_btn, unlocked, true)
+	print("emitting ", _btn.name)
+	SignalBus.unlock_skill.emit(_btn.name)
 
 
 func _on_node_hover(btn: Button) -> void:

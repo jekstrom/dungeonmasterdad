@@ -2,6 +2,7 @@ class_name BlitzCharge extends EnemyState
 
 @export var anim_name: String = "walk"
 @export var wander_speed: float = 950
+@export var wander_speed_upgraded: float = 1800
 
 @export_category("AI")
 @export var state_anim_duration: float = 0.5
@@ -55,10 +56,14 @@ func process(_delta: float) -> EnemyState:
 		enemy.velocity = Vector2.ZERO
 		return next_state
 	
+	var spd = wander_speed
+	if DmUnlocks.dm_unlocks.has("overcharged"):
+		spd = wander_speed_upgraded
+	
 	if _switch_timer <= 0:
 		var dir = charge_array.pop_front()
 		if dir:
-			enemy.velocity = dir * wander_speed
+			enemy.velocity = dir * spd
 			enemy.SetDirection(dir)
 			_switch_timer = _switch_timer_start
 

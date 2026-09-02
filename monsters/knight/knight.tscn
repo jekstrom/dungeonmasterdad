@@ -1,4 +1,4 @@
-[gd_scene load_steps=22 format=3 uid="uid://bebn5r64gbvmg"]
+[gd_scene format=3 uid="uid://bebn5r64gbvmg"]
 
 [ext_resource type="Script" uid="uid://lo0k5p132a1x" path="res://monsters/enemy.gd" id="1_k4rco"]
 [ext_resource type="Texture2D" uid="uid://brurw8ktjxfd3" path="res://monsters/knight/lightning_knight.png" id="2_k6n1b"]
@@ -166,73 +166,70 @@ metadata/_snap_count = 14
 
 [sub_resource type="CapsuleShape2D" id="CapsuleShape2D_l1v6a"]
 
-[node name="Knight" type="CharacterBody2D"]
+[node name="Knight" type="CharacterBody2D" unique_id=957427254]
 collision_layer = 256
 collision_mask = 16
 script = ExtResource("1_k4rco")
+damage = 1000
 
-[node name="Sprite2D" type="Sprite2D" parent="."]
+[node name="Sprite2D" type="Sprite2D" parent="." unique_id=1914717272]
 position = Vector2(0, -16)
 texture = ExtResource("2_k6n1b")
 hframes = 10
 
-[node name="shadow" type="Sprite2D" parent="."]
+[node name="shadow" type="Sprite2D" parent="." unique_id=1788724652]
 modulate = Color(0, 0, 0, 0.5294118)
 show_behind_parent = true
 scale = Vector2(0.5625, 0.5625)
 texture = ExtResource("3_u1xqu")
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1164851129]
 position = Vector2(0, -4)
 rotation = 1.5707964
 shape = SubResource("CapsuleShape2D_57eei")
 
-[node name="EnemyStateMachine" type="Node" parent="."]
+[node name="EnemyStateMachine" type="Node" parent="." unique_id=287660986]
 script = ExtResource("5_tcm3f")
 
-[node name="idle" type="Node" parent="EnemyStateMachine" node_paths=PackedStringArray("next_state", "cpu_particles")]
+[node name="idle" type="Node" parent="EnemyStateMachine" unique_id=314027321 node_paths=PackedStringArray("next_state", "cpu_particles")]
 script = ExtResource("6_2hiwg")
 next_state = NodePath("../blitzChargeUp")
 cpu_particles = NodePath("../../CPUParticles2D")
 
-[node name="blitzCharge" type="Node" parent="EnemyStateMachine" node_paths=PackedStringArray("next_state")]
+[node name="blitzCharge" type="Node" parent="EnemyStateMachine" unique_id=890593115 node_paths=PackedStringArray("next_state")]
 script = ExtResource("7_ow3uk")
 next_state = NodePath("../stun")
 
-[node name="blitzChargeUp" type="Node" parent="EnemyStateMachine" node_paths=PackedStringArray("next_state")]
+[node name="blitzChargeUp" type="Node" parent="EnemyStateMachine" unique_id=943418700 node_paths=PackedStringArray("next_state")]
 script = ExtResource("8_l1v6a")
 wander_speed = 20.0
 next_state = NodePath("../blitzCharge")
 
-[node name="stun" type="Node" parent="EnemyStateMachine" node_paths=PackedStringArray("next_state", "cpu_particles")]
+[node name="stun" type="Node" parent="EnemyStateMachine" unique_id=1462689883 node_paths=PackedStringArray("next_state", "cpu_particles")]
 script = ExtResource("8_2sq8p")
 next_state = NodePath("../idle")
 cpu_particles = NodePath("../../CPUParticles2D")
 
-[node name="AudioStreamPlayer2D" type="AudioStreamPlayer2D" parent="."]
+[node name="AudioStreamPlayer2D" type="AudioStreamPlayer2D" parent="." unique_id=1239340483]
 max_polyphony = 4
 
-[node name="destroyEffectSprite" type="Sprite2D" parent="."]
+[node name="destroyEffectSprite" type="Sprite2D" parent="." unique_id=1642867796]
 visible = false
 position = Vector2(0, -13)
 texture = ExtResource("9_1odav")
 hframes = 6
 
-[node name="AnimationPlayer" type="AnimationPlayer" parent="destroyEffectSprite"]
-libraries = {
-&"": SubResource("AnimationLibrary_mwtj1")
-}
+[node name="AnimationPlayer" type="AnimationPlayer" parent="destroyEffectSprite" unique_id=121821493]
+libraries/ = SubResource("AnimationLibrary_mwtj1")
 
-[node name="MultiplayerSynchronizer" type="MultiplayerSynchronizer" parent="."]
+[node name="MultiplayerSynchronizer" type="MultiplayerSynchronizer" parent="." unique_id=1662543517]
 replication_config = SubResource("SceneReplicationConfig_x5s1r")
 
-[node name="AnimationPlayer" type="AnimationPlayer" parent="."]
-libraries = {
-&"": SubResource("AnimationLibrary_raths")
-}
-autoplay = "RESET"
+[node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=1897446759]
+libraries/ = SubResource("AnimationLibrary_raths")
+autoplay = &"RESET"
 
-[node name="CPUParticles2D" type="CPUParticles2D" parent="."]
+[node name="CPUParticles2D" type="CPUParticles2D" parent="." unique_id=386727753]
 position = Vector2(15, -15)
 amount = 500
 lifetime = 0.62
@@ -255,16 +252,16 @@ angle_max = 180.0
 color = Color(0.99999994, 0.93888134, 0.9839874, 0.80784315)
 color_ramp = SubResource("Gradient_k6n1b")
 
-[node name="Hurtbox" parent="." instance=ExtResource("10_ow3uk")]
+[node name="Hurtbox" parent="." unique_id=1831629578 instance=ExtResource("10_ow3uk")]
 modulate = Color(1, 0.101960786, 0.12941177, 1)
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Hurtbox"]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Hurtbox" unique_id=1299534070]
 position = Vector2(0, -15)
 shape = SubResource("CapsuleShape2D_l1v6a")
 
-[node name="Hitbox" parent="." instance=ExtResource("11_hit")]
+[node name="Hitbox" parent="." unique_id=1979034441 instance=ExtResource("11_hit")]
 collision_layer = 8
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="Hitbox"]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Hitbox" unique_id=714548976]
 position = Vector2(0, -8)
 shape = SubResource("CapsuleShape2D_57eei")

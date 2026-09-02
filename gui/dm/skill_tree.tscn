@@ -201,7 +201,7 @@ theme_override_constants/h_separation = 6
 theme_override_constants/v_separation = 6
 columns = 3
 
-[node name="UltimateButton" type="Button" parent="Panel/Margin/VBox/TabContainer/DM" unique_id=1102991823]
+[node name="DMUltimateButton" type="Button" parent="Panel/Margin/VBox/TabContainer/DM" unique_id=1102991823]
 custom_minimum_size = Vector2(0, 72)
 layout_mode = 2
 size_flags_horizontal = 3
@@ -286,7 +286,7 @@ theme_override_constants/h_separation = 6
 theme_override_constants/v_separation = 6
 columns = 3
 
-[node name="UltimateButton" type="Button" parent="Panel/Margin/VBox/TabContainer/Dad" unique_id=902452150]
+[node name="DadUltimateButton" type="Button" parent="Panel/Margin/VBox/TabContainer/Dad" unique_id=902452150]
 custom_minimum_size = Vector2(0, 72)
 layout_mode = 2
 size_flags_horizontal = 3

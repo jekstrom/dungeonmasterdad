@@ -21,6 +21,7 @@ var aggro_target: Node2D = null
 		hp = clampi(value, 0, maxi(1, max_hp) if max_hp > 0 else maxi(0, value))
 		_refresh_health_bar()
 @export var aggro_faction: AggroFaction = AggroFaction.DM
+@export var damage: int = 1
 @export var melee_range_px: float = 128.0
 @export var raids_buildings: bool = false
 @export var health_bar_title: String = ""
