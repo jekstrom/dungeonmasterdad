@@ -34,7 +34,42 @@ const DM_ICON_PATHS: Array[String] = [
 	ART + "icon_random_encounter.png",
 ]
 const DM_ULT_ICON := ART + "icon_tsb.png"
-const DAD_ULT_ICON := ART + "icon_dad_ultimate.png"
+const DAD_ULT_ICON := ART + "icon_dad_all_powerful.png"
+
+const TEX_ROW_FROST := ART + "row_frost.png"
+const TEX_ROW_FIRE := ART + "row_fire.png"
+const TEX_ROW_CONTROL := ART + "row_control.png"
+
+## US-035 Dad tree (UI labels/tooltips/icons only — no spend/apply).
+const DAD_ICON_PATHS: Array[String] = [
+	ART + "icon_bemidji_cold.png",
+	ART + "icon_tshirt_december.png",
+	ART + "icon_put_sweater_on.png",
+	ART + "icon_stoke.png",
+	ART + "icon_full_cord.png",
+	ART + "icon_everything_burns.png",
+	ART + "icon_thermostat_lock.png",
+	ART + "icon_dad_reflexes.png",
+	ART + "icon_grounded.png",
+]
+
+const DAD_PASSIVES: Array[Dictionary] = [
+	{"id": "bemidji_cold", "name": "Bemidji Cold", "effect": "Increase duration of blizzard.", "row": "Frost"},
+	{"id": "t_shirt_in_december", "name": "T-Shirt in December", "effect": "Add a frost trail behind you.", "row": "Frost"},
+	{"id": "put_a_sweater_on", "name": "Put a Sweater On", "effect": "Blizzard now does damage.", "row": "Frost"},
+	{"id": "stoke", "name": "Stoke", "effect": "Increase fireball radius.", "row": "Fire"},
+	{"id": "full_cord", "name": "Full Cord", "effect": "Reduce cooldown and mana cost of fireball.", "row": "Fire"},
+	{"id": "everything_burns", "name": "Everything Burns", "effect": "Fireball now destroys resources.", "row": "Fire"},
+	{"id": "thermostat_lock", "name": "Thermostat Lock", "effect": "Paper Pushers lose one inventory slot.", "row": "Control"},
+	{"id": "dad_reflexes", "name": "Dad Reflexes", "effect": "Gain dash ability.", "row": "Control"},
+	{"id": "grounded", "name": "Grounded", "effect": "Paper Pushers can only survive in Fantasy for 3 seconds.", "row": "Control"},
+]
+
+const DAD_ULTIMATE: Dictionary = {
+	"id": "dad_all_powerful",
+	"name": "Dad All Powerful",
+	"effect": "Become Dad, All Powerful.",
+}
 
 const DM_PASSIVES: Array[Dictionary] = [
 	{"id": "overcharged", "name": "Overcharged", "effect": "Increase distance traveled by knightlings.", "row": "Lightning"},
@@ -66,7 +101,7 @@ const PAGE_BG := Color(0.11, 0.086, 0.07, 1.0)
 @onready var tab_container: TabContainer = $Panel/Margin/VBox/TabContainer
 @onready var dm_grid: GridContainer = $Panel/Margin/VBox/TabContainer/DM/Body/PassivesGrid
 @onready var dm_ultimate: Button = $Panel/Margin/VBox/TabContainer/DM/UltimateButton
-@onready var dad_grid: GridContainer = $Panel/Margin/VBox/TabContainer/Dad/PassivesGrid
+@onready var dad_grid: GridContainer = $Panel/Margin/VBox/TabContainer/Dad/Body/PassivesGrid
 @onready var dad_ultimate: Button = $Panel/Margin/VBox/TabContainer/Dad/UltimateButton
 @onready var tooltip_label: Label = $Panel/Margin/VBox/TooltipPanel/TooltipVBox/TooltipLabel
 @onready var tooltip_panel: PanelContainer = $Panel/Margin/VBox/TooltipPanel
@@ -168,13 +203,17 @@ func get_dm_ultimate_name() -> String:
 
 func get_dad_passive_names() -> Array[String]:
 	var names: Array[String] = []
-	for i in range(9):
-		names.append("Dad Passive %d" % (i + 1))
+	for entry in DAD_PASSIVES:
+		names.append(str(entry["name"]))
 	return names
 
 
 func get_dad_ultimate_name() -> String:
-	return "Dad Ultimate"
+	return str(DAD_ULTIMATE["name"])
+
+
+func get_dad_row_names() -> Array[String]:
+	return ["Frost", "Fire", "Control"]
 
 
 func get_all_node_buttons() -> Array[Button]:
@@ -435,18 +474,22 @@ func _build_dm_tree() -> void:
 func _build_dad_tree() -> void:
 	_clear_children(dad_grid)
 	_dad_buttons.clear()
-	for i in range(9):
-		var pname := "Dad Passive %d" % (i + 1)
-		var effect := "Placeholder effect for %s." % pname
-		var icon_path := ART + "icon_dad_passive_%02d.png" % (i + 1)
-		var btn := _make_node_button(pname, pname, effect, "dad_passive_%d" % (i + 1), icon_path)
+	for i in range(DAD_PASSIVES.size()):
+		var entry: Dictionary = DAD_PASSIVES[i]
+		var btn := _make_node_button(
+			str(entry["name"]),
+			str(entry["name"]),
+			str(entry["effect"]),
+			str(entry["id"]),
+			DAD_ICON_PATHS[i]
+		)
 		dad_grid.add_child(btn)
 		_dad_buttons.append(btn)
 	_configure_ultimate(
 		dad_ultimate,
-		"Dad Ultimate",
-		"Placeholder effect for Dad Ultimate.",
-		"dad_ultimate",
+		str(DAD_ULTIMATE["name"]),
+		str(DAD_ULTIMATE["effect"]),
+		str(DAD_ULTIMATE["id"]),
 		DAD_ULT_ICON
 	)
 
@@ -455,15 +498,25 @@ func _build_dad_tree() -> void:
 
 ## Match row-label column height to skill rows and vertically center icon+text.
 func _center_row_labels() -> void:
-	var live := get_node_or_null("Panel/Margin/VBox/TabContainer/DM/Body/RowLabelsLive") as VBoxContainer
-	if live == null or dm_grid == null:
+	_center_row_labels_for(
+		get_node_or_null("Panel/Margin/VBox/TabContainer/DM/Body/RowLabelsLive") as VBoxContainer,
+		dm_grid
+	)
+	_center_row_labels_for(
+		get_node_or_null("Panel/Margin/VBox/TabContainer/Dad/Body/RowLabelsLive") as VBoxContainer,
+		dad_grid
+	)
+
+
+func _center_row_labels_for(live: VBoxContainer, grid: GridContainer) -> void:
+	if live == null or grid == null:
 		return
 	var row_h: float = NODE_BTN_MIN.y
-	if dm_grid.get_child_count() > 0:
-		var sample := dm_grid.get_child(0) as Control
+	if grid.get_child_count() > 0:
+		var sample := grid.get_child(0) as Control
 		if sample:
 			row_h = maxf(row_h, sample.custom_minimum_size.y)
-	live.add_theme_constant_override("separation", dm_grid.get_theme_constant("v_separation"))
+	live.add_theme_constant_override("separation", grid.get_theme_constant("v_separation"))
 	for row in live.get_children():
 		if not (row is HBoxContainer):
 			continue
@@ -478,6 +531,7 @@ func _center_row_labels() -> void:
 				var lab := child as Label
 				lab.size_flags_vertical = Control.SIZE_EXPAND_FILL
 				lab.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+
 
 
 func _equalize_grid_cells(grid: GridContainer) -> void:

@@ -1,7 +1,7 @@
 extends Node
 
 ## US-034 headless harness: open/close via DmHud toggle path, DM+Dad tabs,
-## DM labels + TSB tooltips, Dad placeholders, locked/unlocked chrome,
+## DM labels + TSB tooltips, US-035 Dad Frost/Fire/Control content, locked/unlocked chrome,
 ## node clicks must not spend mana / unlock / spawn. Exact pass print required.
 
 
@@ -133,31 +133,60 @@ func _run_suite() -> bool:
 		if sample_sb.content_margin_left < 7.0:
 			return _fail("US-034: skill icons need left inset (content_margin_left>=8)")
 
-	# Dad tab placeholders
+	# US-035 Dad tab content (supersedes US-034 placeholders)
 	tree.select_tab("Dad")
 	await get_tree().process_frame
 	if tree.current_tab_name() != "Dad":
-		return _fail("US-034: select_tab Dad failed")
-	var expect_dad: Array[String] = tree.get_dad_passive_names()
-	if expect_dad.size() != 9:
-		return _fail("US-034: Dad must have 9 placeholder passives")
+		return _fail("US-035: select_tab Dad failed")
+	var expect_dad: Array[String] = [
+		"Bemidji Cold", "T-Shirt in December", "Put a Sweater On",
+		"Stoke", "Full Cord", "Everything Burns",
+		"Thermostat Lock", "Dad Reflexes", "Grounded",
+	]
+	var expect_effects: Array[String] = [
+		"Increase duration of blizzard.",
+		"Add a frost trail behind you.",
+		"Blizzard now does damage.",
+		"Increase fireball radius.",
+		"Reduce cooldown and mana cost of fireball.",
+		"Fireball now destroys resources.",
+		"Paper Pushers lose one inventory slot.",
+		"Gain dash ability.",
+		"Paper Pushers can only survive in Fantasy for 3 seconds.",
+	]
+	var got_dad: Array[String] = tree.get_dad_passive_names()
+	if got_dad != expect_dad:
+		return _fail("US-035: Dad passive labels mismatch got %s" % str(got_dad))
+	if tree.get_dad_ultimate_name() != "Dad All Powerful":
+		return _fail("US-035: ultimate must be Dad All Powerful")
+	if tree.has_method("get_dad_row_names"):
+		var rows: Array[String] = tree.get_dad_row_names()
+		if rows != ["Frost", "Fire", "Control"]:
+			return _fail("US-035: Dad rows must be Frost/Fire/Control got %s" % str(rows))
+	var frost = tree.get_node_or_null("Panel/Margin/VBox/TabContainer/Dad/Body/RowLabelsLive/Frost/Label")
+	var fire = tree.get_node_or_null("Panel/Margin/VBox/TabContainer/Dad/Body/RowLabelsLive/Fire/Label")
+	var control = tree.get_node_or_null("Panel/Margin/VBox/TabContainer/Dad/Body/RowLabelsLive/Control/Label")
+	if frost == null or fire == null or control == null:
+		return _fail("US-035: Dad row labels Frost/Fire/Control missing")
+	if str(frost.text) != "Frost" or str(fire.text) != "Fire" or str(control.text) != "Control":
+		return _fail("US-035: Dad row label text mismatch")
 	var dad_btns: Array = tree.get("_dad_buttons")
 	if dad_btns.size() != 9:
-		return _fail("US-034: Dad grid must have 9 buttons")
+		return _fail("US-035: Dad grid must have 9 buttons")
 	for i in range(9):
 		var db: Button = dad_btns[i]
-		var want := "Dad Passive %d" % (i + 1)
-		if db == null or db.text != want:
-			return _fail("US-034: Dad button %d want %s" % [i, want])
+		if db == null or db.text != expect_dad[i]:
+			return _fail("US-035: Dad button %d want %s" % [i, expect_dad[i]])
 		var dtip: String = tree.tooltip_for_button(db)
-		if dtip.find(want) == -1 or dtip.find("Placeholder effect") == -1:
-			return _fail("US-034: Dad tooltip placeholder missing for %s" % want)
+		if dtip.find(expect_dad[i]) == -1 or dtip.find(expect_effects[i]) == -1:
+			return _fail("US-035: Dad tooltip mismatch for %s got %s" % [expect_dad[i], dtip])
 	var dad_ult: Button = tree.get("dad_ultimate")
-	if dad_ult == null or dad_ult.text != "Dad Ultimate":
-		return _fail("US-034: Dad ultimate placeholder missing")
+	if dad_ult == null or dad_ult.text != "Dad All Powerful":
+		return _fail("US-035: Dad ultimate missing")
 	var dad_ult_tip: String = tree.tooltip_for_button(dad_ult)
-	if dad_ult_tip.find("Dad Ultimate") == -1 or dad_ult_tip.find("Placeholder effect") == -1:
-		return _fail("US-034: Dad ultimate tooltip missing")
+	if dad_ult_tip.find("Dad All Powerful") == -1 or dad_ult_tip.find("Become Dad, All Powerful.") == -1:
+		return _fail("US-035: Dad ultimate tooltip missing")
+	print("US-035 skill tree Dad content test passed")
 
 	# Node clicks: no mana spend, no unlock map mutation, no spawn side effects
 	var mana_before: int = DmManager.current_mana

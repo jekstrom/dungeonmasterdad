@@ -1,4 +1,4 @@
-[gd_scene load_steps=12 format=3 uid="uid://lf81agyh5j08"]
+[gd_scene load_steps=15 format=3 uid="uid://lf81agyh5j08"]
 
 [ext_resource type="Script" path="res://gui/dm/skill_tree.gd" id="1_skill"]
 [ext_resource type="Texture2D" path="res://gui/dm/skill_tree/tab_dm_active.png" id="2_tab_dm"]
@@ -6,6 +6,9 @@
 [ext_resource type="Texture2D" path="res://gui/dm/skill_tree/row_lightning.png" id="4_row_l"]
 [ext_resource type="Texture2D" path="res://gui/dm/skill_tree/row_gremlins.png" id="5_row_gr"]
 [ext_resource type="Texture2D" path="res://gui/dm/skill_tree/row_goblins.png" id="6_row_go"]
+[ext_resource type="Texture2D" path="res://gui/dm/skill_tree/row_frost.png" id="8_row_frost"]
+[ext_resource type="Texture2D" path="res://gui/dm/skill_tree/row_fire.png" id="9_row_fire"]
+[ext_resource type="Texture2D" path="res://gui/dm/skill_tree/row_control.png" id="10_row_control"]
 [ext_resource type="Texture2D" path="res://gui/dm/skill_tree/tooltip_arrow.png" id="7_tip_arrow"]
 
 [node name="SkillTree" type="Control"]
@@ -212,9 +215,75 @@ visible = false
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="PassivesGrid" type="GridContainer" parent="Panel/Margin/VBox/TabContainer/Dad"]
+[node name="Body" type="HBoxContainer" parent="Panel/Margin/VBox/TabContainer/Dad"]
 layout_mode = 2
 size_flags_vertical = 3
+theme_override_constants/separation = 8
+
+[node name="RowLabelsLive" type="VBoxContainer" parent="Panel/Margin/VBox/TabContainer/Dad/Body"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Frost" type="HBoxContainer" parent="Panel/Margin/VBox/TabContainer/Dad/Body/RowLabelsLive"]
+custom_minimum_size = Vector2(120, 64)
+layout_mode = 2
+theme_override_constants/separation = 6
+alignment = 1
+
+[node name="Icon" type="TextureRect" parent="Panel/Margin/VBox/TabContainer/Dad/Body/RowLabelsLive/Frost"]
+custom_minimum_size = Vector2(32, 32)
+layout_mode = 2
+texture = ExtResource("8_row_frost")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Label" type="Label" parent="Panel/Margin/VBox/TabContainer/Dad/Body/RowLabelsLive/Frost"]
+layout_mode = 2
+size_flags_vertical = 3
+text = "Frost"
+vertical_alignment = 1
+
+[node name="Fire" type="HBoxContainer" parent="Panel/Margin/VBox/TabContainer/Dad/Body/RowLabelsLive"]
+custom_minimum_size = Vector2(120, 64)
+layout_mode = 2
+theme_override_constants/separation = 6
+alignment = 1
+
+[node name="Icon" type="TextureRect" parent="Panel/Margin/VBox/TabContainer/Dad/Body/RowLabelsLive/Fire"]
+custom_minimum_size = Vector2(32, 32)
+layout_mode = 2
+texture = ExtResource("9_row_fire")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Label" type="Label" parent="Panel/Margin/VBox/TabContainer/Dad/Body/RowLabelsLive/Fire"]
+layout_mode = 2
+size_flags_vertical = 3
+text = "Fire"
+vertical_alignment = 1
+
+[node name="Control" type="HBoxContainer" parent="Panel/Margin/VBox/TabContainer/Dad/Body/RowLabelsLive"]
+custom_minimum_size = Vector2(120, 64)
+layout_mode = 2
+theme_override_constants/separation = 6
+alignment = 1
+
+[node name="Icon" type="TextureRect" parent="Panel/Margin/VBox/TabContainer/Dad/Body/RowLabelsLive/Control"]
+custom_minimum_size = Vector2(32, 32)
+layout_mode = 2
+texture = ExtResource("10_row_control")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Label" type="Label" parent="Panel/Margin/VBox/TabContainer/Dad/Body/RowLabelsLive/Control"]
+layout_mode = 2
+size_flags_vertical = 3
+text = "Control"
+vertical_alignment = 1
+
+[node name="PassivesGrid" type="GridContainer" parent="Panel/Margin/VBox/TabContainer/Dad/Body"]
+layout_mode = 2
+size_flags_horizontal = 3
 theme_override_constants/h_separation = 6
 theme_override_constants/v_separation = 6
 columns = 3
@@ -223,7 +292,7 @@ columns = 3
 custom_minimum_size = Vector2(0, 72)
 layout_mode = 2
 size_flags_horizontal = 3
-text = "Dad Ultimate"
+text = "Dad All Powerful"
 
 [node name="TooltipPanel" type="PanelContainer" parent="Panel/Margin/VBox"]
 layout_mode = 2
