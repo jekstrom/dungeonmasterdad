@@ -63,20 +63,21 @@ const NODE_BTN_MIN := Vector2(176, 64)
 const PANEL_MIN := Vector2(752, 520)
 const PAGE_BG := Color(0.11, 0.086, 0.07, 1.0)
 
-@onready var tab_container: TabContainer = $Panel/Margin/VBox/BodyRow/MainCol/TabContainer
-@onready var dm_grid: GridContainer = $Panel/Margin/VBox/BodyRow/MainCol/TabContainer/DM/Body/PassivesGrid
-@onready var dm_ultimate: Button = $Panel/Margin/VBox/BodyRow/MainCol/TabContainer/DM/UltimateButton
-@onready var dad_grid: GridContainer = $Panel/Margin/VBox/BodyRow/MainCol/TabContainer/Dad/PassivesGrid
-@onready var dad_ultimate: Button = $Panel/Margin/VBox/BodyRow/MainCol/TabContainer/Dad/UltimateButton
+@onready var tab_container: TabContainer = $Panel/Margin/VBox/TabContainer
+@onready var dm_grid: GridContainer = $Panel/Margin/VBox/TabContainer/DM/Body/PassivesGrid
+@onready var dm_ultimate: Button = $Panel/Margin/VBox/TabContainer/DM/UltimateButton
+@onready var dad_grid: GridContainer = $Panel/Margin/VBox/TabContainer/Dad/PassivesGrid
+@onready var dad_ultimate: Button = $Panel/Margin/VBox/TabContainer/Dad/UltimateButton
 @onready var tooltip_label: Label = $Panel/Margin/VBox/TooltipPanel/TooltipVBox/TooltipLabel
 @onready var tooltip_panel: PanelContainer = $Panel/Margin/VBox/TooltipPanel
 @onready var opaque_fill: ColorRect = $OpaqueFill
 @onready var panel: PanelContainer = $Panel
 @onready var header_row: HBoxContainer = $Panel/Margin/VBox/HeaderRow
 @onready var title_label: Label = $Panel/Margin/VBox/HeaderRow/Title
-@onready var side_tab_rail: VBoxContainer = $Panel/Margin/VBox/BodyRow/SideTabRail
-@onready var tab_dm_btn: TextureButton = $Panel/Margin/VBox/BodyRow/SideTabRail/TabDM
-@onready var tab_dad_btn: TextureButton = $Panel/Margin/VBox/BodyRow/SideTabRail/TabDad
+@onready var tab_bar: HBoxContainer = $Panel/Margin/VBox/HeaderRow/TabBar
+@onready var tab_dm_btn: TextureButton = $Panel/Margin/VBox/HeaderRow/TabBar/TabDM
+@onready var tab_dad_btn: TextureButton = $Panel/Margin/VBox/HeaderRow/TabBar/TabDad
+@onready var tab_shelf: ColorRect = $Panel/Margin/VBox/TabShelf
 
 var _dm_buttons: Array[Button] = []
 var _dad_buttons: Array[Button] = []
@@ -226,26 +227,33 @@ func is_button_unlocked_looking(btn: Button) -> bool:
 
 
 
-## Title in header; DM/Dad live on a vertical right-edge rail.
+## Title left in header chrome; DM/Dad tabs right-aligned (96×32 flush Art).
 func _place_title_in_header() -> void:
 	var margin := get_node_or_null("Panel/Margin") as MarginContainer
 	if margin:
-		margin.add_theme_constant_override("margin_top", 0)
+		# Extra top padding so "Skill Tree" sits inside the chrome, not flush to the edge.
+		margin.add_theme_constant_override("margin_top", 10)
 		margin.add_theme_constant_override("margin_left", 12)
-		# Leave room for the 32px side rail inside the frame.
-		margin.add_theme_constant_override("margin_right", 4)
+		margin.add_theme_constant_override("margin_right", 12)
 		margin.add_theme_constant_override("margin_bottom", 12)
 	var vbox := get_node_or_null("Panel/Margin/VBox") as VBoxContainer
 	if vbox:
+		# Keep header / shelf / page stacked with no overlap.
 		vbox.add_theme_constant_override("separation", 4)
+	if header_row:
+		header_row.custom_minimum_size = Vector2(0, 44)
+		header_row.alignment = BoxContainer.ALIGNMENT_CENTER
+		header_row.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	if title_label:
 		title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 		title_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		title_label.add_theme_font_size_override("font_size", 18)
-	if side_tab_rail:
-		side_tab_rail.alignment = BoxContainer.ALIGNMENT_CENTER
-		side_tab_rail.custom_minimum_size = Vector2(32, 0)
+		title_label.custom_minimum_size = Vector2(0, 32)
+	if tab_bar:
+		tab_bar.alignment = BoxContainer.ALIGNMENT_END
+		tab_bar.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	_style_tab_page_blend()
+
 
 
 func _apply_panel_art() -> void:
@@ -257,7 +265,7 @@ func _apply_panel_art() -> void:
 	fill.bg_color = Color(0.11, 0.086, 0.07, 1.0)
 	fill.content_margin_left = 14
 	fill.content_margin_right = 14
-	fill.content_margin_top = 2
+	fill.content_margin_top = 8
 	fill.content_margin_bottom = 12
 	fill.set_corner_radius_all(6)
 	var tex := load(TEX_PANEL) as Texture2D
@@ -271,7 +279,7 @@ func _apply_panel_art() -> void:
 		# Tiny top content margin so Title sits in the header chrome band.
 		sb.content_margin_left = 14
 		sb.content_margin_right = 14
-		sb.content_margin_top = 2
+		sb.content_margin_top = 8
 		sb.content_margin_bottom = 12
 		sb.draw_center = true
 		panel.add_theme_stylebox_override("panel", sb)
@@ -347,67 +355,52 @@ func _on_tab_changed(_idx: int) -> void:
 func _refresh_tab_art() -> void:
 	var on_dm := current_tab_name() == "DM"
 	if tab_dm_btn:
-		var dm_tex := _load_side_tab_tex(TEX_TAB_DM_ACTIVE if on_dm else TEX_TAB_DM_IDLE, on_dm, "DM")
-		tab_dm_btn.texture_normal = dm_tex
-		_style_side_tab_button(tab_dm_btn, on_dm)
+		tab_dm_btn.texture_normal = load(TEX_TAB_DM_ACTIVE if on_dm else TEX_TAB_DM_IDLE) as Texture2D
+		_style_tab_button(tab_dm_btn, on_dm)
 	if tab_dad_btn:
-		var dad_tex := _load_side_tab_tex(TEX_TAB_DAD_ACTIVE if not on_dm else TEX_TAB_DAD_IDLE, not on_dm, "DAD")
-		tab_dad_btn.texture_normal = dad_tex
-		_style_side_tab_button(tab_dad_btn, not on_dm)
+		tab_dad_btn.texture_normal = load(TEX_TAB_DAD_ACTIVE if not on_dm else TEX_TAB_DAD_IDLE) as Texture2D
+		_style_tab_button(tab_dad_btn, not on_dm)
 	_style_tab_page_blend()
 
 
-## Prefer Art 32×96 side tabs; fall back to StyleBox-drawn stub if missing/wrong size.
-func _load_side_tab_tex(path: String, active: bool, label: String) -> Texture2D:
-	var tex := load(path) as Texture2D
-	if tex and tex.get_width() == 32 and tex.get_height() == 96:
-		return tex
-	return _make_side_tab_stub(active, label)
-
-
-func _make_side_tab_stub(active: bool, label: String) -> Texture2D:
-	var img := Image.create(32, 96, false, Image.FORMAT_RGBA8)
-	var fill := PAGE_BG if active else Color(0.16, 0.13, 0.11, 1.0)
-	var border := Color(0.75, 0.62, 0.28, 1.0) if active else Color(0.45, 0.4, 0.35, 1.0)
-	img.fill(fill)
-	# Borders: idle all four; active open toward panel (left side open).
-	for y in range(96):
-		img.set_pixel(31, y, border)  # outer (right) edge
-		if not active:
-			img.set_pixel(0, y, border)
-	for x in range(32):
-		img.set_pixel(x, 0, border)
-		img.set_pixel(x, 95, border)
-	return ImageTexture.create_from_image(img)
-
-
-func _style_side_tab_button(btn: TextureButton, active: bool) -> void:
+## Active tab sits on the page shelf; idle tab is visually detached above the join.
+func _style_tab_button(btn: TextureButton, active: bool) -> void:
 	if btn == null:
 		return
 	btn.focus_mode = Control.FOCUS_NONE
 	btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	btn.ignore_texture_size = true
 	btn.stretch_mode = 5
-	btn.custom_minimum_size = Vector2(32, 96)
 	if active:
 		btn.modulate = Color(1, 1, 1, 1)
 		btn.z_index = 1
-		# Nudge into the page so open edge blends with MainCol.
-		btn.position.x = -2
+		btn.custom_minimum_size = Vector2(96, 32)
+		# Slight overlap onto TabShelf so active blends into the page.
+		btn.offset_bottom = 4
 	else:
-		btn.modulate = Color(0.85, 0.82, 0.78, 1)
+		btn.modulate = Color(0.78, 0.74, 0.7, 1)
 		btn.z_index = 0
-		btn.position.x = 0
+		btn.custom_minimum_size = Vector2(96, 32)
+		btn.offset_bottom = 0
 
 
 func _style_tab_page_blend() -> void:
+	if tab_shelf:
+		tab_shelf.color = PAGE_BG
+		tab_shelf.custom_minimum_size = Vector2(0, 6)
+		tab_shelf.z_index = 0
 	if tab_container:
+		tab_container.clip_contents = true
+		tab_container.z_index = 0
 		var page := StyleBoxFlat.new()
 		page.bg_color = PAGE_BG
 		page.set_content_margin_all(0)
 		page.set_corner_radius_all(0)
-		# No right edge — continuous with active side tab opening into the page.
+		# No top edge — continuous with TabShelf under the active tab.
 		tab_container.add_theme_stylebox_override("panel", page)
+	if header_row:
+		header_row.z_index = 2
+
 
 
 func _build_dm_tree() -> void:
@@ -459,7 +452,7 @@ func _build_dad_tree() -> void:
 
 ## Match row-label column height to skill rows and vertically center icon+text.
 func _center_row_labels() -> void:
-	var live := get_node_or_null("Panel/Margin/VBox/BodyRow/MainCol/TabContainer/DM/Body/RowLabelsLive") as VBoxContainer
+	var live := get_node_or_null("Panel/Margin/VBox/TabContainer/DM/Body/RowLabelsLive") as VBoxContainer
 	if live == null or dm_grid == null:
 		return
 	var row_h: float = NODE_BTN_MIN.y

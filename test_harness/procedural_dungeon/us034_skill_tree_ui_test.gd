@@ -39,20 +39,25 @@ func _run_suite() -> bool:
 		return _fail("US-034: current_tab_name missing")
 	if tree.current_tab_name() != "DM":
 		return _fail("US-034: default tab must be DM")
-	var tab: TabContainer = tree.get_node_or_null("Panel/Margin/VBox/BodyRow/MainCol/TabContainer") as TabContainer
+	var tab: TabContainer = tree.get_node_or_null("Panel/Margin/VBox/TabContainer") as TabContainer
 	if tab == null:
 		return _fail("US-034: TabContainer missing")
-	var rail = tree.get_node_or_null("Panel/Margin/VBox/BodyRow/SideTabRail")
-	if rail == null:
-		return _fail("US-034: SideTabRail missing")
+	var tab_bar = tree.get_node_or_null("Panel/Margin/VBox/HeaderRow/TabBar")
+	if tab_bar == null:
+		return _fail("US-034: HeaderRow/TabBar missing (top tabs)")
+	if tree.get_node_or_null("Panel/Margin/VBox/BodyRow/SideTabRail") != null:
+		return _fail("US-034: SideTabRail must be removed")
 	var tab_dm: TextureButton = tree.get("tab_dm_btn")
 	var tab_dad: TextureButton = tree.get("tab_dad_btn")
 	if tab_dm == null or tab_dad == null:
-		return _fail("US-034: side tab buttons missing")
-	if tab_dm.custom_minimum_size != Vector2(32, 96) or tab_dad.custom_minimum_size != Vector2(32, 96):
-		return _fail("US-034: side tabs must be 32x96 (got %s / %s)" % [tab_dm.custom_minimum_size, tab_dad.custom_minimum_size])
+		return _fail("US-034: custom tab buttons missing")
+	if tab_dm.custom_minimum_size != Vector2(96, 32) or tab_dad.custom_minimum_size != Vector2(96, 32):
+		return _fail("US-034: top tabs must be 96x32 (got %s / %s)" % [tab_dm.custom_minimum_size, tab_dad.custom_minimum_size])
 	if tab_dm.texture_normal == null or tab_dad.texture_normal == null:
-		return _fail("US-034: side tab textures missing")
+		return _fail("US-034: tab textures missing")
+	var header = tree.get_node_or_null("Panel/Margin/VBox/HeaderRow") as HBoxContainer
+	if header == null or header.custom_minimum_size.y < 40:
+		return _fail("US-034: HeaderRow must be taller (>=40) so title fits")
 	if tab.get_tab_count() != 2:
 		return _fail("US-034: expected exactly 2 tabs, got %d" % tab.get_tab_count())
 	if tab.get_tab_title(0) != "DM" or tab.get_tab_title(1) != "Dad":
