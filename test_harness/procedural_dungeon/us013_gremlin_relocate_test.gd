@@ -102,6 +102,38 @@ func _ready() -> void:
 	if chosen != p_near:
 		return _fail("US-013: should prefer near-factory pile")
 
+	# James notes (PR #17 follow-up): 2× speed, staple Hitbox, flee PP, walkable clamp.
+	var grem := g as Gremlin
+	if float(grem.move_speed) < 139.0:
+		return _fail("US-013: move_speed must be 2× prior (140), got %s" % grem.move_speed)
+	var hitbox: Area2D = g.get_node_or_null("Hitbox") as Area2D
+	if hitbox == null:
+		return _fail("US-013: Hitbox missing")
+	if hitbox.collision_layer != 8:
+		return _fail("US-013: Hitbox collision_layer must be 8 for staples, got %s" % hitbox.collision_layer)
+	if not hitbox.monitorable:
+		return _fail("US-013: Hitbox must be monitorable for staple Hurtbox overlap")
+	var hit_shape := hitbox.get_node_or_null("CollisionShape2D") as CollisionShape2D
+	if hit_shape == null or hit_shape.shape == null:
+		return _fail("US-013: Hitbox needs CollisionShape2D for staple hits")
+	# Flee: fake Paper Pusher nearby — velocity must point away.
+	var pp := Node2D.new()
+	pp.name = "FakePaperPusher"
+	pp.add_to_group("players")
+	pp.global_position = grem.global_position + Vector2(40, 0)
+	add_child(pp)
+	await get_tree().process_frame
+	grem.phase = Gremlin.RelocatePhase.SEEK
+	grem._target_pickup = p_near  # would otherwise seek rightward toward near pile
+	var fled: bool = grem._try_flee_paper_pushers(0.016)
+	if not fled:
+		return _fail("US-013: must flee Paper Pushers in radius")
+	if grem.velocity.x >= -1.0:
+		return _fail("US-013: flee velocity should run away from PP (negative X), got %s" % grem.velocity)
+	# Walkable clamp helper must be present.
+	if not grem.has_method("_clamp_to_walkable"):
+		return _fail("US-013: _clamp_to_walkable missing")
+
 	print("US-013 gremlin relocate test passed")
 	get_tree().quit(0)
 

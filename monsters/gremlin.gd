@@ -15,11 +15,13 @@ const RELOCATE_ITEMS: Array[String] = [
 	"res://pickups/tax_form.tres",
 ]
 
-@export var move_speed: float = 70.0
+@export var move_speed: float = 140.0  # James: 2× prior 70
 @export var pickup_range_px: float = 22.0
 @export var drop_delay_min_sec: float = 2.0
 @export var drop_delay_max_sec: float = 6.0
 @export var factory_prefer_radius_px: float = 220.0
+## Run away from Paper Pushers (players) within this radius.
+@export var flee_radius_px: float = 160.0
 
 enum RelocatePhase { SEEK, PICK, CARRY, WANDER }
 
@@ -44,13 +46,13 @@ func _ready() -> void:
 	add_to_group("gremlins")
 	add_to_group("monsters")
 	super._ready()
-	# Combat AI off — relocate only (FR-005).
+	# Combat AI off — relocate only (FR-005). Still take staple damage via Hitbox.
 	if enemy_state_machine:
 		enemy_state_machine.process_mode = Node.PROCESS_MODE_DISABLED
-	var hitbox := get_node_or_null("Hitbox")
-	if hitbox is Area2D:
-		(hitbox as Area2D).set_deferred("monitoring", false)
-		(hitbox as Area2D).set_deferred("monitorable", false)
+	var hurtbox := get_node_or_null("Hurtbox")
+	if hurtbox is Area2D:
+		(hurtbox as Area2D).set_deferred("monitoring", false)
+		(hurtbox as Area2D).set_deferred("monitorable", false)
 	_ensure_sheet()
 	_ensure_poof()
 	_ensure_carry_visual()
@@ -68,15 +70,20 @@ func _physics_process(delta: float) -> void:
 		_anim_t += delta
 		_update_sprite_frame(velocity)
 		return
-	match phase:
-		RelocatePhase.SEEK:
-			_tick_seek(delta)
-		RelocatePhase.PICK:
-			_tick_pick(delta)
-		RelocatePhase.CARRY:
-			_tick_carry(delta)
-		RelocatePhase.WANDER:
-			_tick_wander(delta)
+	# James: always flee Paper Pushers when nearby (overrides seek toward piles).
+	if _try_flee_paper_pushers(delta):
+		pass
+	else:
+		match phase:
+			RelocatePhase.SEEK:
+				_tick_seek(delta)
+			RelocatePhase.PICK:
+				_tick_pick(delta)
+			RelocatePhase.CARRY:
+				_tick_carry(delta)
+			RelocatePhase.WANDER:
+				_tick_wander(delta)
+	_steer_velocity_walkable()
 	move_and_slide()
 	_enforce_map_interior()
 	_anim_t += delta
@@ -106,7 +113,8 @@ func _tick_seek(delta: float) -> void:
 	if _target_pickup == null:
 		_wander_step(delta)
 		return
-	var to: Vector2 = _target_pickup.global_position - global_position
+	var goal: Vector2 = _clamp_to_walkable(_target_pickup.global_position)
+	var to: Vector2 = goal - global_position
 	if to.length() <= pickup_range_px:
 		velocity = Vector2.ZERO
 		phase = RelocatePhase.PICK
@@ -137,7 +145,7 @@ func _tick_carry(delta: float) -> void:
 	_drop_timer -= delta
 	# Walk away from claim spot so drop relocates the pile.
 	if velocity.length() < 1.0:
-		var dir := Vector2.RIGHT.rotated(randf() * TAU)
+		var dir := _random_walkable_dir()
 		SetDirection(dir)
 		velocity = dir * move_speed
 	if _drop_timer <= 0.0:
@@ -153,7 +161,7 @@ func _tick_wander(delta: float) -> void:
 
 func _wander_step(_delta: float) -> void:
 	if velocity.length() < 1.0 or randf() < 0.02:
-		var dir := Vector2.RIGHT.rotated(randf() * TAU)
+		var dir := _random_walkable_dir()
 		SetDirection(dir)
 		velocity = dir * (move_speed * 0.55)
 
@@ -256,6 +264,114 @@ func _factory_irs_anchors() -> Array[Vector2]:
 			if node is Node2D:
 				out.append((node as Node2D).global_position)
 	return out
+
+
+
+# --- flee / walkable pathing (James notes) ----------------------------------
+
+func _try_flee_paper_pushers(delta: float) -> bool:
+	var threat := _nearest_paper_pusher()
+	if threat == null:
+		return false
+	# Keep carry drop timer ticking while fleeing.
+	if phase == RelocatePhase.CARRY:
+		_drop_timer -= delta
+		if _drop_timer <= 0.0:
+			_drop_carried_now()
+			phase = RelocatePhase.SEEK
+	elif phase == RelocatePhase.PICK:
+		phase = RelocatePhase.SEEK
+	var away := global_position - threat.global_position
+	if away.length() < 0.001:
+		away = Vector2.RIGHT.rotated(randf() * TAU)
+	else:
+		away = away.normalized()
+	var flee_goal := _clamp_to_walkable(global_position + away * 64.0)
+	var steered := flee_goal - global_position
+	if steered.length() < 0.001:
+		steered = away
+	else:
+		steered = steered.normalized()
+	SetDirection(steered)
+	velocity = steered * move_speed
+	return true
+
+
+func _nearest_paper_pusher() -> Node2D:
+	var tree := get_tree()
+	if tree == null:
+		return null
+	var best: Node2D = null
+	var best_d := flee_radius_px
+	for node in tree.get_nodes_in_group("players"):
+		if not (node is Node2D) or not is_instance_valid(node):
+			continue
+		var d := global_position.distance_to((node as Node2D).global_position)
+		if d <= best_d:
+			best_d = d
+			best = node as Node2D
+	return best
+
+
+func _clamp_to_walkable(world: Vector2) -> Vector2:
+	var tree := get_tree()
+	if tree == null:
+		return world
+	var level: Node = tree.get_first_node_in_group("level_manager")
+	if level == null:
+		return world
+	if level.has_method("clamp_world_to_interior"):
+		return level.clamp_world_to_interior(world)
+	if level.has_method("get_map_bounds"):
+		var bounds = level.get_map_bounds()
+		if bounds != null and bounds.has_method("clamp_world_to_interior"):
+			return bounds.clamp_world_to_interior(world)
+	return world
+
+
+func _is_walkable(world: Vector2) -> bool:
+	var tree := get_tree()
+	if tree == null:
+		return true
+	var level: Node = tree.get_first_node_in_group("level_manager")
+	if level == null or not level.has_method("has_map_bounds") or not level.has_map_bounds():
+		return true
+	var bounds = level.get_map_bounds()
+	if bounds == null:
+		return true
+	if bounds.has_method("is_world_position_walkable"):
+		return bounds.is_world_position_walkable(world)
+	return true
+
+
+func _random_walkable_dir() -> Vector2:
+	for _i in range(8):
+		var dir := Vector2.RIGHT.rotated(randf() * TAU)
+		var probe := _clamp_to_walkable(global_position + dir * 40.0)
+		var step := probe - global_position
+		if step.length() > 4.0 and _is_walkable(probe):
+			return step.normalized()
+	# Fallback: pull toward clamped self (inward from cliff).
+	var inward := _clamp_to_walkable(global_position) - global_position
+	if inward.length() > 0.001:
+		return inward.normalized()
+	return Vector2.RIGHT.rotated(randf() * TAU)
+
+
+func _steer_velocity_walkable() -> void:
+	if velocity.length() < 1.0:
+		return
+	var ahead := global_position + velocity.normalized() * 28.0
+	if _is_walkable(ahead):
+		return
+	var clamped := _clamp_to_walkable(ahead)
+	var alt := clamped - global_position
+	if alt.length() < 0.001:
+		velocity = Vector2.ZERO
+		return
+	alt = alt.normalized()
+	SetDirection(alt)
+	velocity = alt * velocity.length()
 
 
 # --- visuals / sheet --------------------------------------------------------
