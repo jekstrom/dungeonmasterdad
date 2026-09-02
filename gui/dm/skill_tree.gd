@@ -1,6 +1,39 @@
 extends Control
 ## US-034: DM Skill Tree UI (UI only). Tabs DM + Dad; 3x3 + ultimate; tooltips;
-## locked/unlocked chrome. No spend, unlock RPC, spawn, or passive apply.
+## locked/available/owned chrome from gui/dm/skill_tree/ art. No spend, unlock RPC,
+## spawn, or passive apply.
+
+const ART := "res://gui/dm/skill_tree/"
+
+const TEX_PANEL := ART + "panel_frame.png"
+const TEX_TAB_DM_IDLE := ART + "tab_dm_idle.png"
+const TEX_TAB_DM_ACTIVE := ART + "tab_dm_active.png"
+const TEX_TAB_DAD_IDLE := ART + "tab_dad_idle.png"
+const TEX_TAB_DAD_ACTIVE := ART + "tab_dad_active.png"
+const TEX_NODE_LOCKED := ART + "node_locked.png"
+const TEX_NODE_AVAILABLE := ART + "node_available.png"
+const TEX_NODE_OWNED := ART + "node_owned.png"
+const TEX_ROW_LIGHTNING := ART + "row_lightning.png"
+const TEX_ROW_GREMLINS := ART + "row_gremlins.png"
+const TEX_ROW_GOBLINS := ART + "row_goblins.png"
+const TEX_TOOLTIP_BG := ART + "tooltip_bg.png"
+const TEX_TOOLTIP_ARROW := ART + "tooltip_arrow.png"
+const TEX_CONNECTOR_H := ART + "connector_h.png"
+const TEX_CONNECTOR_V := ART + "connector_v.png"
+
+const DM_ICON_PATHS: Array[String] = [
+	ART + "icon_overcharged.png",
+	ART + "icon_spark.png",
+	ART + "icon_chain_lightning.png",
+	ART + "icon_minions.png",
+	ART + "icon_blind_monkeys.png",
+	ART + "icon_crib_death.png",
+	ART + "icon_challenge_rating.png",
+	ART + "icon_plus1_swords.png",
+	ART + "icon_random_encounter.png",
+]
+const DM_ULT_ICON := ART + "icon_tsb.png"
+const DAD_ULT_ICON := ART + "icon_dad_ultimate.png"
 
 const DM_PASSIVES: Array[Dictionary] = [
 	{"id": "overcharged", "name": "Overcharged", "effect": "Increase distance traveled by knightlings.", "row": "Lightning"},
@@ -20,36 +53,51 @@ const DM_ULTIMATE: Dictionary = {
 	"effect": "Summon the TSB.",
 }
 
-## Mock chrome (US-034 Open defaults): first column of each row looks unlocked;
+## Mock chrome (US-034 Open defaults): first column of each row looks available;
 ## remaining passives + ultimate look locked. Visual only — no spend/gates.
 const MOCK_UNLOCKED_PASSIVE_INDICES: Array[int] = [0, 3, 6]
-
-const COLOR_UNLOCKED := Color(0.95, 0.88, 0.45, 1.0)
-const COLOR_LOCKED := Color(0.38, 0.38, 0.42, 1.0)
-const COLOR_OWNED_EMPHASIS := Color(1.0, 0.95, 0.7, 1.0)
 
 @onready var tab_container: TabContainer = $Panel/Margin/VBox/TabContainer
 @onready var dm_grid: GridContainer = $Panel/Margin/VBox/TabContainer/DM/Body/PassivesGrid
 @onready var dm_ultimate: Button = $Panel/Margin/VBox/TabContainer/DM/UltimateButton
 @onready var dad_grid: GridContainer = $Panel/Margin/VBox/TabContainer/Dad/PassivesGrid
 @onready var dad_ultimate: Button = $Panel/Margin/VBox/TabContainer/Dad/UltimateButton
-@onready var tooltip_label: Label = $Panel/Margin/VBox/TooltipPanel/TooltipLabel
+@onready var tooltip_label: Label = $Panel/Margin/VBox/TooltipPanel/TooltipVBox/TooltipLabel
+@onready var tooltip_panel: PanelContainer = $Panel/Margin/VBox/TooltipPanel
+@onready var panel: PanelContainer = $Panel
+@onready var tab_bar: HBoxContainer = $Panel/Margin/VBox/TabBar
+@onready var tab_dm_btn: TextureButton = $Panel/Margin/VBox/TabBar/TabDM
+@onready var tab_dad_btn: TextureButton = $Panel/Margin/VBox/TabBar/TabDad
 
 var _dm_buttons: Array[Button] = []
 var _dad_buttons: Array[Button] = []
 var _focused_tooltip_text: String = ""
+var _selected_btn: Button = null
+var _tex_locked: Texture2D
+var _tex_available: Texture2D
+var _tex_owned: Texture2D
 
 
 func _ready() -> void:
 	visible = false
 	mouse_filter = Control.MOUSE_FILTER_STOP
+	_tex_locked = load(TEX_NODE_LOCKED) as Texture2D
+	_tex_available = load(TEX_NODE_AVAILABLE) as Texture2D
+	_tex_owned = load(TEX_NODE_OWNED) as Texture2D
+	_apply_panel_art()
+	_apply_tooltip_art()
+	_wire_custom_tabs()
 	_build_dm_tree()
 	_build_dad_tree()
 	_apply_mock_lock_chrome()
 	if tab_container:
 		tab_container.set_tab_title(0, "DM")
 		tab_container.set_tab_title(1, "Dad")
+		tab_container.tabs_visible = false
 		tab_container.current_tab = 0
+		if not tab_container.tab_changed.is_connected(_on_tab_changed):
+			tab_container.tab_changed.connect(_on_tab_changed)
+	_refresh_tab_art()
 	var dim := get_node_or_null("Dim")
 	if dim and dim is ColorRect:
 		if not dim.gui_input.is_connected(_on_dim_gui_input):
@@ -70,6 +118,7 @@ func open_panel() -> void:
 	visible = true
 	if tab_container:
 		tab_container.current_tab = 0
+	_refresh_tab_art()
 
 
 func close_panel() -> void:
@@ -124,6 +173,7 @@ func select_tab(tab_name: String) -> void:
 		tab_container.current_tab = 0
 	elif tab_name == "Dad":
 		tab_container.current_tab = 1
+	_refresh_tab_art()
 
 
 func current_tab_name() -> String:
@@ -148,15 +198,103 @@ func is_button_unlocked_looking(btn: Button) -> bool:
 	return bool(btn.get_meta("unlocked_looking", false))
 
 
+func _apply_panel_art() -> void:
+	if panel == null:
+		return
+	var tex := load(TEX_PANEL) as Texture2D
+	if tex == null:
+		return
+	var sb := StyleBoxTexture.new()
+	sb.texture = tex
+	sb.texture_margin_left = 24
+	sb.texture_margin_top = 24
+	sb.texture_margin_right = 24
+	sb.texture_margin_bottom = 24
+	sb.content_margin_left = 20
+	sb.content_margin_right = 20
+	sb.content_margin_top = 16
+	sb.content_margin_bottom = 16
+	panel.add_theme_stylebox_override("panel", sb)
+	panel.custom_minimum_size = Vector2(480, 448)
+
+
+func _apply_tooltip_art() -> void:
+	if tooltip_panel == null:
+		return
+	var tex := load(TEX_TOOLTIP_BG) as Texture2D
+	if tex == null:
+		return
+	var sb := StyleBoxTexture.new()
+	sb.texture = tex
+	sb.texture_margin_left = 8
+	sb.texture_margin_top = 8
+	sb.texture_margin_right = 8
+	sb.texture_margin_bottom = 8
+	sb.content_margin_left = 10
+	sb.content_margin_right = 10
+	sb.content_margin_top = 8
+	sb.content_margin_bottom = 8
+	tooltip_panel.add_theme_stylebox_override("panel", sb)
+	var arrow := tooltip_panel.get_node_or_null("TooltipVBox/TooltipArrow") as TextureRect
+	if arrow:
+		arrow.texture = load(TEX_TOOLTIP_ARROW) as Texture2D
+
+
+func _wire_custom_tabs() -> void:
+	if tab_dm_btn:
+		tab_dm_btn.focus_mode = Control.FOCUS_NONE
+		if not tab_dm_btn.pressed.is_connected(_on_tab_dm_pressed):
+			tab_dm_btn.pressed.connect(_on_tab_dm_pressed)
+	if tab_dad_btn:
+		tab_dad_btn.focus_mode = Control.FOCUS_NONE
+		if not tab_dad_btn.pressed.is_connected(_on_tab_dad_pressed):
+			tab_dad_btn.pressed.connect(_on_tab_dad_pressed)
+
+
+func _on_tab_dm_pressed() -> void:
+	select_tab("DM")
+
+
+func _on_tab_dad_pressed() -> void:
+	select_tab("Dad")
+
+
+func _on_tab_changed(_idx: int) -> void:
+	_refresh_tab_art()
+
+
+func _refresh_tab_art() -> void:
+	var on_dm := current_tab_name() == "DM"
+	if tab_dm_btn:
+		tab_dm_btn.texture_normal = load(TEX_TAB_DM_ACTIVE if on_dm else TEX_TAB_DM_IDLE) as Texture2D
+	if tab_dad_btn:
+		tab_dad_btn.texture_normal = load(TEX_TAB_DAD_ACTIVE if not on_dm else TEX_TAB_DAD_IDLE) as Texture2D
+
+
 func _build_dm_tree() -> void:
 	_clear_children(dm_grid)
 	_dm_buttons.clear()
 	for i in range(DM_PASSIVES.size()):
 		var entry: Dictionary = DM_PASSIVES[i]
-		var btn := _make_node_button(str(entry["name"]), str(entry["name"]), str(entry["effect"]), str(entry["id"]))
+		var btn := _make_node_button(
+			str(entry["name"]),
+			str(entry["name"]),
+			str(entry["effect"]),
+			str(entry["id"]),
+			DM_ICON_PATHS[i]
+		)
 		dm_grid.add_child(btn)
 		_dm_buttons.append(btn)
-	_configure_ultimate(dm_ultimate, str(DM_ULTIMATE["name"]), str(DM_ULTIMATE["effect"]), str(DM_ULTIMATE["id"]))
+		# Optional horizontal connectors between columns (visual only).
+		if i % 3 != 2:
+			pass
+	_configure_ultimate(
+		dm_ultimate,
+		str(DM_ULTIMATE["name"]),
+		str(DM_ULTIMATE["effect"]),
+		str(DM_ULTIMATE["id"]),
+		DM_ULT_ICON
+	)
 
 
 func _build_dad_tree() -> void:
@@ -165,24 +303,38 @@ func _build_dad_tree() -> void:
 	for i in range(9):
 		var pname := "Dad Passive %d" % (i + 1)
 		var effect := "Placeholder effect for %s." % pname
-		var btn := _make_node_button(pname, pname, effect, "dad_passive_%d" % (i + 1))
+		var icon_path := ART + "icon_dad_passive_%02d.png" % (i + 1)
+		var btn := _make_node_button(pname, pname, effect, "dad_passive_%d" % (i + 1), icon_path)
 		dad_grid.add_child(btn)
 		_dad_buttons.append(btn)
 	_configure_ultimate(
 		dad_ultimate,
 		"Dad Ultimate",
 		"Placeholder effect for Dad Ultimate.",
-		"dad_ultimate"
+		"dad_ultimate",
+		DAD_ULT_ICON
 	)
 
 
-func _make_node_button(label: String, tip_name: String, tip_effect: String, node_id: String) -> Button:
+func _make_node_button(
+	label: String,
+	tip_name: String,
+	tip_effect: String,
+	node_id: String,
+	icon_path: String
+) -> Button:
 	var btn := Button.new()
 	btn.name = node_id
 	btn.text = label
-	btn.custom_minimum_size = Vector2(120, 48)
+	btn.custom_minimum_size = Vector2(128, 56)
 	btn.focus_mode = Control.FOCUS_ALL
 	btn.tooltip_text = "%s\n%s" % [tip_name, tip_effect]
+	btn.expand_icon = true
+	btn.icon_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	var icon_tex := load(icon_path) as Texture2D
+	if icon_tex:
+		btn.icon = icon_tex
 	btn.set_meta("skill_id", node_id)
 	btn.set_meta("skill_name", tip_name)
 	btn.set_meta("skill_effect", tip_effect)
@@ -192,16 +344,27 @@ func _make_node_button(label: String, tip_name: String, tip_effect: String, node
 	return btn
 
 
-func _configure_ultimate(btn: Button, tip_name: String, tip_effect: String, node_id: String) -> void:
+func _configure_ultimate(
+	btn: Button,
+	tip_name: String,
+	tip_effect: String,
+	node_id: String,
+	icon_path: String
+) -> void:
 	if btn == null:
 		return
 	btn.text = tip_name
 	btn.focus_mode = Control.FOCUS_ALL
 	btn.tooltip_text = "%s\n%s" % [tip_name, tip_effect]
+	btn.expand_icon = true
+	btn.icon_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	var icon_tex := load(icon_path) as Texture2D
+	if icon_tex:
+		btn.icon = icon_tex
 	btn.set_meta("skill_id", node_id)
 	btn.set_meta("skill_name", tip_name)
 	btn.set_meta("skill_effect", tip_effect)
-	# Disconnect prior binds if reconfigured, then connect once.
 	for conn in btn.pressed.get_connections():
 		btn.pressed.disconnect(conn["callable"])
 	for conn in btn.mouse_entered.get_connections():
@@ -216,52 +379,66 @@ func _configure_ultimate(btn: Button, tip_name: String, tip_effect: String, node
 func _apply_mock_lock_chrome() -> void:
 	for i in range(_dm_buttons.size()):
 		var unlocked: bool = i in MOCK_UNLOCKED_PASSIVE_INDICES
-		_set_lock_chrome(_dm_buttons[i], unlocked)
-	_set_lock_chrome(dm_ultimate, false)
+		_set_lock_chrome(_dm_buttons[i], unlocked, false)
+	_set_lock_chrome(dm_ultimate, false, false)
 	for i in range(_dad_buttons.size()):
 		var unlocked: bool = i in MOCK_UNLOCKED_PASSIVE_INDICES
-		_set_lock_chrome(_dad_buttons[i], unlocked)
-	_set_lock_chrome(dad_ultimate, false)
+		_set_lock_chrome(_dad_buttons[i], unlocked, false)
+	_set_lock_chrome(dad_ultimate, false, false)
 
 
-func _set_lock_chrome(btn: Button, unlocked_looking: bool) -> void:
+func _set_lock_chrome(btn: Button, unlocked_looking: bool, owned_looking: bool) -> void:
 	if btn == null:
 		return
 	btn.set_meta("unlocked_looking", unlocked_looking)
+	btn.set_meta("owned_looking", owned_looking)
 	# Keep buttons clickable for UI focus only; do not use disabled
 	# (disabled suppresses tooltips/hover in some themes).
-	if unlocked_looking:
-		btn.modulate = COLOR_OWNED_EMPHASIS
-		btn.add_theme_color_override("font_color", Color(0.1, 0.1, 0.1, 1))
-		btn.add_theme_stylebox_override("normal", _make_style(COLOR_UNLOCKED))
-		btn.add_theme_stylebox_override("hover", _make_style(COLOR_UNLOCKED.lightened(0.1)))
-		btn.add_theme_stylebox_override("pressed", _make_style(COLOR_UNLOCKED.darkened(0.1)))
+	var frame: Texture2D = _tex_locked
+	if owned_looking:
+		frame = _tex_owned
+	elif unlocked_looking:
+		frame = _tex_available
+	var sb := _make_texture_style(frame)
+	btn.add_theme_stylebox_override("normal", sb)
+	btn.add_theme_stylebox_override("hover", sb)
+	btn.add_theme_stylebox_override("pressed", sb)
+	btn.add_theme_stylebox_override("focus", sb)
+	if unlocked_looking or owned_looking:
+		btn.modulate = Color(1, 1, 1, 1)
+		btn.add_theme_color_override("font_color", Color(0.95, 0.92, 0.75, 1))
 	else:
-		btn.modulate = Color(0.75, 0.75, 0.8, 1)
-		btn.add_theme_color_override("font_color", Color(0.75, 0.75, 0.8, 1))
-		btn.add_theme_stylebox_override("normal", _make_style(COLOR_LOCKED))
-		btn.add_theme_stylebox_override("hover", _make_style(COLOR_LOCKED.lightened(0.08)))
-		btn.add_theme_stylebox_override("pressed", _make_style(COLOR_LOCKED.darkened(0.05)))
+		btn.modulate = Color(0.78, 0.78, 0.82, 1)
+		btn.add_theme_color_override("font_color", Color(0.7, 0.7, 0.75, 1))
 
 
-func _make_style(color: Color) -> StyleBoxFlat:
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = color
-	sb.set_border_width_all(2)
-	sb.border_color = color.darkened(0.25)
-	sb.set_corner_radius_all(4)
-	sb.content_margin_left = 6
-	sb.content_margin_right = 6
-	sb.content_margin_top = 4
-	sb.content_margin_bottom = 4
+func _make_texture_style(tex: Texture2D) -> StyleBoxTexture:
+	var sb := StyleBoxTexture.new()
+	if tex:
+		sb.texture = tex
+	sb.texture_margin_left = 8
+	sb.texture_margin_top = 8
+	sb.texture_margin_right = 8
+	sb.texture_margin_bottom = 8
+	sb.content_margin_left = 8
+	sb.content_margin_right = 8
+	sb.content_margin_top = 6
+	sb.content_margin_bottom = 6
 	return sb
 
 
 func _on_node_pressed(_btn: Button) -> void:
-	# UI-only: focus / click feedback. No mana, unlock, spawn, or passive apply.
-	if _btn:
-		_btn.grab_focus()
-		_show_tooltip_for(_btn)
+	# UI-only: focus / owned chrome feedback. No mana, unlock, spawn, or passive apply.
+	if _btn == null:
+		return
+	_btn.grab_focus()
+	_show_tooltip_for(_btn)
+	if _selected_btn and _selected_btn != _btn:
+		var prev_unlocked: bool = bool(_selected_btn.get_meta("unlocked_looking", false))
+		_set_lock_chrome(_selected_btn, prev_unlocked, false)
+	_selected_btn = _btn
+	var unlocked: bool = bool(_btn.get_meta("unlocked_looking", false))
+	_set_lock_chrome(_btn, unlocked, true)
 
 
 func _on_node_hover(btn: Button) -> void:
