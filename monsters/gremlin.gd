@@ -22,6 +22,10 @@ const RELOCATE_ITEMS: Array[String] = [
 @export var factory_prefer_radius_px: float = 220.0
 ## Run away from Paper Pushers (players) within this radius.
 @export var flee_radius_px: float = 160.0
+## Prefer inland steering when this close to the walkable/cliff edge (px).
+@export var cliff_edge_margin_px: float = 96.0
+## How hard inland push wins over seek/flee when near cliffs.
+@export var inland_bias_strength: float = 1.6
 
 enum RelocatePhase { SEEK, PICK, CARRY, WANDER }
 
@@ -120,8 +124,9 @@ func _tick_seek(delta: float) -> void:
 		phase = RelocatePhase.PICK
 		_pick_t = 0.25
 		return
-	SetDirection(to.normalized())
-	velocity = to.normalized() * move_speed
+	var steered := _steer_inland(to)
+	SetDirection(steered)
+	velocity = steered * move_speed
 
 
 func _tick_pick(delta: float) -> void:
@@ -286,12 +291,8 @@ func _try_flee_paper_pushers(delta: float) -> bool:
 		away = Vector2.RIGHT.rotated(randf() * TAU)
 	else:
 		away = away.normalized()
-	var flee_goal := _clamp_to_walkable(global_position + away * 64.0)
-	var steered := flee_goal - global_position
-	if steered.length() < 0.001:
-		steered = away
-	else:
-		steered = steered.normalized()
+	# James live: prefer inland over running toward/along cliffs while fleeing.
+	var steered := _steer_inland(away)
 	SetDirection(steered)
 	velocity = steered * move_speed
 	return true
@@ -311,6 +312,19 @@ func _nearest_paper_pusher() -> Node2D:
 			best_d = d
 			best = node as Node2D
 	return best
+
+
+func _get_walk_rect() -> Rect2:
+	var tree := get_tree()
+	if tree == null:
+		return Rect2()
+	var level: Node = tree.get_first_node_in_group("level_manager")
+	if level == null or not level.has_method("has_map_bounds") or not level.has_map_bounds():
+		return Rect2()
+	var bounds = level.get_map_bounds()
+	if bounds == null or not bounds.has_method("walk_world_rect"):
+		return Rect2()
+	return bounds.walk_world_rect()
 
 
 func _clamp_to_walkable(world: Vector2) -> Vector2:
@@ -344,34 +358,117 @@ func _is_walkable(world: Vector2) -> bool:
 	return true
 
 
+## Unit push away from nearest cliff/walkable edges (stronger near the rim).
+func _inland_push() -> Vector2:
+	var rect := _get_walk_rect()
+	if rect.size.x <= 1.0 or rect.size.y <= 1.0:
+		return Vector2.ZERO
+	var p := global_position
+	var m: float = maxf(8.0, cliff_edge_margin_px)
+	var left_d := p.x - rect.position.x
+	var right_d := (rect.position.x + rect.size.x) - p.x
+	var top_d := p.y - rect.position.y
+	var bottom_d := (rect.position.y + rect.size.y) - p.y
+	var push := Vector2.ZERO
+	if left_d < m:
+		push.x += (m - left_d) / m
+	if right_d < m:
+		push.x -= (m - right_d) / m
+	if top_d < m:
+		push.y += (m - top_d) / m
+	if bottom_d < m:
+		push.y -= (m - bottom_d) / m
+	# Soft center pull so wander doesn't hug the rim once clear of the margin.
+	var center := rect.get_center()
+	var to_center := center - p
+	if to_center.length() > 0.001:
+		push += to_center.normalized() * 0.35
+	if push.length() < 0.001:
+		return Vector2.ZERO
+	return push.normalized()
+
+
+## Bias desired motion inland; never prefer a step that drives into cliffs.
+func _steer_inland(desired: Vector2) -> Vector2:
+	var inland := _inland_push()
+	var desire := desired
+	if desire.length() < 0.001:
+		desire = Vector2.ZERO
+	else:
+		desire = desire.normalized()
+	if inland.length() < 0.001:
+		return desire if desire.length() > 0.0 else Vector2.RIGHT
+	var best_dir := inland
+	var best_score := -INF
+	var candidates: Array[Vector2] = []
+	if desire.length() > 0.0:
+		candidates.append(desire)
+	candidates.append(inland)
+	var blend := desire + inland * inland_bias_strength
+	if blend.length() > 0.001:
+		candidates.append(blend.normalized())
+	for i in range(8):
+		candidates.append(Vector2.RIGHT.rotated(float(i) * TAU / 8.0))
+	for c in candidates:
+		if c.length() < 0.001:
+			continue
+		c = c.normalized()
+		var score: float = c.dot(inland) * inland_bias_strength
+		if desire.length() > 0.0:
+			score += c.dot(desire)
+		var ahead := global_position + c * 36.0
+		if not _is_walkable(ahead):
+			score -= 6.0
+		# Hard reject directions that move deeper into the cliff rim.
+		if c.dot(inland) < -0.15:
+			score -= 3.0 * inland_bias_strength
+		if score > best_score:
+			best_score = score
+			best_dir = c
+	return best_dir
+
+
 func _random_walkable_dir() -> Vector2:
-	for _i in range(8):
+	var inland := _inland_push()
+	var best := Vector2.RIGHT.rotated(randf() * TAU)
+	var best_score := -INF
+	for _i in range(12):
 		var dir := Vector2.RIGHT.rotated(randf() * TAU)
-		var probe := _clamp_to_walkable(global_position + dir * 40.0)
-		var step := probe - global_position
-		if step.length() > 4.0 and _is_walkable(probe):
-			return step.normalized()
-	# Fallback: pull toward clamped self (inward from cliff).
-	var inward := _clamp_to_walkable(global_position) - global_position
-	if inward.length() > 0.001:
-		return inward.normalized()
-	return Vector2.RIGHT.rotated(randf() * TAU)
+		var probe := global_position + dir * 40.0
+		var score := 0.0
+		if inland.length() > 0.0:
+			score += dir.dot(inland) * inland_bias_strength
+		if not _is_walkable(probe):
+			score -= 5.0
+		else:
+			score += 0.5
+		if score > best_score:
+			best_score = score
+			best = dir
+	if inland.length() > 0.0 and best.dot(inland) < 0.0:
+		return inland
+	return best.normalized()
 
 
 func _steer_velocity_walkable() -> void:
 	if velocity.length() < 1.0:
 		return
-	var ahead := global_position + velocity.normalized() * 28.0
-	if _is_walkable(ahead):
-		return
-	var clamped := _clamp_to_walkable(ahead)
-	var alt := clamped - global_position
-	if alt.length() < 0.001:
-		velocity = Vector2.ZERO
-		return
-	alt = alt.normalized()
-	SetDirection(alt)
-	velocity = alt * velocity.length()
+	var speed := velocity.length()
+	var steered := _steer_inland(velocity)
+	var ahead := global_position + steered * 28.0
+	if not _is_walkable(ahead):
+		var inland := _inland_push()
+		if inland.length() > 0.001:
+			steered = inland
+		else:
+			var clamped := _clamp_to_walkable(ahead)
+			var alt := clamped - global_position
+			if alt.length() < 0.001:
+				velocity = Vector2.ZERO
+				return
+			steered = alt.normalized()
+	SetDirection(steered)
+	velocity = steered * speed
 
 
 # --- visuals / sheet --------------------------------------------------------

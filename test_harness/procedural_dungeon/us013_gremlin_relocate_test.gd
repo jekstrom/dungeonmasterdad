@@ -133,6 +133,46 @@ func _ready() -> void:
 	# Walkable clamp helper must be present.
 	if not grem.has_method("_clamp_to_walkable"):
 		return _fail("US-013: _clamp_to_walkable missing")
+	if not grem.has_method("_steer_inland") or not grem.has_method("_inland_push"):
+		return _fail("US-013: inland cliff bias helpers missing")
+
+	# James live: near a cliff edge, desired-toward-cliff must steer inland.
+	# Headless harness has no playground LevelManager — mount one for bounds.
+	var level: Node = get_tree().get_first_node_in_group("level_manager")
+	if level == null:
+		var lm_script: Script = load("res://_globals/level_manager.gd") as Script
+		if lm_script == null:
+			return _fail("US-013: level_manager.gd missing")
+		level = Node2D.new()
+		level.set_script(lm_script)
+		add_child(level)
+		await get_tree().process_frame
+	if level == null or not level.has_method("get_map_bounds"):
+		return _fail("US-013: level_manager/map_bounds required for inland test")
+	var bounds = level.get_map_bounds()
+	bounds.commit_interior(Rect2i(10, 10, 16, 12))
+	if not level.has_map_bounds():
+		return _fail("US-013: map bounds did not commit")
+	var walk: Rect2 = bounds.walk_world_rect()
+	if walk.size.x <= 0.0:
+		return _fail("US-013: walk_world_rect empty after commit")
+	# Sit near the left cliff rim inside walkable.
+	grem.global_position = Vector2(walk.position.x + 24.0, walk.position.y + walk.size.y * 0.5)
+	await get_tree().process_frame
+	var inland: Vector2 = grem._inland_push()
+	if inland.x <= 0.2:
+		return _fail("US-013: inland push near left cliff should point right, got %s" % inland)
+	var toward_cliff := Vector2.LEFT
+	var steered: Vector2 = grem._steer_inland(toward_cliff)
+	if steered.x <= 0.0:
+		return _fail("US-013: steer_inland must not run into left cliff, got %s" % steered)
+	# Flee that would otherwise run into the cliff must still go inland.
+	pp.global_position = grem.global_position + Vector2(50, 0)  # PP inland/right; raw flee = left into cliff
+	var fled_cliff: bool = grem._try_flee_paper_pushers(0.016)
+	if not fled_cliff:
+		return _fail("US-013: flee near cliff should still trigger")
+	if grem.velocity.x <= 0.0:
+		return _fail("US-013: flee near left cliff must bias inland ( +X ), got %s" % grem.velocity)
 
 	print("US-013 gremlin relocate test passed")
 	get_tree().quit(0)
