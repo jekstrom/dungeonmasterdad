@@ -2,7 +2,7 @@
 
 Gameplay stories for each **passive** on the DM (US-034) and Dad (US-035) Skill Tree tabs. **Ultimates excluded** (TSB; Dad All Powerful / US-021).
 
-**Shared Open default:** effect applies when the host marks the node **owned**; **no currency spend** in these stories. UI copy stays US-034/035.
+**Ownership / spend:** Passive **effects** still run when the node is **owned**, but ownership is earned by spending skill points per **[US-054](US-054.md)** (column costs, FL/RL row gates, ultimate prereqs). Harness may force-own for isolated effect tests. UI copy stays US-034/035. Ultimates’ *effects* remain out of these passive stories (TSB TBD; Dad All Powerful [US-021](US-021.md)).
 
 | US | Tree | Passive | Id | Effect | Tasks |
 |---|---|---|---|---|---|
@@ -24,6 +24,11 @@ Gameplay stories for each **passive** on the DM (US-034) and Dad (US-035) Skill 
 | [US-051](US-051.md) | Dad | Thermostat Lock | `thermostat_lock` | Paper Pushers lose one inventory slot. | [tasks](tasks/US-051/) |
 | [US-052](US-052.md) | Dad | Dad Reflexes | `dad_reflexes` | Gain dash ability. | [tasks](tasks/US-052/) |
 | [US-053](US-053.md) | Dad | Grounded | `grounded` | Paper Pushers can only survive in Fantasy for 3 seconds. | [tasks](tasks/US-053/) |
+
+## Related
+
+- **[US-054](US-054.md)** — Skill point spend + gates (supersedes free-own default).
+- [US-034](US-034.md) / [US-035](US-035.md) — Skill Tree UI.
 
 ## Sign-off
 
