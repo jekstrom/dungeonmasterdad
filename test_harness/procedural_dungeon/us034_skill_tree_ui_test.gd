@@ -56,8 +56,8 @@ func _run_suite() -> bool:
 	if tab_dm.texture_normal == null or tab_dad.texture_normal == null:
 		return _fail("US-034: tab textures missing")
 	var header = tree.get_node_or_null("Panel/Margin/VBox/HeaderRow") as HBoxContainer
-	if header == null or header.custom_minimum_size.y < 40:
-		return _fail("US-034: HeaderRow must be taller (>=40) so title fits")
+	if header == null or header.custom_minimum_size.y < 28:
+		return _fail("US-034: HeaderRow missing or too short for title band")
 	if tab.get_tab_count() != 2:
 		return _fail("US-034: expected exactly 2 tabs, got %d" % tab.get_tab_count())
 	if tab.get_tab_title(0) != "DM" or tab.get_tab_title(1) != "Dad":

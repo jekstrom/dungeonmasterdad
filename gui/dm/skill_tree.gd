@@ -60,7 +60,7 @@ const MOCK_UNLOCKED_PASSIVE_INDICES: Array[int] = []
 
 # Equal cell size: fit longest label ("Blind one-legged monkeys") with wrap + 28px icon.
 const NODE_BTN_MIN := Vector2(176, 64)
-const PANEL_MIN := Vector2(752, 520)
+const PANEL_MIN := Vector2(720, 520)
 const PAGE_BG := Color(0.11, 0.086, 0.07, 1.0)
 
 @onready var tab_container: TabContainer = $Panel/Margin/VBox/TabContainer
@@ -227,28 +227,29 @@ func is_button_unlocked_looking(btn: Button) -> bool:
 
 
 
-## Title left in header chrome; DM/Dad tabs right-aligned (96×32 flush Art).
+## Title left, vertically centered in the light-brown header band (Art y≈13–41).
 func _place_title_in_header() -> void:
 	var margin := get_node_or_null("Panel/Margin") as MarginContainer
 	if margin:
-		# Extra top padding so "Skill Tree" sits inside the chrome, not flush to the edge.
-		margin.add_theme_constant_override("margin_top", 10)
+		# Content start is driven by StyleBox content_margin_top (brown band).
+		margin.add_theme_constant_override("margin_top", 0)
 		margin.add_theme_constant_override("margin_left", 12)
 		margin.add_theme_constant_override("margin_right", 12)
 		margin.add_theme_constant_override("margin_bottom", 12)
 	var vbox := get_node_or_null("Panel/Margin/VBox") as VBoxContainer
 	if vbox:
-		# Keep header / shelf / page stacked with no overlap.
-		vbox.add_theme_constant_override("separation", 4)
+		vbox.add_theme_constant_override("separation", 2)
 	if header_row:
-		header_row.custom_minimum_size = Vector2(0, 44)
+		# ~32 fits tabs; title text centers inside the brown fill above the dark seam.
+		header_row.custom_minimum_size = Vector2(0, 32)
 		header_row.alignment = BoxContainer.ALIGNMENT_CENTER
 		header_row.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	if title_label:
 		title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 		title_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		title_label.add_theme_font_size_override("font_size", 18)
-		title_label.custom_minimum_size = Vector2(0, 32)
+		title_label.custom_minimum_size = Vector2(0, 28)
+		title_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	if tab_bar:
 		tab_bar.alignment = BoxContainer.ALIGNMENT_END
 		tab_bar.size_flags_vertical = Control.SIZE_SHRINK_CENTER
@@ -265,7 +266,8 @@ func _apply_panel_art() -> void:
 	fill.bg_color = Color(0.11, 0.086, 0.07, 1.0)
 	fill.content_margin_left = 14
 	fill.content_margin_right = 14
-	fill.content_margin_top = 8
+	# Match Art header band (~y13–41) so title sits in brown fill.
+	fill.content_margin_top = 14
 	fill.content_margin_bottom = 12
 	fill.set_corner_radius_all(6)
 	var tex := load(TEX_PANEL) as Texture2D
@@ -273,13 +275,14 @@ func _apply_panel_art() -> void:
 		var sb := StyleBoxTexture.new()
 		sb.texture = tex
 		sb.texture_margin_left = 24
-		sb.texture_margin_top = 24
+		# Top slice includes full light-brown header + dark seam (through y≈42).
+		sb.texture_margin_top = 42
 		sb.texture_margin_right = 24
 		sb.texture_margin_bottom = 24
-		# Tiny top content margin so Title sits in the header chrome band.
 		sb.content_margin_left = 14
 		sb.content_margin_right = 14
-		sb.content_margin_top = 8
+		# Children start at brown-band top so "Skill Tree" centers in the fill.
+		sb.content_margin_top = 14
 		sb.content_margin_bottom = 12
 		sb.draw_center = true
 		panel.add_theme_stylebox_override("panel", sb)
@@ -630,16 +633,22 @@ func _sync_opaque_window_fill() -> void:
 	opaque_fill.modulate = Color(1, 1, 1, 1)
 	opaque_fill.self_modulate = Color(1, 1, 1, 1)
 	opaque_fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	opaque_fill.custom_minimum_size = panel.custom_minimum_size
-	opaque_fill.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
-	opaque_fill.anchor_left = panel.anchor_left
-	opaque_fill.anchor_top = panel.anchor_top
-	opaque_fill.anchor_right = panel.anchor_right
-	opaque_fill.anchor_bottom = panel.anchor_bottom
-	opaque_fill.offset_left = panel.offset_left
-	opaque_fill.offset_top = panel.offset_top
-	opaque_fill.offset_right = panel.offset_right
-	opaque_fill.offset_bottom = panel.offset_bottom
+	var sz: Vector2 = PANEL_MIN
+	panel.custom_minimum_size = sz
+	opaque_fill.custom_minimum_size = sz
+	# Match centered offsets to PANEL_MIN so fill never undersizes the frame.
+	var half := sz * 0.5
+	for node in [panel, opaque_fill]:
+		node.anchor_left = 0.5
+		node.anchor_top = 0.5
+		node.anchor_right = 0.5
+		node.anchor_bottom = 0.5
+		node.offset_left = -half.x
+		node.offset_top = -half.y
+		node.offset_right = half.x
+		node.offset_bottom = half.y
+		node.grow_horizontal = Control.GROW_DIRECTION_BOTH
+		node.grow_vertical = Control.GROW_DIRECTION_BOTH
 	opaque_fill.z_index = panel.z_index - 1
 	# Keep fill under Panel in tree order.
 	var fill_i := opaque_fill.get_index()
