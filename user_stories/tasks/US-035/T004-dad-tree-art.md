@@ -17,17 +17,27 @@ Ship **new** Dad content art only. Reuse US-034 panel, tabs, node frames, toolti
 ## Checklist (must deliver)
 
 1. Row/category marks — **Frost**, **Fire**, **Control**
-2. Nine named Dad passive icons:
+2. Nine named Dad passive icons and suggestiosn:
    - Bemidji Cold
+    - frozen paul bunyan
    - T-Shirt in December
+    - t shit and snowflake
    - Put a Sweater On
+    - sweater
    - Stoke
+    - fireplace
    - Full Cord
+    - stack of firewood
    - Everything Burns
+    - building on fire
    - Thermostat Lock
+    - thermostat
    - Dad Reflexes
+    - baby falling
    - Grounded
+    - A door
 3. Ultimate icon — **Dad All Powerful**
+  - A person with their arms up
 
 ## Not in this task (reuse US-034)
 
