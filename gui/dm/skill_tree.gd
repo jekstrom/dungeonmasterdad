@@ -59,7 +59,7 @@ const DM_ULTIMATE: Dictionary = {
 const MOCK_UNLOCKED_PASSIVE_INDICES: Array[int] = [0, 3, 6]
 
 # Equal cell size: fit longest label ("Blind one-legged monkeys") with wrap + 28px icon.
-const NODE_BTN_MIN := Vector2(176, 72)
+const NODE_BTN_MIN := Vector2(176, 64)
 const PANEL_MIN := Vector2(720, 520)
 
 @onready var tab_container: TabContainer = $Panel/Margin/VBox/TabContainer
@@ -92,6 +92,7 @@ func _ready() -> void:
 	_tex_available = load(TEX_NODE_AVAILABLE) as Texture2D
 	_tex_owned = load(TEX_NODE_OWNED) as Texture2D
 	_apply_panel_art()
+	_place_title_in_header()
 	_apply_tooltip_art()
 	_wire_custom_tabs()
 	_build_dm_tree()
@@ -220,6 +221,27 @@ func is_button_unlocked_looking(btn: Button) -> bool:
 	return bool(btn.get_meta("unlocked_looking", false))
 
 
+
+## Sit "Skill Tree" in the panel header chrome (top band), not mid-panel.
+func _place_title_in_header() -> void:
+	var title := get_node_or_null("Panel/Margin/VBox/Title") as Label
+	var margin := get_node_or_null("Panel/Margin") as MarginContainer
+	if margin:
+		margin.add_theme_constant_override("margin_top", 0)
+		margin.add_theme_constant_override("margin_left", 12)
+		margin.add_theme_constant_override("margin_right", 12)
+		margin.add_theme_constant_override("margin_bottom", 12)
+	if title:
+		title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		title.add_theme_font_size_override("font_size", 18)
+		# Pull title up into the frame header band.
+		title.offset_top = -2
+		var vbox := get_node_or_null("Panel/Margin/VBox") as VBoxContainer
+		if vbox:
+			vbox.add_theme_constant_override("separation", 6)
+
+
 func _apply_panel_art() -> void:
 	if panel == null:
 		return
@@ -227,10 +249,10 @@ func _apply_panel_art() -> void:
 	# Art panel_frame is opaque-filled; still keep StyleBoxFlat underlay as belt-and-suspenders.
 	var fill := StyleBoxFlat.new()
 	fill.bg_color = Color(0.11, 0.086, 0.07, 1.0)
-	fill.content_margin_left = 20
-	fill.content_margin_right = 20
-	fill.content_margin_top = 16
-	fill.content_margin_bottom = 16
+	fill.content_margin_left = 14
+	fill.content_margin_right = 14
+	fill.content_margin_top = 2
+	fill.content_margin_bottom = 12
 	fill.set_corner_radius_all(6)
 	var tex := load(TEX_PANEL) as Texture2D
 	if tex != null:
@@ -240,10 +262,11 @@ func _apply_panel_art() -> void:
 		sb.texture_margin_top = 24
 		sb.texture_margin_right = 24
 		sb.texture_margin_bottom = 24
-		sb.content_margin_left = 20
-		sb.content_margin_right = 20
-		sb.content_margin_top = 16
-		sb.content_margin_bottom = 16
+		# Tiny top content margin so Title sits in the header chrome band.
+		sb.content_margin_left = 14
+		sb.content_margin_right = 14
+		sb.content_margin_top = 2
+		sb.content_margin_bottom = 12
 		sb.draw_center = true
 		panel.add_theme_stylebox_override("panel", sb)
 	else:
@@ -401,7 +424,7 @@ func _make_node_button(
 	btn.add_theme_constant_override("icon_max_width", 28)
 	btn.icon_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
-	btn.vertical_icon_alignment = VERTICAL_ALIGNMENT_TOP
+	btn.vertical_icon_alignment = VERTICAL_ALIGNMENT_CENTER
 	var icon_tex := load(icon_path) as Texture2D
 	if icon_tex:
 		btn.icon = icon_tex
@@ -432,9 +455,16 @@ func _configure_ultimate(
 	btn.clip_text = false
 	btn.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	btn.add_theme_constant_override("icon_max_width", 28)
-	btn.icon_alignment = HORIZONTAL_ALIGNMENT_LEFT
-	btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
 	btn.custom_minimum_size = Vector2(0, max(NODE_BTN_MIN.y, btn.custom_minimum_size.y))
+	# Center TSB (and Dad ultimate) icon+label in the wide bar.
+	if node_id == "tsb" or btn == dm_ultimate:
+		btn.alignment = HORIZONTAL_ALIGNMENT_CENTER
+		btn.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		btn.vertical_icon_alignment = VERTICAL_ALIGNMENT_CENTER
+	else:
+		btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		btn.icon_alignment = HORIZONTAL_ALIGNMENT_LEFT
+		btn.vertical_icon_alignment = VERTICAL_ALIGNMENT_CENTER
 	var icon_tex := load(icon_path) as Texture2D
 	if icon_tex:
 		btn.icon = icon_tex
@@ -529,24 +559,24 @@ func _make_texture_style(tex: Texture2D) -> StyleBox:
 	if tex == null:
 		var flat := StyleBoxFlat.new()
 		flat.bg_color = Color(40.0 / 255.0, 32.0 / 255.0, 28.0 / 255.0, 1.0)
-		flat.content_margin_left = 8
-		flat.content_margin_right = 8
-		flat.content_margin_top = 6
-		flat.content_margin_bottom = 6
+		flat.content_margin_left = 4
+		flat.content_margin_right = 4
+		flat.content_margin_top = 3
+		flat.content_margin_bottom = 3
 		flat.set_corner_radius_all(4)
 		flat.border_color = Color(0.55, 0.55, 0.58, 1.0)
 		flat.set_border_width_all(2)
 		return flat
 	var sb := StyleBoxTexture.new()
 	sb.texture = tex
-	sb.texture_margin_left = 12
-	sb.texture_margin_top = 12
-	sb.texture_margin_right = 12
-	sb.texture_margin_bottom = 12
-	sb.content_margin_left = 8
-	sb.content_margin_right = 8
-	sb.content_margin_top = 6
-	sb.content_margin_bottom = 6
+	sb.texture_margin_left = 8
+	sb.texture_margin_top = 8
+	sb.texture_margin_right = 8
+	sb.texture_margin_bottom = 8
+	sb.content_margin_left = 4
+	sb.content_margin_right = 4
+	sb.content_margin_top = 3
+	sb.content_margin_bottom = 3
 	sb.draw_center = true
 	return sb
 
@@ -565,15 +595,19 @@ func _apply_tsb_bar_fill(btn: Button) -> void:
 	sb.texture_margin_top = 8
 	sb.texture_margin_right = 8
 	sb.texture_margin_bottom = 8
-	sb.content_margin_left = 10
-	sb.content_margin_right = 10
-	sb.content_margin_top = 6
-	sb.content_margin_bottom = 6
+	sb.content_margin_left = 6
+	sb.content_margin_right = 6
+	sb.content_margin_top = 4
+	sb.content_margin_bottom = 4
 	sb.draw_center = true
 	btn.add_theme_stylebox_override("normal", sb)
 	btn.add_theme_stylebox_override("hover", sb)
 	btn.add_theme_stylebox_override("pressed", sb)
 	btn.add_theme_stylebox_override("focus", sb)
+	# Center icon + label in the wide ultimate bar.
+	btn.alignment = HORIZONTAL_ALIGNMENT_CENTER
+	btn.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	btn.vertical_icon_alignment = VERTICAL_ALIGNMENT_CENTER
 	btn.modulate = Color(1, 1, 1, 1)
 	btn.self_modulate = Color(1, 1, 1, 1)
 

@@ -63,20 +63,22 @@ grow_vertical = 2
 
 [node name="Margin" type="MarginContainer" parent="Panel"]
 layout_mode = 2
-theme_override_constants/margin_left = 20
-theme_override_constants/margin_top = 16
-theme_override_constants/margin_right = 20
-theme_override_constants/margin_bottom = 16
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 0
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 12
 
 [node name="VBox" type="VBoxContainer" parent="Panel/Margin"]
 layout_mode = 2
-theme_override_constants/separation = 8
+theme_override_constants/separation = 6
 
 [node name="Title" type="Label" parent="Panel/Margin/VBox"]
+custom_minimum_size = Vector2(0, 22)
 layout_mode = 2
-theme_override_font_sizes/font_size = 20
+theme_override_font_sizes/font_size = 18
 text = "Skill Tree"
 horizontal_alignment = 1
+vertical_alignment = 1
 
 [node name="TabBar" type="HBoxContainer" parent="Panel/Margin/VBox"]
 layout_mode = 2
@@ -177,8 +179,8 @@ vertical_alignment = 1
 [node name="PassivesGrid" type="GridContainer" parent="Panel/Margin/VBox/TabContainer/DM/Body"]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_constants/h_separation = 8
-theme_override_constants/v_separation = 8
+theme_override_constants/h_separation = 6
+theme_override_constants/v_separation = 6
 columns = 3
 
 [node name="UltimateButton" type="Button" parent="Panel/Margin/VBox/TabContainer/DM"]
@@ -201,8 +203,8 @@ autowrap_mode = 2
 [node name="PassivesGrid" type="GridContainer" parent="Panel/Margin/VBox/TabContainer/Dad"]
 layout_mode = 2
 size_flags_vertical = 3
-theme_override_constants/h_separation = 8
-theme_override_constants/v_separation = 8
+theme_override_constants/h_separation = 6
+theme_override_constants/v_separation = 6
 columns = 3
 
 [node name="UltimateButton" type="Button" parent="Panel/Margin/VBox/TabContainer/Dad"]
