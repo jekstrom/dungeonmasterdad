@@ -76,7 +76,6 @@ theme_override_constants/separation = 6
 custom_minimum_size = Vector2(0, 28)
 layout_mode = 2
 theme_override_constants/separation = 8
-alignment = 1
 
 [node name="Title" type="Label" parent="Panel/Margin/VBox/HeaderRow"]
 custom_minimum_size = Vector2(0, 22)
@@ -87,134 +86,140 @@ text = "Skill Tree"
 horizontal_alignment = 0
 vertical_alignment = 1
 
-[node name="TabBar" type="HBoxContainer" parent="Panel/Margin/VBox/HeaderRow"]
+[node name="BodyRow" type="HBoxContainer" parent="Panel/Margin/VBox"]
 layout_mode = 2
-size_flags_horizontal = 0
-alignment = 2
-theme_override_constants/separation = 4
+size_flags_vertical = 3
+theme_override_constants/separation = 0
 
-[node name="TabDM" type="TextureButton" parent="Panel/Margin/VBox/HeaderRow/TabBar"]
-custom_minimum_size = Vector2(96, 28)
+[node name="MainCol" type="VBoxContainer" parent="Panel/Margin/VBox/BodyRow"]
 layout_mode = 2
-focus_mode = 0
-texture_normal = ExtResource("2_tab_dm")
-stretch_mode = 5
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 0
 
-[node name="TabDad" type="TextureButton" parent="Panel/Margin/VBox/HeaderRow/TabBar"]
-custom_minimum_size = Vector2(96, 28)
-layout_mode = 2
-focus_mode = 0
-texture_normal = ExtResource("3_tab_dad")
-stretch_mode = 5
-
-[node name="TabShelf" type="ColorRect" parent="Panel/Margin/VBox"]
-custom_minimum_size = Vector2(0, 6)
-layout_mode = 2
-mouse_filter = 2
-color = Color(0.11, 0.086, 0.07, 1)
-
-[node name="TabContainer" type="TabContainer" parent="Panel/Margin/VBox"]
+[node name="TabContainer" type="TabContainer" parent="Panel/Margin/VBox/BodyRow/MainCol"]
 layout_mode = 2
 size_flags_vertical = 3
 current_tab = 0
 tabs_visible = false
 
-[node name="DM" type="VBoxContainer" parent="Panel/Margin/VBox/TabContainer"]
+[node name="SideTabRail" type="VBoxContainer" parent="Panel/Margin/VBox/BodyRow"]
+custom_minimum_size = Vector2(32, 0)
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 6
+alignment = 1
+
+[node name="TabDM" type="TextureButton" parent="Panel/Margin/VBox/BodyRow/SideTabRail"]
+custom_minimum_size = Vector2(32, 96)
+layout_mode = 2
+focus_mode = 0
+texture_normal = ExtResource("2_tab_dm")
+stretch_mode = 5
+
+[node name="TabDad" type="TextureButton" parent="Panel/Margin/VBox/BodyRow/SideTabRail"]
+custom_minimum_size = Vector2(32, 96)
+layout_mode = 2
+focus_mode = 0
+texture_normal = ExtResource("3_tab_dad")
+stretch_mode = 5
+
+[node name="DM" type="VBoxContainer" parent="Panel/Margin/VBox/BodyRow/MainCol/TabContainer"]
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="Body" type="HBoxContainer" parent="Panel/Margin/VBox/TabContainer/DM"]
+[node name="Body" type="HBoxContainer" parent="Panel/Margin/VBox/BodyRow/MainCol/TabContainer/DM"]
 layout_mode = 2
 size_flags_vertical = 3
 theme_override_constants/separation = 8
 
-[node name="RowLabelsLive" type="VBoxContainer" parent="Panel/Margin/VBox/TabContainer/DM/Body"]
+[node name="RowLabelsLive" type="VBoxContainer" parent="Panel/Margin/VBox/BodyRow/MainCol/TabContainer/DM/Body"]
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="Lightning" type="HBoxContainer" parent="Panel/Margin/VBox/TabContainer/DM/Body/RowLabelsLive"]
+[node name="Lightning" type="HBoxContainer" parent="Panel/Margin/VBox/BodyRow/MainCol/TabContainer/DM/Body/RowLabelsLive"]
 custom_minimum_size = Vector2(120, 64)
 layout_mode = 2
 theme_override_constants/separation = 6
 alignment = 1
 
-[node name="Icon" type="TextureRect" parent="Panel/Margin/VBox/TabContainer/DM/Body/RowLabelsLive/Lightning"]
+[node name="Icon" type="TextureRect" parent="Panel/Margin/VBox/BodyRow/MainCol/TabContainer/DM/Body/RowLabelsLive/Lightning"]
 custom_minimum_size = Vector2(32, 32)
 layout_mode = 2
 texture = ExtResource("4_row_l")
 expand_mode = 1
 stretch_mode = 5
 
-[node name="Label" type="Label" parent="Panel/Margin/VBox/TabContainer/DM/Body/RowLabelsLive/Lightning"]
+[node name="Label" type="Label" parent="Panel/Margin/VBox/BodyRow/MainCol/TabContainer/DM/Body/RowLabelsLive/Lightning"]
 layout_mode = 2
 size_flags_vertical = 3
 text = "Lightning"
 vertical_alignment = 1
 
-[node name="Gremlins" type="HBoxContainer" parent="Panel/Margin/VBox/TabContainer/DM/Body/RowLabelsLive"]
+[node name="Gremlins" type="HBoxContainer" parent="Panel/Margin/VBox/BodyRow/MainCol/TabContainer/DM/Body/RowLabelsLive"]
 custom_minimum_size = Vector2(120, 64)
 layout_mode = 2
 theme_override_constants/separation = 6
 alignment = 1
 
-[node name="Icon" type="TextureRect" parent="Panel/Margin/VBox/TabContainer/DM/Body/RowLabelsLive/Gremlins"]
+[node name="Icon" type="TextureRect" parent="Panel/Margin/VBox/BodyRow/MainCol/TabContainer/DM/Body/RowLabelsLive/Gremlins"]
 custom_minimum_size = Vector2(32, 32)
 layout_mode = 2
 texture = ExtResource("5_row_gr")
 expand_mode = 1
 stretch_mode = 5
 
-[node name="Label" type="Label" parent="Panel/Margin/VBox/TabContainer/DM/Body/RowLabelsLive/Gremlins"]
+[node name="Label" type="Label" parent="Panel/Margin/VBox/BodyRow/MainCol/TabContainer/DM/Body/RowLabelsLive/Gremlins"]
 layout_mode = 2
 size_flags_vertical = 3
 text = "Gremlins"
 vertical_alignment = 1
 
-[node name="Goblins" type="HBoxContainer" parent="Panel/Margin/VBox/TabContainer/DM/Body/RowLabelsLive"]
+[node name="Goblins" type="HBoxContainer" parent="Panel/Margin/VBox/BodyRow/MainCol/TabContainer/DM/Body/RowLabelsLive"]
 custom_minimum_size = Vector2(120, 64)
 layout_mode = 2
 theme_override_constants/separation = 6
 alignment = 1
 
-[node name="Icon" type="TextureRect" parent="Panel/Margin/VBox/TabContainer/DM/Body/RowLabelsLive/Goblins"]
+[node name="Icon" type="TextureRect" parent="Panel/Margin/VBox/BodyRow/MainCol/TabContainer/DM/Body/RowLabelsLive/Goblins"]
 custom_minimum_size = Vector2(32, 32)
 layout_mode = 2
 texture = ExtResource("6_row_go")
 expand_mode = 1
 stretch_mode = 5
 
-[node name="Label" type="Label" parent="Panel/Margin/VBox/TabContainer/DM/Body/RowLabelsLive/Goblins"]
+[node name="Label" type="Label" parent="Panel/Margin/VBox/BodyRow/MainCol/TabContainer/DM/Body/RowLabelsLive/Goblins"]
 layout_mode = 2
 size_flags_vertical = 3
 text = "Goblins"
 vertical_alignment = 1
 
-[node name="PassivesGrid" type="GridContainer" parent="Panel/Margin/VBox/TabContainer/DM/Body"]
+[node name="PassivesGrid" type="GridContainer" parent="Panel/Margin/VBox/BodyRow/MainCol/TabContainer/DM/Body"]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/h_separation = 6
 theme_override_constants/v_separation = 6
 columns = 3
 
-[node name="UltimateButton" type="Button" parent="Panel/Margin/VBox/TabContainer/DM"]
+[node name="UltimateButton" type="Button" parent="Panel/Margin/VBox/BodyRow/MainCol/TabContainer/DM"]
 custom_minimum_size = Vector2(0, 72)
 layout_mode = 2
 size_flags_horizontal = 3
 text = "TSB"
 
-[node name="Dad" type="VBoxContainer" parent="Panel/Margin/VBox/TabContainer"]
+[node name="Dad" type="VBoxContainer" parent="Panel/Margin/VBox/BodyRow/MainCol/TabContainer"]
 visible = false
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="PassivesGrid" type="GridContainer" parent="Panel/Margin/VBox/TabContainer/Dad"]
+[node name="PassivesGrid" type="GridContainer" parent="Panel/Margin/VBox/BodyRow/MainCol/TabContainer/Dad"]
 layout_mode = 2
 size_flags_vertical = 3
 theme_override_constants/h_separation = 6
 theme_override_constants/v_separation = 6
 columns = 3
 
-[node name="UltimateButton" type="Button" parent="Panel/Margin/VBox/TabContainer/Dad"]
+[node name="UltimateButton" type="Button" parent="Panel/Margin/VBox/BodyRow/MainCol/TabContainer/Dad"]
 custom_minimum_size = Vector2(0, 72)
 layout_mode = 2
 size_flags_horizontal = 3
