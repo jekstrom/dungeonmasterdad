@@ -7,7 +7,7 @@
 
 ## Goal
 
-Host `try_purchase(tree, node)` enforcing: col costs 1/2/3; Row2 FL≥30; Row3 RL≥80; Row1 ungated by FL/RL; ultimate needs ≥1 owned in each row on that tree + ultimate SP cost (default 5); already-owned reject; atomic SP+own.
+Host `try_purchase(tree, node)` enforcing: col costs 1/2/3; Row2 FL≥10; Row3 FL≥50; Row1 ungated by FL; **no Reality Level gate**; ultimate needs ≥1 owned in each row on that tree + ultimate SP cost (default 5); already-owned reject; atomic SP+own.
 
 ## Requirements
 
@@ -15,4 +15,4 @@ Host `try_purchase(tree, node)` enforcing: col costs 1/2/3; Row2 FL≥30; Row3 R
 
 ## Acceptance
 
-- **Given** each locked rule case in Independent Test, **When** purchase runs on host, **Then** accept/reject matches US-054.
+- **Given** each locked rule case in Independent Test, **When** purchase runs on host, **Then** accept/reject matches US-054 (including Row3 gated by FL, not RL).

@@ -7,11 +7,11 @@
 
 ## Goal
 
-Matrix: costs 1/2/3; Row2/3 gates; Row1 open; ultimate prereq; insufficient SP; double-buy; both trees; late join.
+Matrix: costs 1/2/3; Row2 FL≥10; Row3 FL≥50 (assert RL does **not** gate); Row1 open; ultimate prereq; insufficient SP; double-buy; both trees; late join.
 
 ## Requirements
 
-- AC1–AC12 smoke
+- AC1–AC12, MR-001–MR-002
 
 ## Acceptance
 

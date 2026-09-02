@@ -7,7 +7,7 @@
 
 ## Goal
 
-Skill Tree node clicks request host purchase. Show remaining SP. Failed spends show clear reason (SP / FL gate / RL gate / ultimate prereq / owned).
+Skill Tree node clicks request host purchase. Show remaining SP. Failed spends show clear reason (SP / FL row gate / ultimate prereq / owned). Do **not** show a Reality Level gate reason for spends.
 
 ## Requirements
 

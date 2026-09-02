@@ -2,7 +2,7 @@
 
 Gameplay stories for each **passive** on the DM (US-034) and Dad (US-035) Skill Tree tabs. **Ultimates excluded** (TSB; Dad All Powerful / US-021).
 
-**Ownership / spend:** Passive **effects** still run when the node is **owned**, but ownership is earned by spending skill points per **[US-054](US-054.md)** (column costs, FL/RL row gates, ultimate prereqs). Harness may force-own for isolated effect tests. UI copy stays US-034/035. Ultimates’ *effects* remain out of these passive stories (TSB TBD; Dad All Powerful [US-021](US-021.md)).
+**Ownership / spend:** Passive **effects** still run when the node is **owned**, but ownership is earned by spending skill points per **[US-054](US-054.md)** (column costs, Fantasy Level row gates, ultimate prereqs). Harness may force-own for isolated effect tests. UI copy stays US-034/035. Ultimates’ *effects* remain out of these passive stories (TSB TBD; Dad All Powerful [US-021](US-021.md)).
 
 | US | Tree | Passive | Id | Effect | Tasks |
 |---|---|---|---|---|---|
