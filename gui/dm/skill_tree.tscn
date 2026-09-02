@@ -72,30 +72,46 @@ theme_override_constants/margin_bottom = 12
 layout_mode = 2
 theme_override_constants/separation = 6
 
-[node name="Title" type="Label" parent="Panel/Margin/VBox"]
+[node name="HeaderRow" type="HBoxContainer" parent="Panel/Margin/VBox"]
+custom_minimum_size = Vector2(0, 28)
+layout_mode = 2
+theme_override_constants/separation = 8
+alignment = 1
+
+[node name="Title" type="Label" parent="Panel/Margin/VBox/HeaderRow"]
 custom_minimum_size = Vector2(0, 22)
 layout_mode = 2
+size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 18
 text = "Skill Tree"
-horizontal_alignment = 1
+horizontal_alignment = 0
 vertical_alignment = 1
 
-[node name="TabBar" type="HBoxContainer" parent="Panel/Margin/VBox"]
+[node name="TabBar" type="HBoxContainer" parent="Panel/Margin/VBox/HeaderRow"]
 layout_mode = 2
-alignment = 1
-theme_override_constants/separation = 12
+size_flags_horizontal = 0
+alignment = 2
+theme_override_constants/separation = 4
 
-[node name="TabDM" type="TextureButton" parent="Panel/Margin/VBox/TabBar"]
-custom_minimum_size = Vector2(96, 32)
+[node name="TabDM" type="TextureButton" parent="Panel/Margin/VBox/HeaderRow/TabBar"]
+custom_minimum_size = Vector2(96, 28)
 layout_mode = 2
+focus_mode = 0
 texture_normal = ExtResource("2_tab_dm")
 stretch_mode = 5
 
-[node name="TabDad" type="TextureButton" parent="Panel/Margin/VBox/TabBar"]
-custom_minimum_size = Vector2(96, 32)
+[node name="TabDad" type="TextureButton" parent="Panel/Margin/VBox/HeaderRow/TabBar"]
+custom_minimum_size = Vector2(96, 28)
 layout_mode = 2
+focus_mode = 0
 texture_normal = ExtResource("3_tab_dad")
 stretch_mode = 5
+
+[node name="TabShelf" type="ColorRect" parent="Panel/Margin/VBox"]
+custom_minimum_size = Vector2(0, 6)
+layout_mode = 2
+mouse_filter = 2
+color = Color(0.11, 0.086, 0.07, 1)
 
 [node name="TabContainer" type="TabContainer" parent="Panel/Margin/VBox"]
 layout_mode = 2
@@ -106,12 +122,6 @@ tabs_visible = false
 [node name="DM" type="VBoxContainer" parent="Panel/Margin/VBox/TabContainer"]
 layout_mode = 2
 theme_override_constants/separation = 8
-
-[node name="Hint" type="Label" parent="Panel/Margin/VBox/TabContainer/DM"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 12
-text = "Lightning / Gremlins / Goblins — UI preview (no spend)"
-autowrap_mode = 2
 
 [node name="Body" type="HBoxContainer" parent="Panel/Margin/VBox/TabContainer/DM"]
 layout_mode = 2
@@ -196,12 +206,6 @@ text = "TSB"
 visible = false
 layout_mode = 2
 theme_override_constants/separation = 8
-
-[node name="Hint" type="Label" parent="Panel/Margin/VBox/TabContainer/Dad"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 12
-text = "Dad tree placeholders"
-autowrap_mode = 2
 
 [node name="PassivesGrid" type="GridContainer" parent="Panel/Margin/VBox/TabContainer/Dad"]
 layout_mode = 2
