@@ -3,8 +3,8 @@ extends RefCounted
 ## US-055: host-only near-DM walkable cell picker (Chebyshev band + soft inland bias).
 ## Does not instantiate. Fail closed when no eligible cell.
 
-const MIN_CHEBYSHEV: int = 1
-const MAX_CHEBYSHEV: int = 3
+const MIN_CHEBYSHEV: int = 0
+const MAX_CHEBYSHEV: int = 1
 
 ## Result: { "ok": bool, "cell": Vector2i, "world": Vector2 }
 static func pick_near_dm(tree: SceneTree, dm_world: Vector2, rng: RandomNumberGenerator = null) -> Dictionary:
