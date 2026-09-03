@@ -11,6 +11,7 @@ var _pocket_overlay_root: Node2D = null
 var _pocket_overlay_texture: Texture2D = null
 var _blizzard_overlay_texture: Texture2D = null
 var _blizzard_fall_vfx: Dictionary = {}
+var _claim_notify_queued: bool = false
 
 func _ready() -> void:
 	super._ready()
@@ -154,22 +155,26 @@ func _rebuild_home_overlay() -> void:
 		_pocket_overlay_texture = load(POCKET_OVERLAY_PATH) as Texture2D
 	if _blizzard_overlay_texture == null:
 		_blizzard_overlay_texture = load(BLIZZARD_OVERLAY_PATH) as Texture2D
-	var home_wanted: Dictionary = {}
-	if home_rect.size.x > 0 and home_rect.size.y > 0 and _home_overlay_texture:
-		for y in range(home_rect.position.y, home_rect.end.y):
-			for x in range(home_rect.position.x, home_rect.end.x):
-				var cell := Vector2i(x, y)
-				if claim.overlay_kind_for_cell(cell) == "home":
-					home_wanted[cell] = _home_overlay_texture
-	_sync_cell_sprites(_home_overlay_root, _home_overlay_by_cell, home_wanted, 0, true)
+	if debug_claim_overlays and _home_overlay_texture:
+		var home_wanted: Dictionary = {}
+		if home_rect.size.x > 0 and home_rect.size.y > 0:
+			for y in range(home_rect.position.y, home_rect.end.y):
+				for x in range(home_rect.position.x, home_rect.end.x):
+					var cell := Vector2i(x, y)
+					if claim.overlay_kind_for_cell(cell) == "home":
+						home_wanted[cell] = _home_overlay_texture
+		_sync_cell_sprites(_home_overlay_root, _home_overlay_by_cell, home_wanted, 0, true)
+	else:
+		_sync_cell_sprites(_home_overlay_root, _home_overlay_by_cell, {}, 0, true)
 	_clear_overlay_children(_pocket_overlay_root)
-	for cell in claim.pocket_cells():
-		if claim.overlay_kind_for_cell(cell) != "pocket":
-			continue
-		var tex: Texture2D = _overlay_texture_for_pocket_cell(cell)
-		if tex == null or tex == _blizzard_overlay_texture:
-			continue
-		_place_overlay_sprite(_pocket_overlay_root, tex, cell, 1, true)
+	if debug_claim_overlays:
+		for cell in claim.pocket_cells():
+			if claim.overlay_kind_for_cell(cell) != "pocket":
+				continue
+			var tex: Texture2D = _overlay_texture_for_pocket_cell(cell)
+			if tex == null or tex == _blizzard_overlay_texture:
+				continue
+			_place_overlay_sprite(_pocket_overlay_root, tex, cell, 1, true)
 	for pocket in claim.pockets:
 		if str(pocket.get("overlay", "")) == "blizzard":
 			_place_blizzard_ice_wash(pocket)
@@ -296,6 +301,18 @@ func on_level_changed(new_level: int) -> void:
 	_sync_claim_home()
 	if home_rect == before:
 		return
+	_queue_claim_notify()
+
+
+func _queue_claim_notify() -> void:
+	if _claim_notify_queued:
+		return
+	_claim_notify_queued = true
+	call_deferred("_flush_claim_notify")
+
+
+func _flush_claim_notify() -> void:
+	_claim_notify_queued = false
 	SignalBus.fantasy_home_changed.emit(home_rect)
 	SignalBus.fantasy_claim_changed.emit()
 	_broadcast_claim()

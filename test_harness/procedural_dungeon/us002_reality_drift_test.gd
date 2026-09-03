@@ -7,14 +7,14 @@ func _ready() -> void:
 	level.set_script(load("res://_globals/level_manager.gd"))
 	level.add_to_group("level_manager")
 	add_child(level)
-	await get_tree().process_frame
+	await _flush_zones()
 
 	var interior := Rect2i(0, 0, 16, 10)
 	var dungeon := Rect2i(8, 2, 8, 6)
 	level.apply_map_interior(interior, dungeon)
-	await get_tree().process_frame
+	await _flush_zones()
 	level.rebuild_outside_fill()
-	await get_tree().process_frame
+	await _flush_zones()
 
 	var drift: RealityTileDrift = level.get_node_or_null("RealityTileDrift")
 	if drift == null:
@@ -30,7 +30,7 @@ func _ready() -> void:
 	reality.add_to_group("RealityZone")
 	add_child(reality)
 	drift.set_physics_process(false)
-	await get_tree().process_frame
+	await _flush_zones()
 	drift.set_physics_process(false)
 
 	var home_cell: Vector2i = reality.home_rect.position
@@ -196,7 +196,7 @@ func _ready() -> void:
 		get_tree().quit(1)
 		return
 	drift.set_physics_process(false)
-	await get_tree().process_frame
+	await _flush_zones()
 	drift.set_physics_process(false)
 	leak_tile = _outside_at(east_cell)
 	if leak_tile == null or leak_tile.element_presentation == OutsideTile.ElementPresentation.REALITY:
@@ -219,12 +219,12 @@ func _ready() -> void:
 	drift.set_physics_process(false)
 	var fantasy: FantasyZone = load("res://zones/fantasy_zone.tscn").instantiate()
 	add_child(fantasy)
-	await get_tree().process_frame
+	await _flush_zones()
 	PlayerManager.reality_level = 8
 	DmManager.fantasy_level = 8
 	reality.on_level_changed(8)
 	fantasy.on_level_changed(8)
-	await get_tree().process_frame
+	await _flush_zones()
 	if Zone.homes_occupy_same_cell(reality.home_rect, fantasy.home_rect):
 		push_error("US-025 T001: Reality and Fantasy homes must not overlap after equal bump")
 		get_tree().quit(1)
@@ -243,7 +243,7 @@ func _ready() -> void:
 		return
 	PlayerManager.reality_level = 12
 	reality.on_level_changed(12)
-	await get_tree().process_frame
+	await _flush_zones()
 	if Zone.homes_occupy_same_cell(reality.home_rect, fantasy.home_rect):
 		push_error("US-025 T002: homes must stay disjoint after higher Reality Level")
 		get_tree().quit(1)
@@ -293,6 +293,10 @@ func _ready() -> void:
 	DmManager.fantasy_level = 0
 	print("US-002 Reality tile drift test passed")
 	get_tree().quit(0)
+
+func _flush_zones() -> void:
+	await get_tree().process_frame
+	ZoneDriftClaim.flush_pending_work()
 
 func _outside_at(cell: Vector2i) -> OutsideTile:
 	for node in get_tree().get_nodes_in_group("outside_tiles"):

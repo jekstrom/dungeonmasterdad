@@ -3,6 +3,7 @@ extends Node
 # US-001 T009 independent headless test. Two-window play pass is QA's.
 
 func _ready() -> void:
+	Zone.debug_claim_overlays = true
 	PlayerManager.reality_level = 0
 	var level := Node2D.new()
 	level.set_script(load("res://_globals/level_manager.gd"))

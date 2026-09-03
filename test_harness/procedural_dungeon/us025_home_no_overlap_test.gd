@@ -7,14 +7,14 @@ func _ready() -> void:
 	level.set_script(load("res://_globals/level_manager.gd"))
 	level.add_to_group("level_manager")
 	add_child(level)
-	await get_tree().process_frame
+	await _flush_zones()
 
 	var interior := Rect2i(0, 0, 16, 10)
 	var dungeon := Rect2i(8, 2, 8, 6)
 	level.apply_map_interior(interior, dungeon)
-	await get_tree().process_frame
+	await _flush_zones()
 	level.rebuild_outside_fill()
-	await get_tree().process_frame
+	await _flush_zones()
 
 	var reality_drift: RealityTileDrift = level.get_node_or_null("RealityTileDrift")
 	var fantasy_drift: FantasyTileDrift = level.get_node_or_null("FantasyTileDrift")
@@ -35,7 +35,7 @@ func _ready() -> void:
 	add_child(fantasy)
 	reality_drift.set_physics_process(false)
 	fantasy_drift.set_physics_process(false)
-	await get_tree().process_frame
+	await _flush_zones()
 	reality_drift.set_physics_process(false)
 	fantasy_drift.set_physics_process(false)
 
@@ -53,7 +53,7 @@ func _ready() -> void:
 	fantasy.on_level_changed(3)
 	reality_drift.set_physics_process(false)
 	fantasy_drift.set_physics_process(false)
-	await get_tree().process_frame
+	await _flush_zones()
 	reality_drift.set_physics_process(false)
 	fantasy_drift.set_physics_process(false)
 	var r_prop: Rect2i = reality.proposed_home_rect(bounds, interior)
@@ -113,7 +113,7 @@ func _ready() -> void:
 	fantasy.on_level_changed(5)
 	reality_drift.set_physics_process(false)
 	fantasy_drift.set_physics_process(false)
-	await get_tree().process_frame
+	await _flush_zones()
 	reality_drift.set_physics_process(false)
 	fantasy_drift.set_physics_process(false)
 	r_prop = reality.proposed_home_rect(bounds, interior)
@@ -150,7 +150,7 @@ func _ready() -> void:
 	fantasy.on_level_changed(8)
 	reality_drift.set_physics_process(false)
 	fantasy_drift.set_physics_process(false)
-	await get_tree().process_frame
+	await _flush_zones()
 	reality_drift.set_physics_process(false)
 	fantasy_drift.set_physics_process(false)
 	if Zone.homes_occupy_same_cell(reality.home_rect, fantasy.home_rect):
@@ -248,7 +248,7 @@ func _ready() -> void:
 	SignalBus.fantasy_claim_changed.emit()
 	fantasy_drift.set_physics_process(false)
 	reality_drift.set_physics_process(false)
-	await get_tree().process_frame
+	await _flush_zones()
 	fantasy_drift.set_physics_process(false)
 	reality_drift.set_physics_process(false)
 	leak_tile = _outside_at(leak_cell)
@@ -280,7 +280,7 @@ func _ready() -> void:
 	SignalBus.reality_claim_changed.emit()
 	fantasy_drift.set_physics_process(false)
 	reality_drift.set_physics_process(false)
-	await get_tree().process_frame
+	await _flush_zones()
 	fantasy_drift.set_physics_process(false)
 	reality_drift.set_physics_process(false)
 	reality_tile = _outside_at(reality_cell)
@@ -302,7 +302,7 @@ func _ready() -> void:
 	SignalBus.reality_claim_changed.emit()
 	fantasy_drift.set_physics_process(false)
 	reality_drift.set_physics_process(false)
-	await get_tree().process_frame
+	await _flush_zones()
 	if _outside_at(leak_cell).element_presentation == OutsideTile.ElementPresentation.REALITY:
 		push_error("US-025 T005: Reality art must not linger without Reality claim")
 		get_tree().quit(1)
@@ -325,7 +325,7 @@ func _ready() -> void:
 	DmManager.fantasy_level = 0
 	reality.on_level_changed(10000)
 	fantasy.on_level_changed(0)
-	await get_tree().process_frame
+	await _flush_zones()
 	if not _rect_inside_interior(reality.home_rect, bounds) and reality.home_rect.size.x > 0:
 		push_error("US-025 T007: large Reality home must stay clipped to interior")
 		get_tree().quit(1)
@@ -339,6 +339,10 @@ func _ready() -> void:
 	DmManager.fantasy_level = 0
 	print("US-025 home no-overlap test passed")
 	get_tree().quit(0)
+
+func _flush_zones() -> void:
+	await get_tree().process_frame
+	ZoneDriftClaim.flush_pending_work()
 
 func _first_cell(rect: Rect2i, dungeon: Rect2i) -> Vector2i:
 	for y in range(rect.position.y, rect.end.y):

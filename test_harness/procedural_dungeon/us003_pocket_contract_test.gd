@@ -1,6 +1,7 @@
 extends Node
 
 func _ready() -> void:
+	Zone.debug_claim_overlays = true
 	DmManager.fantasy_level = 0
 	var level := Node2D.new()
 	level.set_script(load("res://_globals/level_manager.gd"))

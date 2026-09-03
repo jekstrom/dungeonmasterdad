@@ -42,6 +42,7 @@ var _pip_poll_t: float = 0.0
 var _world_fingerprint: int = 0
 var _doodad_fp: int = 0
 var _doodad_cache_ready: bool = false
+var _claim_paint_armed: bool = false
 var _cached_tree_cells: Array[Vector2i] = []
 var _cached_mine_cells: Array[Vector2i] = []
 var _cached_wall_cells: Array[Vector2i] = []
@@ -267,20 +268,44 @@ func _on_reveal_changed(_role: String = "") -> void:
 func _on_bounds_changed(_interior: Rect2i = Rect2i()) -> void:
 	_world_fingerprint = 0
 	_doodad_cache_ready = false
-	_queue_map_redraw()
+	_arm_claim_paint()
 
 
 func _on_bounds_cleared() -> void:
 	_world_fingerprint = 0
-	_queue_map_redraw()
+	_arm_claim_paint()
 
 
 func _on_claim_changed(_unused = null) -> void:
-	_queue_map_redraw()
+	_arm_claim_paint()
 
 
 func _on_world_content_changed(_a = null, _b = null, _c = null) -> void:
 	_world_fingerprint = 0
+	_queue_map_redraw()
+
+
+func _arm_claim_paint() -> void:
+	if _claim_paint_armed:
+		return
+	_claim_paint_armed = true
+	var tree := get_tree()
+	if tree == null:
+		_flush_claim_paint()
+		return
+	tree.process_frame.connect(_defer_claim_paint, CONNECT_ONE_SHOT)
+
+
+func _defer_claim_paint() -> void:
+	var tree := get_tree()
+	if tree == null:
+		_flush_claim_paint()
+		return
+	tree.process_frame.connect(_flush_claim_paint, CONNECT_ONE_SHOT)
+
+
+func _flush_claim_paint() -> void:
+	_claim_paint_armed = false
 	_queue_map_redraw()
 
 

@@ -12,6 +12,10 @@ const CLAIM_FANTASY := -1
 const PUFF_PATH := "res://sprites/fantasy_drift_puff.png"
 const PUFF_FRAME_PX := 32
 const PUFF_FPS := 16.0
+const SYNC_BUDGET_USEC := 3000
+const SYNC_DROP := 0
+const SYNC_RECONCILE := 1
+const SYNC_SCHEDULE := 2
 
 var delay_min: float = DEFAULT_DELAY_MIN
 var delay_max: float = DEFAULT_DELAY_MAX
@@ -23,22 +27,40 @@ var _dungeon_rect: Rect2i = Rect2i()
 var _rng := RandomNumberGenerator.new()
 var _puff_frames: SpriteFrames = null
 var _puff_frames_tried: bool = false
+var _sync_active: bool = false
+var _sync_phase: int = 0
+var _sync_i: int = 0
+var _sync_items: Array = []
+var _sync_use_flipped: bool = false
 
 func _ready() -> void:
 	_rng.randomize()
 	set_physics_process(false)
+	set_process(false)
 	if not SignalBus.reality_claim_changed.is_connected(_on_claim_changed):
 		SignalBus.reality_claim_changed.connect(_on_claim_changed)
 	if not SignalBus.fantasy_claim_changed.is_connected(_on_claim_changed):
 		SignalBus.fantasy_claim_changed.connect(_on_claim_changed)
 	if not SignalBus.map_bounds_committed.is_connected(_on_map_bounds_committed):
 		SignalBus.map_bounds_committed.connect(_on_map_bounds_committed)
+	ZoneDriftClaim.register_worker(flush_zone_work)
 	call_deferred("_bootstrap")
+
+func _exit_tree() -> void:
+	ZoneDriftClaim.unregister_worker(flush_zone_work)
 
 func _bootstrap() -> void:
 	if not _is_host():
 		return
-	_sync_schedules()
+	ZoneDriftClaim.queue_listener(_sync_schedules)
+
+func _process(_delta: float) -> void:
+	if not _sync_active:
+		set_process(false)
+		return
+	_tick_sync(false)
+	if not _sync_active:
+		set_process(false)
 
 func _physics_process(_delta: float) -> void:
 	if not _is_host():
@@ -55,7 +77,10 @@ func _is_host() -> bool:
 
 func clear_schedules() -> void:
 	_pending.clear()
+	_sync_active = false
+	_sync_items.clear()
 	set_physics_process(false)
+	set_process(false)
 
 func _on_claim_changed(_unused = null) -> void:
 	if not _is_host():
@@ -71,54 +96,118 @@ func _on_map_bounds_committed(_interior: Rect2i = Rect2i()) -> void:
 func _now() -> float:
 	return float(Time.get_ticks_msec()) / 1000.0
 
+func flush_zone_work() -> void:
+	while _sync_active:
+		_tick_sync(true)
+	set_process(false)
+
 func _sync_schedules() -> void:
+	ZoneDriftClaim.ensure_snapshot(get_tree())
 	_refresh_dungeon_rect()
-	var drop: Array = []
-	for cell in _pending.keys():
-		if not is_fantasy_drift_eligible(cell):
-			drop.append(cell)
-			continue
-		var tile: OutsideTile = _tile_at(cell)
-		if tile == null or tile.element_presentation == OutsideTile.ElementPresentation.FANTASY:
-			drop.append(cell)
-	for cell in drop:
-		_pending.erase(cell)
-	_reconcile_stale_presentations()
-	for cell in _fantasy_coverage_cells():
-		if _pending.has(cell):
-			continue
-		if not is_fantasy_drift_eligible(cell):
-			continue
-		var tile: OutsideTile = _tile_at(cell)
-		if tile == null:
-			continue
-		if tile.element_presentation == OutsideTile.ElementPresentation.FANTASY:
-			continue
-		var delay: float = _rng.randf_range(delay_min, maxf(delay_min, delay_max))
-		_pending[cell] = _now() + delay
-	if _is_host() and not _pending.is_empty():
-		set_physics_process(true)
-
-
-func _reconcile_stale_presentations() -> void:
-	var flipped: Array[Vector2i] = ZoneDriftClaim.flipped_cells()
-	if not flipped.is_empty():
-		for cell in flipped:
-			if _dungeon_rect.size.x > 0 and _dungeon_rect.size.y > 0 and _dungeon_rect.has_point(cell):
-				continue
-			var tile: OutsideTile = _tile_at(cell)
-			if tile == null:
-				continue
-			_reconcile_tile(cell, tile)
+	_sync_phase = SYNC_DROP
+	_sync_i = 0
+	_sync_items = _pending.keys()
+	_sync_use_flipped = false
+	_sync_active = true
+	if ZoneDriftClaim.is_flushing():
+		flush_zone_work()
 		return
-	for node in _iter_outside_tiles():
-		if not (node is OutsideTile) or not is_instance_valid(node):
-			continue
-		var tile: OutsideTile = node
-		var cell: Vector2i = DungeonGrid.from_world(tile.position)
+	set_process(true)
+	_tick_sync(false)
+	if not _sync_active:
+		set_process(false)
+
+func _tick_sync(unlimited: bool) -> void:
+	var deadline: int = Time.get_ticks_usec() + (1000000000 if unlimited else SYNC_BUDGET_USEC)
+	while _sync_active:
+		if not unlimited and Time.get_ticks_usec() >= deadline:
+			return
+		match _sync_phase:
+			SYNC_DROP:
+				if _sync_i >= _sync_items.size():
+					_sync_phase = SYNC_RECONCILE
+					_sync_i = 0
+					var flipped: Array[Vector2i] = ZoneDriftClaim.flipped_cells()
+					_sync_use_flipped = not flipped.is_empty()
+					if _sync_use_flipped:
+						_sync_items = flipped
+					else:
+						_sync_items = _iter_outside_tiles()
+					continue
+				var drop_cell: Vector2i = _sync_items[_sync_i]
+				_sync_i += 1
+				if not _pending_still_valid(drop_cell):
+					_pending.erase(drop_cell)
+			SYNC_RECONCILE:
+				if _sync_i >= _sync_items.size():
+					_sync_phase = SYNC_SCHEDULE
+					_sync_i = 0
+					if _sync_use_flipped:
+						_sync_items = ZoneDriftClaim.flipped_cells()
+					continue
+				if _sync_use_flipped:
+					var flip_cell: Vector2i = _sync_items[_sync_i]
+					_sync_i += 1
+					if _dungeon_rect.size.x > 0 and _dungeon_rect.size.y > 0 and _dungeon_rect.has_point(flip_cell):
+						continue
+					var flip_tile: OutsideTile = _tile_at(flip_cell)
+					if flip_tile != null:
+						_reconcile_tile(flip_cell, flip_tile)
+				else:
+					var node = _sync_items[_sync_i]
+					_sync_i += 1
+					if typeof(node) != TYPE_OBJECT or not is_instance_valid(node) or not (node is OutsideTile):
+						continue
+					var walk_tile: OutsideTile = node
+					var walk_cell: Vector2i = DungeonGrid.from_world(walk_tile.position)
+					if _dungeon_rect.size.x > 0 and _dungeon_rect.size.y > 0 and _dungeon_rect.has_point(walk_cell):
+						continue
+					_reconcile_tile(walk_cell, walk_tile)
+			SYNC_SCHEDULE:
+				if _sync_i >= _sync_items.size():
+					_sync_active = false
+					if _is_host() and not _pending.is_empty():
+						set_physics_process(true)
+					return
+				var item = _sync_items[_sync_i]
+				_sync_i += 1
+				var sched_cell := Vector2i.ZERO
+				if item is Vector2i:
+					sched_cell = item
+				elif typeof(item) == TYPE_OBJECT and is_instance_valid(item) and item is OutsideTile:
+					sched_cell = DungeonGrid.from_world((item as OutsideTile).position)
+				else:
+					continue
+				if _pending.has(sched_cell):
+					continue
+				if not _cell_eligible(sched_cell):
+					continue
+				var sched_tile: OutsideTile = _tile_at(sched_cell)
+				if sched_tile == null:
+					continue
+				if sched_tile.element_presentation == OutsideTile.ElementPresentation.FANTASY:
+					continue
+				var delay: float = _rng.randf_range(delay_min, maxf(delay_min, delay_max))
+				_pending[sched_cell] = _now() + delay
+			_:
+				_sync_active = false
+
+func _pending_still_valid(cell: Vector2i) -> bool:
+	if not _cell_eligible(cell):
+		return false
+	var tile: OutsideTile = _tile_at(cell)
+	return tile != null and tile.element_presentation != OutsideTile.ElementPresentation.FANTASY
+
+func _cell_eligible(cell: Vector2i) -> bool:
+	if _dungeon_rect.size.x > 0 and _dungeon_rect.size.y > 0 and _dungeon_rect.has_point(cell):
+		return false
+	if _dungeon_rect.size.x <= 0:
+		_refresh_dungeon_rect()
 		if _dungeon_rect.size.x > 0 and _dungeon_rect.size.y > 0 and _dungeon_rect.has_point(cell):
-			continue
-		_reconcile_tile(cell, tile)
+			return false
+	if _tile_at(cell) == null:
+		return false
+	return drift_claim_for_cell(cell) == CLAIM_FANTASY
 
 
 func _reconcile_tile(cell: Vector2i, tile: OutsideTile) -> void:
@@ -155,10 +244,10 @@ func _snap_to_neutral(cell: Vector2i, tile: OutsideTile) -> void:
 	_broadcast_presentation(cell, int(OutsideTile.ElementPresentation.NEUTRAL))
 
 func _fantasy_coverage_cells() -> Array[Vector2i]:
-	ZoneDriftClaim.ensure_snapshot(get_tree())
 	return ZoneDriftClaim.coverage_cells(CLAIM_FANTASY)
 
 func is_fantasy_drift_eligible(cell: Vector2i) -> bool:
+	ZoneDriftClaim.ensure_snapshot(get_tree())
 	if _dungeon_rect.size.x > 0 and _dungeon_rect.size.y > 0 and _dungeon_rect.has_point(cell):
 		return false
 	if _dungeon_rect.size.x <= 0:
@@ -170,7 +259,6 @@ func is_fantasy_drift_eligible(cell: Vector2i) -> bool:
 	return drift_claim_for_cell(cell) == CLAIM_FANTASY
 
 func drift_claim_for_cell(cell: Vector2i) -> int:
-	ZoneDriftClaim.ensure_snapshot(get_tree())
 	return ZoneDriftClaim.claim_at(cell)
 
 func _refresh_dungeon_rect() -> void:
@@ -286,21 +374,23 @@ func _broadcast_presentation(cell: Vector2i, presentation: int) -> void:
 
 func _tile_at(cell: Vector2i) -> OutsideTile:
 	var cached: Variant = _tiles_by_cell.get(cell, null)
-	if cached is OutsideTile and is_instance_valid(cached):
-		return cached as OutsideTile
+	if typeof(cached) == TYPE_OBJECT:
+		if is_instance_valid(cached) and cached is OutsideTile:
+			return cached as OutsideTile
+		_tiles_by_cell.erase(cell)
 	var level: Node = _level()
 	if level:
 		var parent: Node = level.get_node_or_null("OutsideTiles")
 		if parent:
 			var child: Node = parent.get_node_or_null(("out_%d_%d" % [cell.x, cell.y]).validate_node_name())
-			if child is OutsideTile and is_instance_valid(child):
+			if child != null and is_instance_valid(child) and child is OutsideTile:
 				_tiles_by_cell[cell] = child
 				return child as OutsideTile
 	var tree := get_tree()
 	if tree == null:
 		return null
 	for node in tree.get_nodes_in_group("outside_tiles"):
-		if not (node is OutsideTile) or not is_instance_valid(node):
+		if typeof(node) != TYPE_OBJECT or not is_instance_valid(node) or not (node is OutsideTile):
 			continue
 		if DungeonGrid.from_world((node as OutsideTile).position) == cell:
 			_tiles_by_cell[cell] = node

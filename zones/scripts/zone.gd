@@ -17,6 +17,7 @@ var _queued_rect_collision: Vector2 = Vector2.ZERO
 var _rect_collision_queued: bool = false
 var _overlay_built_sig: int = 0
 var _home_overlay_by_cell: Dictionary = {}
+var _presentation_queued: bool = false
 static var _resolving_homes: bool = false
 static var debug_claim_overlays: bool = false
 
@@ -157,6 +158,9 @@ func _apply_peer_resolved_home(peer: Node) -> void:
 		peer._sync_claim_home()
 	if peer.has_method("_apply_clipped_home_presentation"):
 		peer._apply_clipped_home_presentation()
+	if peer.has_method("_queue_claim_notify"):
+		peer._queue_claim_notify()
+		return
 	if bool(peer.get("is_reality")):
 		SignalBus.reality_home_changed.emit(peer.home_rect)
 		SignalBus.reality_claim_changed.emit()
@@ -257,14 +261,38 @@ func _apply_clipped_home_presentation() -> void:
 	if home_rect.size.x <= 0 or home_rect.size.y <= 0:
 		_clear_home_overlay()
 		if _resolve_collision_shape():
-			collision_shape_2d.disabled = true
+			set_deferred("collision_shape_2d", true)
 		return
+	if debug_claim_overlays or not is_inside_tree():
+		_apply_zone_transform_now()
+		_rebuild_home_overlay()
+		queue_redraw()
+		return
+	_queue_presentation()
+
+
+func _queue_presentation() -> void:
+	if _presentation_queued:
+		return
+	_presentation_queued = true
+	call_deferred("_flush_presentation")
+
+
+func _flush_presentation() -> void:
+	_presentation_queued = false
+	if home_rect.size.x <= 0 or home_rect.size.y <= 0:
+		_clear_home_overlay()
+		return
+	_apply_zone_transform_now()
+	_rebuild_home_overlay()
+	queue_redraw()
+
+
+func _apply_zone_transform_now() -> void:
 	var world_origin: Vector2 = DungeonGrid.to_world(home_rect.position)
 	var world_size: Vector2 = Vector2(home_rect.size) * DungeonGrid.CELL_PX
 	global_position = world_origin + world_size * 0.5
 	_apply_rect_collision(world_size)
-	_rebuild_home_overlay()
-	queue_redraw()
 
 func _apply_rect_collision(world_size: Vector2) -> void:
 	_queued_rect_collision = world_size
@@ -320,12 +348,15 @@ func _should_rebuild_overlay() -> bool:
 func _rebuild_home_overlay() -> void:
 	if not _should_rebuild_overlay():
 		return
+	_ensure_home_overlay_root()
+	if not debug_claim_overlays:
+		_sync_cell_sprites(_home_overlay_root, _home_overlay_by_cell, {}, 0, true)
+		return
 	if _home_overlay_texture == null:
 		var path: String = HOME_OVERLAY_PATH if is_reality else FANTASY_HOME_OVERLAY_PATH
 		_home_overlay_texture = load(path) as Texture2D
 	if _home_overlay_texture == null:
 		return
-	_ensure_home_overlay_root()
 	var wanted: Dictionary = {}
 	if home_rect.size.x > 0 and home_rect.size.y > 0:
 		for y in range(home_rect.position.y, home_rect.end.y):
@@ -359,6 +390,8 @@ func _sync_cell_sprites(
 			if node_parent:
 				node_parent.remove_child(node)
 			node.queue_free()
+	if debug_only and not debug_claim_overlays:
+		return
 	for cell in wanted.keys():
 		var tex: Texture2D = wanted[cell] as Texture2D
 		if tex == null:
@@ -381,6 +414,8 @@ func _overlay_local_pos(cell: Vector2i) -> Vector2:
 
 func _place_overlay_sprite(parent: Node2D, texture: Texture2D, cell: Vector2i, z: int, debug_only: bool = true, overlay_material: Material = null, snap_cell_center: bool = false, world_pos: Vector2 = Vector2(INF, INF)) -> Sprite2D:
 	if parent == null or texture == null:
+		return null
+	if debug_only and not debug_claim_overlays:
 		return null
 	var sprite := Sprite2D.new()
 	sprite.texture = texture
@@ -419,6 +454,10 @@ static func set_debug_claim_overlays(on: bool) -> void:
 	if tree == null:
 		return
 	for node in tree.get_nodes_in_group("claim_zone"):
+		if node.has_method("_invalidate_overlay"):
+			node._invalidate_overlay()
+		if node.has_method("_rebuild_home_overlay"):
+			node._rebuild_home_overlay()
 		if node.has_method("apply_debug_claim_overlay_visibility"):
 			node.apply_debug_claim_overlay_visibility()
 
@@ -437,6 +476,10 @@ func _ensure_home_overlay_root() -> void:
 		_home_overlay_root = Node2D.new()
 		_home_overlay_root.name = "HomeOverlay"
 		add_child(_home_overlay_root)
+
+func _invalidate_overlay() -> void:
+	_overlay_built_sig = 0
+
 
 func _clear_home_overlay() -> void:
 	_overlay_built_sig = 0

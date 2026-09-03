@@ -28,6 +28,7 @@ const SPARKLE_POPS_PER_TICK := 2
 const DUST_SCALE := 1.0
 const SPARKLE_MODULATE := Color(1.2, 1.25, 1.55, 1.0)
 const DUST_MODULATE := Color(1.0, 1.0, 1.0, 1.0)
+const REBUILD_BUDGET_USEC := 3000
 
 var interval_min: float = DEFAULT_INTERVAL_MIN
 var interval_max: float = DEFAULT_INTERVAL_MAX
@@ -46,6 +47,12 @@ var _dust_tried: bool = false
 var _sparkle_tried: bool = false
 var _until_dust: float = 0.0
 var _until_sparkle: float = 0.0
+var _rebuild_active: bool = false
+var _rebuild_rects: Array[Rect2i] = []
+var _rebuild_kinds: Array[int] = []
+var _rebuild_rect_i: int = 0
+var _rebuild_x: int = 0
+var _rebuild_y: int = 0
 
 func _ready() -> void:
 	_rng.randomize()
@@ -59,9 +66,17 @@ func _ready() -> void:
 		SignalBus.map_bounds_committed.connect(_on_map_changed)
 	if not SignalBus.map_bounds_cleared.is_connected(_on_map_changed):
 		SignalBus.map_bounds_cleared.connect(_on_map_changed)
-	call_deferred("rebuild_candidates")
+	ZoneDriftClaim.register_worker(flush_zone_work)
+	call_deferred("_queue_rebuild")
+
+func _exit_tree() -> void:
+	ZoneDriftClaim.unregister_worker(flush_zone_work)
 
 func _process(delta: float) -> void:
+	if _rebuild_active:
+		_tick_rebuild(false)
+		if _rebuild_active:
+			return
 	if _dust_cells.is_empty() and _sparkle_cells.is_empty():
 		set_process(false)
 		return
@@ -77,30 +92,127 @@ func _process(delta: float) -> void:
 			_play_sparkle_pops()
 
 func _on_claim_changed(_unused = null) -> void:
-	ZoneDriftClaim.queue_listener(rebuild_candidates)
+	ZoneDriftClaim.queue_listener(_queue_rebuild)
 
 func _on_map_changed(_unused = null) -> void:
-	ZoneDriftClaim.queue_listener(rebuild_candidates)
+	ZoneDriftClaim.queue_listener(_queue_rebuild)
+
+func _queue_rebuild() -> void:
+	rebuild_count += 1
+	_begin_rebuild()
+	if ZoneDriftClaim.is_flushing():
+		flush_zone_work()
+		return
+	set_process(true)
+	_tick_rebuild(false)
 
 func rebuild_candidates() -> void:
 	rebuild_count += 1
+	_begin_rebuild()
+	flush_zone_work()
+
+func flush_zone_work() -> void:
+	while _rebuild_active:
+		_tick_rebuild(true)
+	_finish_rebuild_process()
+
+func _begin_rebuild() -> void:
 	_dust_cells.clear()
 	_sparkle_cells.clear()
 	_dust_lookup.clear()
 	_sparkle_lookup.clear()
+	_rebuild_rects.clear()
+	_rebuild_kinds.clear()
 	var tree := get_tree()
 	if tree != null:
 		ZoneDriftClaim.ensure_snapshot(tree)
-		for cell in ZoneDriftClaim.coverage_cells(CLAIM_REALITY):
+		_append_rebuild_rect(_zone_home("RealityZone"), CLAIM_REALITY)
+		_append_rebuild_rect(_zone_home("FantasyZone"), CLAIM_FANTASY)
+		_append_zone_pockets("RealityZone", CLAIM_REALITY)
+		_append_zone_pockets("FantasyZone", CLAIM_FANTASY)
+	_rebuild_rect_i = 0
+	_rebuild_x = 0
+	_rebuild_y = 0
+	_rebuild_active = true
+	if not _rebuild_rects.is_empty():
+		var first: Rect2i = _rebuild_rects[0]
+		_rebuild_x = first.position.x
+		_rebuild_y = first.position.y
+
+func _zone_home(group_name: String) -> Rect2i:
+	var tree := get_tree()
+	if tree == null:
+		return Rect2i()
+	var zone: Node = tree.get_first_node_in_group(group_name)
+	if zone != null and "home_rect" in zone:
+		return zone.home_rect
+	return Rect2i()
+
+func _append_zone_pockets(group_name: String, kind: int) -> void:
+	var tree := get_tree()
+	if tree == null:
+		return
+	var zone: Node = tree.get_first_node_in_group(group_name)
+	if zone == null or not ("claim" in zone):
+		return
+	var claim = zone.get("claim")
+	if claim == null or not ("pockets" in claim):
+		return
+	for pocket in claim.pockets:
+		if typeof(pocket) != TYPE_DICTIONARY:
+			continue
+		_append_rebuild_rect(pocket.get("rect", Rect2i()), kind)
+
+func _append_rebuild_rect(rect: Rect2i, kind: int) -> void:
+	if rect.size.x <= 0 or rect.size.y <= 0:
+		return
+	_rebuild_rects.append(rect)
+	_rebuild_kinds.append(kind)
+
+func _tick_rebuild(unlimited: bool) -> void:
+	if not _rebuild_active:
+		return
+	var deadline: int = Time.get_ticks_usec() + (1000000000 if unlimited else REBUILD_BUDGET_USEC)
+	while _rebuild_active:
+		if not unlimited and Time.get_ticks_usec() >= deadline:
+			return
+		if _rebuild_rect_i >= _rebuild_rects.size():
+			_cull_stale_pops()
+			_rebuild_active = false
+			_finish_rebuild_process()
+			return
+		var rect: Rect2i = _rebuild_rects[_rebuild_rect_i]
+		var kind: int = _rebuild_kinds[_rebuild_rect_i]
+		if _rebuild_y >= rect.end.y:
+			_rebuild_rect_i += 1
+			if _rebuild_rect_i < _rebuild_rects.size():
+				var nxt: Rect2i = _rebuild_rects[_rebuild_rect_i]
+				_rebuild_x = nxt.position.x
+				_rebuild_y = nxt.position.y
+			continue
+		if _rebuild_x >= rect.end.x:
+			_rebuild_x = rect.position.x
+			_rebuild_y += 1
+			continue
+		var cell := Vector2i(_rebuild_x, _rebuild_y)
+		_rebuild_x += 1
+		if ZoneDriftClaim.claim_at(cell) != kind:
+			continue
+		if kind == CLAIM_REALITY:
+			if _dust_lookup.has(cell):
+				continue
 			_dust_lookup[cell] = true
 			_dust_cells.append(cell)
-		for cell in ZoneDriftClaim.coverage_cells(CLAIM_FANTASY):
+		elif kind == CLAIM_FANTASY:
+			if _sparkle_lookup.has(cell):
+				continue
 			_sparkle_lookup[cell] = true
 			_sparkle_cells.append(cell)
-	_cull_stale_pops()
+
+func _finish_rebuild_process() -> void:
 	var has_any: bool = not _dust_cells.is_empty() or not _sparkle_cells.is_empty()
 	set_physics_process(false)
-	set_process(has_any)
+	set_process(has_any or _rebuild_active)
 	if has_any:
 		if not _dust_cells.is_empty() and _until_dust <= 0.0:
 			_until_dust = _rng.randf_range(interval_min, maxf(interval_min, interval_max))
