@@ -4,6 +4,7 @@ const AbilityCatalog = preload("res://dm/dm_ability_catalog.gd")
 const MANA_BAR_WIDTH: float = 120.0
 
 @onready var spawn_gremlin_button: TextureButton = $MarginContainer/HBoxContainer/SpawnGremlin/TextureButton
+@onready var spawn_goblin_button: TextureButton = $MarginContainer/HBoxContainer/SpawnGoblin/TextureButton
 @onready var cast_fireball_button: TextureButton = $MarginContainer/HBoxContainer/Fireball/TextureButton
 @onready var spawn_knight_button: TextureButton = $MarginContainer/HBoxContainer/SpawnKnight/TextureButton
 @onready var spawn_knight: ColorRect = $MarginContainer/HBoxContainer/SpawnKnight
@@ -21,10 +22,12 @@ const MANA_BAR_WIDTH: float = 120.0
 func _ready() -> void:
 	turn_off()
 	spawn_gremlin_button.connect("button_down", _on_gremlin_button_pressed)
+	if spawn_goblin_button:
+		spawn_goblin_button.connect("button_down", _on_goblin_button_pressed)
 	spawn_knight_button.connect("button_down", _on_knight_button_pressed)
 	cast_fireball_button.connect("button_down", _on_fireball_button_pressed)
 	cast_blizzard_button.connect("button_down", _on_blizzard_button_pressed)
-	for btn in [spawn_gremlin_button, spawn_knight_button, cast_fireball_button, cast_blizzard_button]:
+	for btn in [spawn_gremlin_button, spawn_goblin_button, spawn_knight_button, cast_fireball_button, cast_blizzard_button]:
 		if btn:
 			btn.focus_mode = Control.FOCUS_NONE
 	if not DmManager.mana_changed.is_connected(_on_mana_changed):
@@ -45,6 +48,9 @@ func _ready() -> void:
 
 func _on_gremlin_button_pressed() -> void:
 	DmManager.request_cast(AbilityCatalog.GREMLIN)
+
+func _on_goblin_button_pressed() -> void:
+	DmManager.request_cast(AbilityCatalog.GOBLIN)
 
 func _on_knight_button_pressed() -> void:
 	DmManager.request_cast(AbilityCatalog.KNIGHTLING)

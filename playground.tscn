@@ -45,6 +45,7 @@ script = ExtResource("5_o00ia")
 network_player = ExtResource("4_is3ju")
 dm_player = ExtResource("5_ynsuh")
 gremlin = ExtResource("7_gremlin")
+goblin = ExtResource("7_h1jm5")
 knight = ExtResource("22_ymgag")
 
 [node name="DungeonGenerator" parent="." unique_id=281097532 instance=ExtResource("26_dungeon")]

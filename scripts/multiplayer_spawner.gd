@@ -1,5 +1,7 @@
 extends MultiplayerSpawner
 
+const DmNearSpawnPickerScript = preload("res://scripts/dm_near_spawn_picker.gd")
+
 #const MonsterCatalog = preload("res://scripts/procedural_dungeon/monster_catalog.gd")
 #const TileCatalog = preload("res://scripts/procedural_dungeon/tile_catalog.gd")
 #const DungeonConstants = preload("res://scripts/procedural_dungeon/dungeon_constants.gd")
@@ -12,6 +14,7 @@ const WALL_Z_INDEX := DungeonConstants.WALL_Z_INDEX
 @export var gremlin: PackedScene
 @export var fireball_spell: PackedScene
 @export var knight: PackedScene
+@export var goblin: PackedScene
 
 var _monster_catalog: MonsterCatalog = MonsterCatalog.new()
 var _tile_catalog: TileCatalog = TileCatalog.new()
@@ -29,6 +32,8 @@ func _ready() -> void:
 	set_multiplayer_authority(1)
 	# US-017 T001: register in code so playground.tscn does not have to list the boss.
 	add_spawnable_scene("res://monsters/baja_boss.tscn")
+	add_spawnable_scene("res://monsters/goblin.tscn")
+	add_spawnable_scene("res://monsters/gremlin.tscn")
 
 	if not multiplayer.connected_to_server.is_connected(_on_connected_to_server):
 		multiplayer.connected_to_server.connect(_on_connected_to_server)
@@ -39,10 +44,8 @@ func _ready() -> void:
 	# still no-op unless this peer is the real network server.
 	if not Lobby.host_started.is_connected(spawn_host_player):
 		Lobby.host_started.connect(spawn_host_player)
-	if not DmManager.spawn_gremlin_cast.is_connected(spawn_gremlin):
-		DmManager.spawn_gremlin_cast.connect(spawn_gremlin)
-	if not DmManager.spawn_knight_cast.is_connected(spawn_knight):
-		DmManager.spawn_knight_cast.connect(spawn_knight)
+	# US-055: DmManager calls try_spawn_*_near_dm then emits cast signals for listeners
+	# (US-014 harness). Do not re-spawn on those signals or minions double.
 		
 	if not SignalBus.dungeon_generation_succeeded.is_connected(_on_dungeon_generation_succeeded):
 		SignalBus.dungeon_generation_succeeded.connect(_on_dungeon_generation_succeeded)
@@ -104,31 +107,86 @@ func _west_spawn_world() -> Vector2:
 	return Vector2(DungeonGrid.CELL_PX * 0.5, DungeonGrid.CELL_PX * 0.5)
 
 func spawn_gremlin() -> void:
-	if !multiplayer.is_server(): return
-	
-	print("spawning gremlin")
-	
-	var new_gremlin: Node = gremlin.instantiate()
-	_manual_spawn_seq += 1
-	new_gremlin.name = ("gremlin_%d" % _manual_spawn_seq).validate_node_name()
+	# Legacy signal path / crib callers: prefer near-DM. Exit spawns must use spawn_gremlin_at.
+	try_spawn_gremlin_near_dm()
 
-	get_node(spawn_path).call_deferred("add_child", new_gremlin, true)
 
 func spawn_knight() -> void:
-	if !multiplayer.is_server(): return
-	
-	var number_knights = 1
+	try_spawn_knights_near_dm()
+
+
+func spawn_goblin() -> void:
+	try_spawn_goblin_near_dm()
+
+
+## US-055: host places gremlin near DM. Returns false if picker fails (no instantiate).
+func try_spawn_gremlin_near_dm() -> bool:
+	if not multiplayer.is_server():
+		return false
+	if gremlin == null:
+		return false
+	var pick: Dictionary = _pick_near_dm()
+	if not bool(pick.get("ok", false)):
+		return false
+	_spawn_minion_at(gremlin, "gremlin", pick["world"], "gremlin")
+	return true
+
+
+## US-055: each Chain Lightning knightling rolls independently. Returns spawn count.
+func try_spawn_knights_near_dm() -> int:
+	if not multiplayer.is_server():
+		return 0
+	if knight == null:
+		return 0
+	var number_knights := 1
 	if DmUnlocks.dm_unlocks.has("chain_lightning"):
 		number_knights = 3
-	for n in number_knights:
-		print("spawning knight")
-		
-		var new_knight: Node2D = knight.instantiate() as Node2D
-		_manual_spawn_seq += 1
-		new_knight.name = ("knight_%d" % _manual_spawn_seq).validate_node_name()
-		new_knight.position = Vector2(n + (randi() % 50), n + (randi() % 50))
-		
-		get_node(spawn_path).call_deferred("add_child", new_knight, true)
+	var spawned := 0
+	for _n in range(number_knights):
+		var pick: Dictionary = _pick_near_dm()
+		if not bool(pick.get("ok", false)):
+			continue
+		_spawn_minion_at(knight, "knight", pick["world"], "knight")
+		spawned += 1
+	return spawned
+
+
+func try_spawn_goblin_near_dm() -> bool:
+	if not multiplayer.is_server():
+		return false
+	var scene: PackedScene = goblin
+	if scene == null:
+		scene = load("res://monsters/goblin.tscn") as PackedScene
+	if scene == null:
+		return false
+	var pick: Dictionary = _pick_near_dm()
+	if not bool(pick.get("ok", false)):
+		return false
+	_spawn_minion_at(scene, "goblin", pick["world"], "goblin")
+	return true
+
+
+## US-041 / explicit placement — NOT near-DM (Crib Death exit, etc.).
+func spawn_gremlin_at(world_position: Vector2) -> Node:
+	if not multiplayer.is_server():
+		return null
+	if gremlin == null:
+		return null
+	return _spawn_minion_at(gremlin, "gremlin", world_position, "gremlin")
+
+
+func _pick_near_dm() -> Dictionary:
+	return DmNearSpawnPickerScript.pick_near_dm(get_tree(), DmNearSpawnPickerScript.dm_anchor_world())
+
+
+func _spawn_minion_at(scene: PackedScene, _kind: String, world_position: Vector2, name_prefix: String) -> Node:
+	var node: Node = scene.instantiate()
+	_manual_spawn_seq += 1
+	node.name = ("%s_%d" % [name_prefix, _manual_spawn_seq]).validate_node_name()
+	if node is Node2D:
+		(node as Node2D).position = world_position
+	get_node(spawn_path).call_deferred("add_child", node, true)
+	return node
 	
 func cast_spell(spell_id: String) -> void:
 	if !multiplayer.is_server(): return
