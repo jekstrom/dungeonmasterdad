@@ -15,7 +15,7 @@ const RELOCATE_ITEMS: Array[String] = [
 	"res://pickups/tax_form.tres",
 ]
 
-@export var move_speed: float = 140.0  # James: 2× prior 70
+@export var move_speed: float = 140.0
 @export var pickup_range_px: float = 22.0
 @export var drop_delay_min_sec: float = 2.0
 @export var drop_delay_max_sec: float = 6.0
@@ -31,7 +31,7 @@ enum RelocatePhase { SEEK, PICK, CARRY, WANDER }
 
 var phase: RelocatePhase = RelocatePhase.SEEK
 ## Replicated carry payload (resource path). Empty = not carrying.
-@export var carried_item_path: String = "":
+@export var carried_item_path: Array[String] = [""]:
 	set(value):
 		carried_item_path = value
 		_refresh_carry_visual()
@@ -61,6 +61,8 @@ func _ready() -> void:
 	_ensure_poof()
 	_ensure_carry_visual()
 	_configure_carry_replication()
+	if DmUnlocks.dm_unlocks.has("blind_one_legged_monkeys"):
+		visible = false
 	if multiplayer.is_server():
 		phase = RelocatePhase.SEEK
 		_retarget_pickup()
@@ -108,7 +110,11 @@ func _take_damage(hurt_box: Hurtbox) -> void:
 # --- relocate AI (host) -----------------------------------------------------
 
 func _tick_seek(delta: float) -> void:
-	if carried_item_path != "":
+	var carry_capacity = 1
+	if DmUnlocks.dm_unlocks.has("minions"):
+		carry_capacity = 2
+	if carried_item_path and carried_item_path[0] != "" and carried_item_path.size() >= carry_capacity:
+		print("go to carry")
 		phase = RelocatePhase.CARRY
 		_arm_drop_timer()
 		return
@@ -134,14 +140,20 @@ func _tick_pick(delta: float) -> void:
 	_pick_t -= delta
 	if _pick_t > 0.0:
 		return
+		
+	var carry_capacity = 1
+	if DmUnlocks.dm_unlocks.has("minions"):
+		carry_capacity = 2
+		
 	if _target_pickup != null and is_instance_valid(_target_pickup) and _is_claimable(_target_pickup):
 		var path := _claim_pickup(_target_pickup)
 		if not path.is_empty():
-			carried_item_path = path
-			phase = RelocatePhase.CARRY
-			_arm_drop_timer()
-			_target_pickup = null
-			return
+			carried_item_path.append(path)
+			if carried_item_path.size() >= carry_capacity:
+				phase = RelocatePhase.CARRY
+				_arm_drop_timer()
+				_target_pickup = null
+				return
 	_target_pickup = null
 	phase = RelocatePhase.SEEK
 
@@ -178,13 +190,13 @@ func _arm_drop_timer() -> void:
 func _drop_carried_now() -> void:
 	if carried_item_path.is_empty():
 		return
-	var path := carried_item_path
-	carried_item_path = ""
-	SignalBus.on_item_drop.emit({
-		"item_type": path,
-		"position": global_position,
-		"velocity": Vector2.ZERO,
-	})
+	for item in carried_item_path:
+		SignalBus.on_item_drop.emit({
+			"item_type": item,
+			"position": global_position + Vector2(randi_range(-30, 30), randi_range(-30, 30)),
+			"velocity": Vector2.ZERO,
+		})
+	carried_item_path.clear()
 
 
 func _claim_pickup(pickup: Node) -> String:
