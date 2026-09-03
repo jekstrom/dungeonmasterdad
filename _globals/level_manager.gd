@@ -148,6 +148,15 @@ func dungeon_cell_bounds() -> Rect2i:
 func dungeon_exit_cell() -> Vector2i:
 	return _resolve_exit_cell()
 
+func dungeon_exit_landing_world() -> Vector2:
+	var plan: Dictionary = exit_forest_plan()
+	var landing: Vector2i = plan.get("landing", DungeonGrid.SENTINEL)
+	if landing == DungeonGrid.SENTINEL:
+		landing = dungeon_exit_cell()
+	if landing == DungeonGrid.SENTINEL:
+		return Vector2.INF
+	return DungeonGrid.to_world_center(landing)
+
 func west_spawn_cells() -> Array[Vector2i]:
 	return map_bounds.west_spawn_strip_cells(dungeon_cell_bounds())
 

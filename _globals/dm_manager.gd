@@ -12,6 +12,8 @@ const BLIZZARD_DURATION: float = 8.0
 const BLIZZARD_SLOW_FACTOR: float = 0.5
 const BLIZZARD_FACTORY_INTERVAL_FACTOR: float = 2.0
 const BLIZZARD_POCKET_CELLS: Vector2i = Vector2i(3, 3)
+const CRIB_DEATH_INTERVAL_SEC: float = 60.0
+const CRIB_DEATH_LIFETIME_SEC: float = 60.0
 
 var dm: DM
 @export var fantasy_level: int = 0
@@ -28,6 +30,7 @@ var player_spawned: bool = false
 var _blizzard_effects: Array[Dictionary] = []
 var _blizzard_broadcast_queued: bool = false
 var dm_player_name: String = "DM"
+var _crib_death_elapsed: float = 0.0
 
 func _ready() -> void:
 	if not Lobby.host_started.is_connected(_on_host_started):
@@ -43,7 +46,20 @@ func _ready() -> void:
 func _on_host_started(_player_name: String = "") -> void:
 	if not Lobby.is_network_server():
 		return
+	_crib_death_elapsed = 0.0
 	_host_set_mana(0)
+
+func _process(delta: float) -> void:
+	if not multiplayer.is_server():
+		return
+	if not is_crib_death_owned():
+		_crib_death_elapsed = 0.0
+		return
+	_crib_death_elapsed += delta
+	if _crib_death_elapsed < CRIB_DEATH_INTERVAL_SEC:
+		return
+	_crib_death_elapsed = 0.0
+	try_spawn_crib_death_gremlin()
 
 func add_player_instance() -> void:
 	pass
@@ -550,6 +566,44 @@ func unlock(unlock_name: String) -> void:
 		DmUnlocks.unlock(unlock_name)
 		request_fantasy_level_incrase.rpc(fantasy_level)
 		
+func is_crib_death_owned() -> bool:
+	return bool(DmUnlocks.dm_unlocks.get("crib_death", false))
+
+func crib_death_exit_world() -> Vector2:
+	var tree := get_tree()
+	if tree == null:
+		return Vector2.INF
+	var level: Node = tree.get_first_node_in_group("level_manager")
+	if level != null and level.has_method("dungeon_exit_landing_world"):
+		var landing: Vector2 = level.call("dungeon_exit_landing_world")
+		if landing.is_finite():
+			return landing
+	var manager: Node = get_node_or_null("/root/DungeonGenerationManager")
+	if manager != null and manager.has_method("get_exit_cell"):
+		var cell: Vector2i = manager.get_exit_cell()
+		if cell != DungeonGrid.SENTINEL:
+			return DungeonGrid.to_world_center(cell)
+	return Vector2.INF
+
+func try_spawn_crib_death_gremlin() -> Node:
+	if not multiplayer.is_server():
+		return null
+	if not is_crib_death_owned():
+		return null
+	print ("spawning crib de")
+	var world_position: Vector2 = crib_death_exit_world()
+	if not world_position.is_finite():
+		return null
+	var spawner: Node = _multiplayer_spawner()
+	if spawner == null or not spawner.has_method("spawn_gremlin_at"):
+		return null
+	var node: Node = spawner.call("spawn_gremlin_at", world_position)
+	if node is Gremlin:
+		(node as Gremlin).lifetime_sec = CRIB_DEATH_LIFETIME_SEC
+	elif node != null:
+		node.set("lifetime_sec", CRIB_DEATH_LIFETIME_SEC)
+	return node
+
 func spawn_gremlin() -> void:
 	if multiplayer.is_server():
 		spawn_gremlin_cast.emit()

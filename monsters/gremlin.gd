@@ -16,6 +16,7 @@ const RELOCATE_ITEMS: Array[String] = [
 ]
 
 @export var move_speed: float = 140.0
+@export var move_speed_upgraded: float = 300.0
 @export var pickup_range_px: float = 22.0
 @export var drop_delay_min_sec: float = 2.0
 @export var drop_delay_max_sec: float = 6.0
@@ -41,6 +42,8 @@ var _drop_timer: float = 0.0
 var _anim_t: float = 0.0
 var _pick_t: float = 0.0
 var _carry_visual: Sprite2D
+var lifetime_sec: float = -1.0
+var _life_elapsed: float = 0.0
 
 func _ready() -> void:
 	raids_buildings = false
@@ -62,7 +65,7 @@ func _ready() -> void:
 	_ensure_carry_visual()
 	_configure_carry_replication()
 	if DmUnlocks.dm_unlocks.has("blind_one_legged_monkeys"):
-		visible = false
+		move_speed = move_speed_upgraded
 	if multiplayer.is_server():
 		phase = RelocatePhase.SEEK
 		_retarget_pickup()
@@ -76,6 +79,11 @@ func _physics_process(delta: float) -> void:
 		_anim_t += delta
 		_update_sprite_frame(velocity)
 		return
+	if lifetime_sec >= 0.0:
+		_life_elapsed += delta
+		if _life_elapsed >= lifetime_sec:
+			die()
+			return
 	# James: always flee Paper Pushers when nearby (overrides seek toward piles).
 	if _try_flee_paper_pushers(delta):
 		pass
