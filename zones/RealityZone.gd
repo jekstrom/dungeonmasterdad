@@ -228,6 +228,8 @@ func _on_reality_pocket_requested(origin: Vector2i, size: Vector2i, duration: fl
 	spawn_pocket(origin, size, duration)
 
 func _sync_claim_home() -> void:
+	if claim.home_rect == home_rect:
+		return
 	claim.home_rect = home_rect
 
 func _claim_now() -> float:
@@ -235,20 +237,23 @@ func _claim_now() -> float:
 
 func _rebuild_home_overlay() -> void:
 	_sync_claim_home()
+	if not _should_rebuild_overlay():
+		return
 	_ensure_home_overlay_root()
 	_ensure_pocket_overlay_root()
-	_clear_overlay_children(_home_overlay_root)
-	_clear_overlay_children(_pocket_overlay_root)
 	if _home_overlay_texture == null:
 		_home_overlay_texture = load(HOME_OVERLAY_PATH) as Texture2D
 	if _pocket_overlay_texture == null:
 		_pocket_overlay_texture = load(POCKET_OVERLAY_PATH) as Texture2D
+	var home_wanted: Dictionary = {}
 	if home_rect.size.x > 0 and home_rect.size.y > 0 and _home_overlay_texture:
 		for y in range(home_rect.position.y, home_rect.end.y):
 			for x in range(home_rect.position.x, home_rect.end.x):
 				var cell := Vector2i(x, y)
 				if claim.overlay_kind_for_cell(cell) == "home":
-					_place_overlay_sprite(_home_overlay_root, _home_overlay_texture, cell, 0, true)
+					home_wanted[cell] = _home_overlay_texture
+	_sync_cell_sprites(_home_overlay_root, _home_overlay_by_cell, home_wanted, 0, true)
+	_clear_overlay_children(_pocket_overlay_root)
 	if _pocket_overlay_texture:
 		for cell in claim.pocket_cells():
 			if claim.overlay_kind_for_cell(cell) == "pocket":
@@ -412,8 +417,11 @@ func get_spawn_statistics() -> Dictionary:
 	return stats
 
 func on_level_changed(new_level: int) -> void:
+	var before: Rect2i = home_rect
 	super.on_level_changed(new_level)
 	_sync_claim_home()
+	if home_rect == before:
+		return
 	SignalBus.reality_home_changed.emit(home_rect)
 	SignalBus.reality_claim_changed.emit()
 	_broadcast_claim()

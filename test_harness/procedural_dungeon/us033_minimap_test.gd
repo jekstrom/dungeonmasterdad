@@ -116,9 +116,13 @@ func _run_suite() -> bool:
 	widget.toggle_map()
 	if widget.visible:
 		return _fail("US-033: M toggle must hide")
+	if widget.is_processing():
+		return _fail("US-033: hidden mini-map must not process every frame")
 	widget.toggle_map()
 	if not widget.visible:
 		return _fail("US-033: M toggle must show again")
+	if not widget.is_processing():
+		return _fail("US-033: visible mini-map must keep a throttled process")
 
 	# DEBUG reveal-all (F10) is a local paint override; must default false.
 	if "debug_reveal_all" in widget and bool(widget.get("debug_reveal_all")):

@@ -43,6 +43,7 @@ SkillHandler="*uid://cwwh3h3n1kblb"
 
 [debug]
 
+settings/stdout/print_fps=true
 gdscript/warnings/integer_division=0
 
 [input]

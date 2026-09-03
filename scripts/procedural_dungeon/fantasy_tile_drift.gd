@@ -60,13 +60,13 @@ func clear_schedules() -> void:
 func _on_claim_changed(_unused = null) -> void:
 	if not _is_host():
 		return
-	_sync_schedules()
+	ZoneDriftClaim.queue_listener(_sync_schedules)
 
 func _on_map_bounds_committed(_interior: Rect2i = Rect2i()) -> void:
 	_tiles_by_cell.clear()
 	if not _is_host():
 		return
-	_sync_schedules()
+	ZoneDriftClaim.queue_listener(_sync_schedules)
 
 func _now() -> float:
 	return float(Time.get_ticks_msec()) / 1000.0
@@ -101,7 +101,16 @@ func _sync_schedules() -> void:
 
 
 func _reconcile_stale_presentations() -> void:
-	# Claim/map-change only. Strip wrong-faction art immediately; Neutral→claimed stays staggered.
+	var flipped: Array[Vector2i] = ZoneDriftClaim.flipped_cells()
+	if not flipped.is_empty():
+		for cell in flipped:
+			if _dungeon_rect.size.x > 0 and _dungeon_rect.size.y > 0 and _dungeon_rect.has_point(cell):
+				continue
+			var tile: OutsideTile = _tile_at(cell)
+			if tile == null:
+				continue
+			_reconcile_tile(cell, tile)
+		return
 	for node in _iter_outside_tiles():
 		if not (node is OutsideTile) or not is_instance_valid(node):
 			continue
@@ -109,12 +118,16 @@ func _reconcile_stale_presentations() -> void:
 		var cell: Vector2i = DungeonGrid.from_world(tile.position)
 		if _dungeon_rect.size.x > 0 and _dungeon_rect.size.y > 0 and _dungeon_rect.has_point(cell):
 			continue
-		var claim: int = drift_claim_for_cell(cell)
-		var pres: int = int(tile.element_presentation)
-		if pres == int(OutsideTile.ElementPresentation.FANTASY) and claim != CLAIM_FANTASY:
-			_snap_to_neutral(cell, tile)
-		elif pres == int(OutsideTile.ElementPresentation.REALITY) and claim != CLAIM_REALITY:
-			_snap_to_neutral(cell, tile)
+		_reconcile_tile(cell, tile)
+
+
+func _reconcile_tile(cell: Vector2i, tile: OutsideTile) -> void:
+	var claim: int = drift_claim_for_cell(cell)
+	var pres: int = int(tile.element_presentation)
+	if pres == int(OutsideTile.ElementPresentation.FANTASY) and claim != CLAIM_FANTASY:
+		_snap_to_neutral(cell, tile)
+	elif pres == int(OutsideTile.ElementPresentation.REALITY) and claim != CLAIM_REALITY:
+		_snap_to_neutral(cell, tile)
 
 func _iter_outside_tiles() -> Array:
 	var level: Node = _level()
@@ -142,32 +155,8 @@ func _snap_to_neutral(cell: Vector2i, tile: OutsideTile) -> void:
 	_broadcast_presentation(cell, int(OutsideTile.ElementPresentation.NEUTRAL))
 
 func _fantasy_coverage_cells() -> Array[Vector2i]:
-	var seen: Dictionary = {}
-	var cells: Array[Vector2i] = []
-	var tree := get_tree()
-	if tree == null:
-		return cells
-	var fantasy: Node = tree.get_first_node_in_group("FantasyZone")
-	if fantasy == null:
-		return cells
-	_append_rect_cells(seen, cells, fantasy.home_rect)
-	if "claim" in fantasy:
-		for pocket in fantasy.claim.pockets:
-			if typeof(pocket) != TYPE_DICTIONARY:
-				continue
-			_append_rect_cells(seen, cells, pocket.get("rect", Rect2i()))
-	return cells
-
-func _append_rect_cells(seen: Dictionary, cells: Array[Vector2i], rect: Rect2i) -> void:
-	if rect.size.x <= 0 or rect.size.y <= 0:
-		return
-	for y in range(rect.position.y, rect.end.y):
-		for x in range(rect.position.x, rect.end.x):
-			var cell := Vector2i(x, y)
-			if seen.has(cell):
-				continue
-			seen[cell] = true
-			cells.append(cell)
+	ZoneDriftClaim.ensure_snapshot(get_tree())
+	return ZoneDriftClaim.coverage_cells(CLAIM_FANTASY)
 
 func is_fantasy_drift_eligible(cell: Vector2i) -> bool:
 	if _dungeon_rect.size.x > 0 and _dungeon_rect.size.y > 0 and _dungeon_rect.has_point(cell):
@@ -181,7 +170,8 @@ func is_fantasy_drift_eligible(cell: Vector2i) -> bool:
 	return drift_claim_for_cell(cell) == CLAIM_FANTASY
 
 func drift_claim_for_cell(cell: Vector2i) -> int:
-	return ZoneDriftClaim.for_cell(get_tree(), cell)
+	ZoneDriftClaim.ensure_snapshot(get_tree())
+	return ZoneDriftClaim.claim_at(cell)
 
 func _refresh_dungeon_rect() -> void:
 	var level: Node = _level()

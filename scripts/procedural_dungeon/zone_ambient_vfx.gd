@@ -77,10 +77,10 @@ func _process(delta: float) -> void:
 			_play_sparkle_pops()
 
 func _on_claim_changed(_unused = null) -> void:
-	rebuild_candidates()
+	ZoneDriftClaim.queue_listener(rebuild_candidates)
 
 func _on_map_changed(_unused = null) -> void:
-	rebuild_candidates()
+	ZoneDriftClaim.queue_listener(rebuild_candidates)
 
 func rebuild_candidates() -> void:
 	rebuild_count += 1
@@ -90,18 +90,13 @@ func rebuild_candidates() -> void:
 	_sparkle_lookup.clear()
 	var tree := get_tree()
 	if tree != null:
-		for cell in _coverage_cells():
-			var claim: int = ZoneDriftClaim.for_cell(tree, cell)
-			if claim == CLAIM_REALITY:
-				if _dust_lookup.has(cell):
-					continue
-				_dust_lookup[cell] = true
-				_dust_cells.append(cell)
-			elif claim == CLAIM_FANTASY:
-				if _sparkle_lookup.has(cell):
-					continue
-				_sparkle_lookup[cell] = true
-				_sparkle_cells.append(cell)
+		ZoneDriftClaim.ensure_snapshot(tree)
+		for cell in ZoneDriftClaim.coverage_cells(CLAIM_REALITY):
+			_dust_lookup[cell] = true
+			_dust_cells.append(cell)
+		for cell in ZoneDriftClaim.coverage_cells(CLAIM_FANTASY):
+			_sparkle_lookup[cell] = true
+			_sparkle_cells.append(cell)
 	_cull_stale_pops()
 	var has_any: bool = not _dust_cells.is_empty() or not _sparkle_cells.is_empty()
 	set_physics_process(false)

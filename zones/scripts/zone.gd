@@ -15,6 +15,8 @@ var _home_overlay_root: Node2D = null
 var _home_overlay_texture: Texture2D = null
 var _queued_rect_collision: Vector2 = Vector2.ZERO
 var _rect_collision_queued: bool = false
+var _overlay_built_sig: int = 0
+var _home_overlay_by_cell: Dictionary = {}
 static var _resolving_homes: bool = false
 static var debug_claim_overlays: bool = false
 
@@ -295,21 +297,91 @@ func _apply_rect_collision_now() -> void:
 		collision_shape_2d.shape = rect_shape
 	rect_shape.size = world_size
 
+func _claim_overlay_signature() -> int:
+	var bits: Array = [home_rect, debug_claim_overlays]
+	if "claim" in self:
+		var claim = get("claim")
+		if claim != null and "pockets" in claim:
+			for pocket in claim.pockets:
+				if typeof(pocket) != TYPE_DICTIONARY:
+					continue
+				bits.append([pocket.get("id", 0), pocket.get("rect", Rect2i()), pocket.get("overlay", "")])
+	return hash(bits)
+
+
+func _should_rebuild_overlay() -> bool:
+	var sig: int = _claim_overlay_signature()
+	if sig == _overlay_built_sig:
+		return false
+	_overlay_built_sig = sig
+	return true
+
+
 func _rebuild_home_overlay() -> void:
-	_ensure_home_overlay_root()
-	_clear_overlay_children(_home_overlay_root)
+	if not _should_rebuild_overlay():
+		return
 	if _home_overlay_texture == null:
 		var path: String = HOME_OVERLAY_PATH if is_reality else FANTASY_HOME_OVERLAY_PATH
 		_home_overlay_texture = load(path) as Texture2D
 	if _home_overlay_texture == null:
 		return
-	for y in range(home_rect.position.y, home_rect.end.y):
-		for x in range(home_rect.position.x, home_rect.end.x):
-			_place_overlay_sprite(_home_overlay_root, _home_overlay_texture, Vector2i(x, y), 0, true)
+	_ensure_home_overlay_root()
+	var wanted: Dictionary = {}
+	if home_rect.size.x > 0 and home_rect.size.y > 0:
+		for y in range(home_rect.position.y, home_rect.end.y):
+			for x in range(home_rect.position.x, home_rect.end.x):
+				wanted[Vector2i(x, y)] = _home_overlay_texture
+	_sync_cell_sprites(_home_overlay_root, _home_overlay_by_cell, wanted, 0, true)
 
-func _place_overlay_sprite(parent: Node2D, texture: Texture2D, cell: Vector2i, z: int, debug_only: bool = true, overlay_material: Material = null, snap_cell_center: bool = false, world_pos: Vector2 = Vector2(INF, INF)) -> void:
-	if parent == null or texture == null:
+
+func _sync_cell_sprites(
+	root: Node2D,
+	by_cell: Dictionary,
+	wanted: Dictionary,
+	z: int,
+	debug_only: bool
+) -> void:
+	if root == null:
+		_ensure_home_overlay_root()
+		root = _home_overlay_root
+	if root == null:
 		return
+	var stale: Array = []
+	for cell in by_cell.keys():
+		if not wanted.has(cell):
+			stale.append(cell)
+	for cell in stale:
+		var old: Variant = by_cell[cell]
+		by_cell.erase(cell)
+		if old is Node and is_instance_valid(old):
+			var node: Node = old as Node
+			var node_parent: Node = node.get_parent()
+			if node_parent:
+				node_parent.remove_child(node)
+			node.queue_free()
+	for cell in wanted.keys():
+		var tex: Texture2D = wanted[cell] as Texture2D
+		if tex == null:
+			continue
+		var existing: Variant = by_cell.get(cell, null)
+		if existing is Sprite2D and is_instance_valid(existing):
+			var keep: Sprite2D = existing as Sprite2D
+			keep.position = _overlay_local_pos(cell)
+			if keep.texture != tex:
+				keep.texture = tex
+			continue
+		var sprite: Sprite2D = _place_overlay_sprite(root, tex, cell, z, debug_only)
+		if sprite:
+			by_cell[cell] = sprite
+
+
+func _overlay_local_pos(cell: Vector2i) -> Vector2:
+	return DungeonGrid.to_world(cell) - global_position + Vector2(0.0, SPRITE_GRID_Y)
+
+
+func _place_overlay_sprite(parent: Node2D, texture: Texture2D, cell: Vector2i, z: int, debug_only: bool = true, overlay_material: Material = null, snap_cell_center: bool = false, world_pos: Vector2 = Vector2(INF, INF)) -> Sprite2D:
+	if parent == null or texture == null:
+		return null
 	var sprite := Sprite2D.new()
 	sprite.texture = texture
 	sprite.centered = true
@@ -320,12 +392,14 @@ func _place_overlay_sprite(parent: Node2D, texture: Texture2D, cell: Vector2i, z
 	elif snap_cell_center:
 		sprite.position = DungeonGrid.to_world_center(cell) - global_position
 	else:
-		sprite.position = DungeonGrid.to_world(cell) - global_position + Vector2(0.0, SPRITE_GRID_Y)
+		sprite.position = _overlay_local_pos(cell)
 	sprite.set_meta("debug_claim_overlay", debug_only)
+	sprite.set_meta("overlay_cell", cell)
 	sprite.visible = (not debug_only) or debug_claim_overlays
 	if overlay_material:
 		sprite.material = overlay_material
 	parent.add_child(sprite)
+	return sprite
 
 func apply_debug_claim_overlay_visibility() -> void:
 	for root_name in ["HomeOverlay", "PocketOverlay"]:
@@ -365,6 +439,8 @@ func _ensure_home_overlay_root() -> void:
 		add_child(_home_overlay_root)
 
 func _clear_home_overlay() -> void:
+	_overlay_built_sig = 0
+	_home_overlay_by_cell.clear()
 	_clear_overlay_children(_home_overlay_root)
 
 func _home_width_from_radius() -> int:

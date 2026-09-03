@@ -17,6 +17,7 @@ const MINE_COLOR := Color(0.62, 0.58, 0.48, 1.0)
 const WALL_TINT := Color(0.14, 0.14, 0.16, 0.95)
 const PP_PIP := Color(0.25, 0.95, 0.95, 1.0)
 const DM_PIP := Color(0.95, 0.35, 0.20, 1.0)
+const PIP_POLL_SEC := 0.1
 
 @export var role_is_dm: bool = false
 ## v1 default: hide harvested stumps on the mini-map (FR-011 / T010).
@@ -37,6 +38,13 @@ var role: int:
 		role_is_dm = int(v) == 1
 
 var _visible_map: bool = true
+var _pip_poll_t: float = 0.0
+var _world_fingerprint: int = 0
+var _doodad_fp: int = 0
+var _doodad_cache_ready: bool = false
+var _cached_tree_cells: Array[Vector2i] = []
+var _cached_mine_cells: Array[Vector2i] = []
+var _cached_wall_cells: Array[Vector2i] = []
 var _tex_fog: Texture2D
 var _tex_reality: Texture2D
 var _tex_fantasy: Texture2D
@@ -72,12 +80,8 @@ func _ready() -> void:
 	_load_art_textures()
 	_ensure_map_view_drawer()
 	_connect_reveal_signals()
-	if not SignalBus.map_bounds_committed.is_connected(_on_bounds_changed):
-		SignalBus.map_bounds_committed.connect(_on_bounds_changed)
-	if not SignalBus.map_bounds_cleared.is_connected(_on_bounds_cleared):
-		SignalBus.map_bounds_cleared.connect(_on_bounds_cleared)
-	set_process(true)
-	# Keep F10 debug reveal reachable even if a parent pauses the tree.
+	_connect_world_dirty_signals()
+	_refresh_process_state()
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_ensure_debug_reveal_action()
 	set_process_input(true)
@@ -101,7 +105,10 @@ func is_map_visible() -> bool:
 func set_map_visible(on: bool) -> void:
 	_visible_map = on
 	visible = on
-	_queue_map_redraw()
+	_refresh_process_state()
+	if on:
+		_world_fingerprint = 0
+		_queue_map_redraw()
 
 
 func toggle_map() -> void:
@@ -218,8 +225,39 @@ func _connect_reveal_signals() -> void:
 		reveal.reveal_changed.connect(_on_reveal_changed)
 
 
+func _connect_world_dirty_signals() -> void:
+	_bind_bus("map_bounds_committed", _on_bounds_changed)
+	_bind_bus("map_bounds_cleared", _on_bounds_cleared)
+	_bind_bus("reality_claim_changed", _on_claim_changed)
+	_bind_bus("fantasy_claim_changed", _on_claim_changed)
+	_bind_bus("reality_home_changed", _on_claim_changed)
+	_bind_bus("fantasy_home_changed", _on_claim_changed)
+	_bind_bus("dungeon_generation_succeeded", _on_world_content_changed)
+	_bind_bus("player_registered", _on_world_content_changed)
+	_bind_bus("player_unregistered", _on_world_content_changed)
+	_bind_bus("player_died", _on_world_content_changed)
+	_bind_bus("player_respawned", _on_world_content_changed)
+
+
+func _bind_bus(signal_name: String, cb: Callable) -> void:
+	if not SignalBus.has_signal(signal_name):
+		return
+	if not SignalBus.is_connected(signal_name, cb):
+		SignalBus.connect(signal_name, cb)
+
+
 func _reveal() -> Node:
 	return get_node_or_null("/root/MinimapReveal")
+
+
+func _should_paint() -> bool:
+	return _visible_map and _hud_layer_active()
+
+
+func _refresh_process_state() -> void:
+	set_process(_visible_map)
+	if _visible_map:
+		_pip_poll_t = PIP_POLL_SEC
 
 
 func _on_reveal_changed(_role: String = "") -> void:
@@ -227,21 +265,84 @@ func _on_reveal_changed(_role: String = "") -> void:
 
 
 func _on_bounds_changed(_interior: Rect2i = Rect2i()) -> void:
+	_world_fingerprint = 0
+	_doodad_cache_ready = false
 	_queue_map_redraw()
 
 
 func _on_bounds_cleared() -> void:
+	_world_fingerprint = 0
 	_queue_map_redraw()
 
 
-func _process(_delta: float) -> void:
-	if _visible_map:
-		_queue_map_redraw()
+func _on_claim_changed(_unused = null) -> void:
+	_queue_map_redraw()
+
+
+func _on_world_content_changed(_a = null, _b = null, _c = null) -> void:
+	_world_fingerprint = 0
+	_queue_map_redraw()
+
+
+func _process(delta: float) -> void:
+	if not _visible_map:
+		set_process(false)
+		return
+	if not _hud_layer_active():
+		_world_fingerprint = 0
+		_pip_poll_t = PIP_POLL_SEC
+		return
+	_pip_poll_t += delta
+	if _pip_poll_t < PIP_POLL_SEC:
+		return
+	_pip_poll_t = 0.0
+	var fp: int = _world_content_fingerprint()
+	if fp == _world_fingerprint:
+		return
+	_world_fingerprint = fp
+	_queue_map_redraw()
 
 
 func _queue_map_redraw() -> void:
+	if not _should_paint():
+		return
 	if _map_view:
 		_map_view.queue_redraw()
+
+
+func _world_content_fingerprint() -> int:
+	var tree := get_tree()
+	if tree == null:
+		return 0
+	var h: int = 0
+	for node in tree.get_nodes_in_group("players"):
+		h = hash([h, _marker_fingerprint(node)])
+	if DmManager.dm != null:
+		h = hash([h, _marker_fingerprint(DmManager.dm)])
+	else:
+		var dm_node: Node = tree.get_first_node_in_group("dm")
+		if dm_node == null:
+			dm_node = tree.get_first_node_in_group("DungeonMaster")
+		h = hash([h, _marker_fingerprint(dm_node)])
+	h = hash([
+		h,
+		tree.get_nodes_in_group("buildings").size(),
+		tree.get_nodes_in_group("scattered_trees").size(),
+		tree.get_nodes_in_group("exit_forest_trees").size(),
+		tree.get_nodes_in_group("scattered_mines").size(),
+		tree.get_nodes_in_group("mines").size(),
+		tree.get_nodes_in_group("generated_dungeon_tiles").size(),
+	])
+	return h
+
+
+func _marker_fingerprint(node: Node) -> Array:
+	if node == null or not is_instance_valid(node) or not (node is Node2D):
+		return [0, 0, 0, 0]
+	var n2: Node2D = node as Node2D
+	var cell: Vector2i = DungeonGrid.from_world(n2.global_position)
+	var alive: int = 1 if _marker_actor_alive(node) else 0
+	return [node.get_instance_id(), cell.x, cell.y, alive]
 
 
 func _on_map_view_draw() -> void:
@@ -250,6 +351,8 @@ func _on_map_view_draw() -> void:
 
 ## Called by MapView._draw()
 func paint_map(ci: Control) -> void:
+	if not _visible_map:
+		return
 	var size_v: Vector2 = ci.size
 	if size_v.x <= 0.0 or size_v.y <= 0.0:
 		return
@@ -273,6 +376,8 @@ func paint_map(ci: Control) -> void:
 	)
 	var reveal: Node = _reveal()
 	var tree := get_tree()
+	if tree != null:
+		ZoneDriftClaim.ensure_snapshot(tree)
 
 	for y in range(interior.position.y, interior.end.y):
 		for x in range(interior.position.x, interior.end.x):
@@ -284,7 +389,6 @@ func paint_map(ci: Control) -> void:
 			var cell_rect := Rect2(local, Vector2(cell_px, cell_px))
 			var revealed := false
 			if debug_reveal_all:
-				# DEBUG: local paint override — do not touch MinimapReveal sets.
 				revealed = true
 			elif reveal != null:
 				if role_is_dm:
@@ -295,9 +399,7 @@ func paint_map(ci: Control) -> void:
 				_paint_fog(ci, cell_rect)
 				continue
 			ci.draw_rect(cell_rect, REVEALED_BASE, true)
-			var claim := ZoneDriftClaim.CLAIM_NONE
-			if tree != null:
-				claim = ZoneDriftClaim.for_cell(tree, cell)
+			var claim: int = ZoneDriftClaim.claim_at(cell)
 			if claim == ZoneDriftClaim.CLAIM_REALITY:
 				_paint_wash(ci, cell_rect, _tex_reality, REALITY_WASH)
 			elif claim == ZoneDriftClaim.CLAIM_FANTASY:
@@ -363,92 +465,109 @@ func _draw_mines(ci: Control, interior: Rect2i, cell_px: float, origin: Vector2,
 		_draw_pip_tex(ci, center, cell_px, _tex_mine, MINE_COLOR)
 
 
-## Harness / debug: living scattered + exit-forest (+ skill) trees on revealed cells (stumps off by default).
 func collect_revealed_tree_cells(reveal: Node, interior: Rect2i = Rect2i()) -> Array[Vector2i]:
+	if interior == Rect2i():
+		interior = _interior_rect()
+	_refresh_doodad_cache()
+	return _filter_revealed_cells(_cached_tree_cells, reveal, interior)
+
+
+func collect_revealed_mine_cells(reveal: Node, interior: Rect2i = Rect2i()) -> Array[Vector2i]:
+	if interior == Rect2i():
+		interior = _interior_rect()
+	_refresh_doodad_cache()
+	return _filter_revealed_cells(_cached_mine_cells, reveal, interior)
+
+
+func collect_revealed_wall_cells(reveal: Node, interior: Rect2i = Rect2i()) -> Array[Vector2i]:
+	if interior == Rect2i():
+		interior = _interior_rect()
+	_refresh_doodad_cache()
+	return _filter_revealed_cells(_cached_wall_cells, reveal, interior)
+
+
+func _filter_revealed_cells(cells: Array[Vector2i], reveal: Node, interior: Rect2i) -> Array[Vector2i]:
+	var out: Array[Vector2i] = []
+	for cell in cells:
+		if interior.size.x > 0 and not interior.has_point(cell):
+			continue
+		if not _cell_revealed(reveal, cell):
+			continue
+		out.append(cell)
+	return out
+
+
+func _refresh_doodad_cache() -> void:
+	var fp: int = _doodad_fingerprint()
+	if fp == _doodad_fp and _doodad_cache_ready:
+		return
+	_doodad_fp = fp
+	_doodad_cache_ready = true
+	_cached_tree_cells = _collect_group_cells(
+		["scattered_trees", "exit_forest_trees", "skill_trees", "exit_forest_skill_trees"],
+		"is_stump",
+		not show_tree_stumps
+	)
+	_cached_mine_cells = _collect_group_cells(["scattered_mines", "mines"], "is_depleted", true)
+	_cached_wall_cells = _collect_wall_cells()
+
+
+func _doodad_fingerprint() -> int:
+	var tree := get_tree()
+	if tree == null:
+		return 0
+	return hash([
+		show_tree_stumps,
+		tree.get_nodes_in_group("scattered_trees").size(),
+		tree.get_nodes_in_group("exit_forest_trees").size(),
+		tree.get_nodes_in_group("skill_trees").size(),
+		tree.get_nodes_in_group("exit_forest_skill_trees").size(),
+		tree.get_nodes_in_group("scattered_mines").size(),
+		tree.get_nodes_in_group("mines").size(),
+		tree.get_nodes_in_group("generated_dungeon_tiles").size(),
+		tree.get_nodes_in_group("wall").size(),
+	])
+
+
+func _collect_group_cells(groups: Array, skip_prop: String, skip_if_true: bool) -> Array[Vector2i]:
 	var out: Array[Vector2i] = []
 	var tree := get_tree()
 	if tree == null:
 		return out
-	if interior == Rect2i():
-		interior = _interior_rect()
 	var seen: Dictionary = {}
-	for group_name in ["scattered_trees", "exit_forest_trees", "skill_trees", "exit_forest_skill_trees"]:
-		for node in tree.get_nodes_in_group(group_name):
+	for group_name in groups:
+		for node in tree.get_nodes_in_group(str(group_name)):
 			if not (node is Node2D):
 				continue
-			if "is_stump" in node and bool(node.get("is_stump")) and not show_tree_stumps:
+			if skip_if_true and skip_prop != "" and skip_prop in node and bool(node.get(skip_prop)):
 				continue
 			var cell: Vector2i = DungeonGrid.from_world((node as Node2D).global_position)
 			if seen.has(cell):
-				continue
-			if interior.size.x > 0 and not interior.has_point(cell):
-				continue
-			if not _cell_revealed(reveal, cell):
 				continue
 			seen[cell] = true
 			out.append(cell)
 	return out
 
 
-## Harness / debug: active scattered mines on revealed cells (depleted omitted).
-func collect_revealed_mine_cells(reveal: Node, interior: Rect2i = Rect2i()) -> Array[Vector2i]:
+func _collect_wall_cells() -> Array[Vector2i]:
 	var out: Array[Vector2i] = []
 	var tree := get_tree()
 	if tree == null:
 		return out
-	if interior == Rect2i():
-		interior = _interior_rect()
 	var seen: Dictionary = {}
-	var nodes: Array = []
-	for node in tree.get_nodes_in_group("scattered_mines"):
-		nodes.append(node)
-	for node in tree.get_nodes_in_group("mines"):
-		if not nodes.has(node):
-			nodes.append(node)
-	for node in nodes:
-		if not (node is Node2D):
-			continue
-		if "is_depleted" in node and bool(node.get("is_depleted")):
+	for node in tree.get_nodes_in_group("generated_dungeon_tiles"):
+		if not (node is Node2D) or not ("wall_type" in node):
 			continue
 		var cell: Vector2i = DungeonGrid.from_world((node as Node2D).global_position)
 		if seen.has(cell):
-			continue
-		if interior.size.x > 0 and not interior.has_point(cell):
-			continue
-		if not _cell_revealed(reveal, cell):
 			continue
 		seen[cell] = true
 		out.append(cell)
-	return out
-
-
-## Harness / debug: dungeon wall footprint cells that are revealed.
-## Real walls are WallDoodad under generated_dungeon_tiles (have wall_type).
-## Group "wall" is also accepted for harness / authored markers.
-func collect_revealed_wall_cells(reveal: Node, interior: Rect2i = Rect2i()) -> Array[Vector2i]:
-	var out: Array[Vector2i] = []
-	var tree := get_tree()
-	if tree == null:
-		return out
-	if interior == Rect2i():
-		interior = _interior_rect()
-	var seen: Dictionary = {}
-	var nodes: Array = []
-	for node in tree.get_nodes_in_group("generated_dungeon_tiles"):
-		if "wall_type" in node:
-			nodes.append(node)
 	for node in tree.get_nodes_in_group("wall"):
-		if not nodes.has(node):
-			nodes.append(node)
-	for node in nodes:
 		if not (node is Node2D):
 			continue
 		var cell: Vector2i = DungeonGrid.from_world((node as Node2D).global_position)
 		if seen.has(cell):
-			continue
-		if interior.size.x > 0 and not interior.has_point(cell):
-			continue
-		if not _cell_revealed(reveal, cell):
 			continue
 		seen[cell] = true
 		out.append(cell)

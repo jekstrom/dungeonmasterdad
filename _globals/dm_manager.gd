@@ -558,13 +558,11 @@ func _host_set_mana(value: int) -> void:
 
 func update_fantasy_level(level_inc: int) -> void:
 	if multiplayer.is_server():
-		fantasy_level = maxi(0, fantasy_level + level_inc)
-		request_fantasy_level_incrase.rpc(fantasy_level)
+		request_fantasy_level_incrase.rpc(maxi(0, fantasy_level + level_inc))
 		
 func unlock(unlock_name: String) -> void:
 	if multiplayer.is_server():
 		DmUnlocks.unlock(unlock_name)
-		request_fantasy_level_incrase.rpc(fantasy_level)
 		
 func is_crib_death_owned() -> bool:
 	return bool(DmUnlocks.dm_unlocks.get("crib_death", false))
@@ -642,8 +640,10 @@ func _multiplayer_spawner() -> Node:
 		
 @rpc("authority", "call_local", "reliable")
 func request_fantasy_level_incrase(new_fantasy_level: int):
-		fantasy_level = new_fantasy_level
-		fantasy_level_changed.emit(new_fantasy_level)
+	if fantasy_level == new_fantasy_level:
+		return
+	fantasy_level = new_fantasy_level
+	fantasy_level_changed.emit(new_fantasy_level)
 
 @rpc("authority", "call_local", "reliable")
 func request_mana_sync(new_current: int, new_max: int) -> void:
