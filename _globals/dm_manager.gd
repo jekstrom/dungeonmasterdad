@@ -6,6 +6,7 @@ extends Node
 signal interact_pressed
 
 const AbilityCatalog = preload("res://dm/dm_ability_catalog.gd")
+const DmNearSpawnPickerScript = preload("res://scripts/dm_near_spawn_picker.gd")
 const DEFAULT_MAX_MANA: int = 100
 const BLIZZARD_DURATION: float = 8.0
 const BLIZZARD_SLOW_FACTOR: float = 0.5
@@ -22,6 +23,7 @@ signal health_changed(new_hp: int, new_max_hp: int)
 signal respawn_countdown_changed(remaining_sec: float)
 signal spawn_gremlin_cast
 signal spawn_knight_cast
+signal spawn_goblin_cast
 var player_spawned: bool = false
 var _blizzard_effects: Array[Dictionary] = []
 var _blizzard_broadcast_queued: bool = false
@@ -112,14 +114,39 @@ func request_cast(ability_id: String) -> void:
 		request_cast_rpc.rpc_id(1, ability_id)
 
 func _server_request_cast(ability_id: String) -> void:
-	if ability_id != AbilityCatalog.GREMLIN and ability_id != AbilityCatalog.KNIGHTLING:
+	if (
+		ability_id != AbilityCatalog.GREMLIN
+		and ability_id != AbilityCatalog.KNIGHTLING
+		and ability_id != AbilityCatalog.GOBLIN
+	):
+		return
+	# US-055: fail closed — pick near-DM cells before spending mana.
+	if not _can_try_cast(ability_id):
+		return
+	var spawner: Node = _multiplayer_spawner()
+	var spawned: int = 0
+	if spawner != null and spawner.has_method("try_spawn_gremlin_near_dm"):
+		if ability_id == AbilityCatalog.GREMLIN:
+			if bool(spawner.call("try_spawn_gremlin_near_dm")):
+				spawned = 1
+		elif ability_id == AbilityCatalog.KNIGHTLING:
+			spawned = int(spawner.call("try_spawn_knights_near_dm"))
+		elif ability_id == AbilityCatalog.GOBLIN:
+			if bool(spawner.call("try_spawn_goblin_near_dm")):
+				spawned = 1
+	else:
+		# Headless / no spawner (US-014): gate on picker only, then signal.
+		spawned = _headless_near_dm_spawn_count(ability_id)
+	if spawned <= 0:
 		return
 	if not try_cast(ability_id):
 		return
 	if ability_id == AbilityCatalog.GREMLIN:
-		spawn_gremlin()
+		spawn_gremlin_cast.emit()
 	elif ability_id == AbilityCatalog.KNIGHTLING:
-		spawn_knight()
+		spawn_knight_cast.emit()
+	elif ability_id == AbilityCatalog.GOBLIN:
+		spawn_goblin_cast.emit()
 
 func launch_fireball(spell_data: Dictionary) -> bool:
 	if not multiplayer.is_server():
@@ -530,6 +557,34 @@ func spawn_gremlin() -> void:
 func spawn_knight() -> void:
 	if multiplayer.is_server():
 		spawn_knight_cast.emit()
+
+func spawn_goblin() -> void:
+	if multiplayer.is_server():
+		spawn_goblin_cast.emit()
+
+
+func _headless_near_dm_spawn_count(ability_id: String) -> int:
+	var tree := get_tree()
+	if tree == null:
+		return 0
+	var anchor: Vector2 = DmNearSpawnPickerScript.dm_anchor_world()
+	if ability_id == AbilityCatalog.KNIGHTLING:
+		var n: int = 3 if DmUnlocks.dm_unlocks.has("chain_lightning") else 1
+		var ok := 0
+		for _i in range(n):
+			var pick: Dictionary = DmNearSpawnPickerScript.pick_near_dm(tree, anchor)
+			if bool(pick.get("ok", false)):
+				ok += 1
+		return ok
+	var pick: Dictionary = DmNearSpawnPickerScript.pick_near_dm(tree, anchor)
+	return 1 if bool(pick.get("ok", false)) else 0
+
+
+func _multiplayer_spawner() -> Node:
+	var tree := get_tree()
+	if tree == null:
+		return null
+	return tree.get_first_node_in_group("multiplayer_spawner")
 		
 @rpc("authority", "call_local", "reliable")
 func request_fantasy_level_incrase(new_fantasy_level: int):
