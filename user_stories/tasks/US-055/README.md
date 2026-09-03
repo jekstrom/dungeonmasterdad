@@ -2,11 +2,11 @@
 
 **Story**: [US-055.md](../../US-055.md)  
 **Branch**: `055-dm-minion-near-spawn`  
-**Status**: Todo
+**Status**: Signed — ready for Art/Gameplay
 
 Shared host placement: **goblin / gremlin / knightling** DM summons land on a random walkable cell near the DM (Chebyshev 1–3 default), not world origin / fixed spots. US-041 exit spawns excluded.
 
-Markdown only until James signs — no Art/Gameplay handoff yet.
+James signed at `e56366a`. Defaults in the story Open defaults table are locked unless overridden.
 
 ## Order
 
