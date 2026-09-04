@@ -227,17 +227,25 @@ func update_ghost(pos: Vector2):
 func is_stunned() -> bool:
 	return stun_remaining > 0.0
 
-func apply_trap_stun(duration: float = 3.0) -> void:
-	if multiplayer.multiplayer_peer != null and not multiplayer.is_server():
-		return
-	apply_trap_stun_rpc.rpc(duration)
-
-@rpc("authority", "call_local", "reliable")
-func apply_trap_stun_rpc(duration: float) -> void:
+func begin_trap_stun(duration: float = 3.0) -> void:
 	stun_remaining = maxf(stun_remaining, maxf(0.0, duration))
 	velocity = Vector2.ZERO
 	direction = Vector2.ZERO
 	cancel_fill()
+
+func apply_trap_stun(duration: float = 3.0) -> void:
+	if multiplayer.multiplayer_peer != null and not multiplayer.is_server():
+		return
+	begin_trap_stun(duration)
+	var owner_id: int = get_multiplayer_authority()
+	if multiplayer.multiplayer_peer != null and owner_id != multiplayer.get_unique_id():
+		begin_trap_stun_rpc.rpc_id(owner_id, duration)
+
+@rpc("any_peer", "reliable")
+func begin_trap_stun_rpc(duration: float) -> void:
+	if multiplayer.get_remote_sender_id() != 1:
+		return
+	begin_trap_stun(duration)
 
 func _physics_process(_delta: float) -> void:
 	if stun_remaining > 0.0:
@@ -288,6 +296,8 @@ func blizzard_slow_factor() -> float:
 	return DmManager.blizzard_slow_factor_at(global_position)
 
 func get_move_speed() -> float:
+	if is_stunned():
+		return 0.0
 	return BASE_MOVE_SPEED * blizzard_slow_factor()
 
 func enforce_map_interior() -> void:

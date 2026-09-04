@@ -38,6 +38,8 @@ func Physics(_delta: float) -> PlayerState:
 func HandleInput(_event: InputEvent) -> PlayerState:
 	if !is_multiplayer_authority():
 		return null
+	if player.is_stunned():
+		return idle
 	if player.wants_melee_attack(_event):
 		return attack
 	if player.wants_fire_staple(_event):

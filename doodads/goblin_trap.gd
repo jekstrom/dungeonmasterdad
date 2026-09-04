@@ -15,8 +15,6 @@ const TRIGGER_RADIUS: float = 56.0
 
 func _ready() -> void:
 	add_to_group("goblin_traps")
-	y_sort_enabled = false
-	z_index = DungeonConstants.WALL_Z_INDEX
 	if area_2d:
 		if not area_2d.body_entered.is_connected(_on_body_entered):
 			area_2d.body_entered.connect(_on_body_entered)
@@ -89,8 +87,18 @@ func _spring_on(victim: Node) -> void:
 	set_physics_process(false)
 	if victim.has_method("take_damage"):
 		victim.call("take_damage", null)
-	if victim.has_method("apply_trap_stun"):
-		victim.call("apply_trap_stun", STUN_SEC)
+	var peer_id: int = victim.get_multiplayer_authority()
+	broadcast_stun.rpc(peer_id, STUN_SEC)
+
+@rpc("authority", "call_local", "reliable")
+func broadcast_stun(peer_id: int, duration: float) -> void:
+	var victim: Node = _player_for_peer(peer_id)
+	if victim == null:
+		return
+	if victim.has_method("begin_trap_stun"):
+		victim.call("begin_trap_stun", duration)
+	elif victim.has_method("apply_trap_stun"):
+		victim.call("apply_trap_stun", duration)
 
 func _player_for_peer(peer_id: int) -> Node:
 	var tree := get_tree()
