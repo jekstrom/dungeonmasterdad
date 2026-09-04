@@ -24,7 +24,6 @@
 [ext_resource type="PackedScene" uid="uid://c5oa0yy7jcgde" path="res://doodads/skill_tree.tscn" id="24_2yo0f"]
 [ext_resource type="Script" uid="uid://3wvfcisfslpa" path="res://scripts/pickup_spawner.gd" id="24_vnugj"]
 [ext_resource type="Script" uid="uid://dcbuj26qlyp1r" path="res://scripts/building_spawner.gd" id="25_building"]
-[ext_resource type="PackedScene" uid="uid://chiljsdpo1sxg" path="res://doodads/goblin_trap.tscn" id="26_3i8ot"]
 [ext_resource type="PackedScene" path="res://scenes/dungeon_generator.tscn" id="26_dungeon"]
 
 [node name="Playground" type="Node2D" unique_id=1889552422 groups=["level_manager"]]
@@ -40,7 +39,7 @@ position = Vector2(128, 1024)
 base_radius = 256.0
 
 [node name="MultiplayerSpawner" type="MultiplayerSpawner" parent="." unique_id=1543425005]
-_spawnable_scenes = PackedStringArray("uid://cof1o04wsy0rc", "uid://dsls3d0radb5f", "uid://c5avpnnd3seqn", "uid://bebn5r64gbvmg", "uid://dkgdpjfkuciox", "uid://x0idbps0g0d7")
+_spawnable_scenes = PackedStringArray("uid://cof1o04wsy0rc", "uid://dsls3d0radb5f", "uid://c5avpnnd3seqn", "uid://bebn5r64gbvmg", "uid://dkgdpjfkuciox", "uid://x0idbps0g0d7", "uid://chiljsdpo1sxg")
 spawn_path = NodePath("..")
 script = ExtResource("5_o00ia")
 network_player = ExtResource("4_is3ju")
@@ -124,5 +123,3 @@ trail_scene = ExtResource("21_u2qr3")
 position = Vector2(179.99998, 57.999996)
 scale = Vector2(0.25, 0.25)
 
-[node name="GoblinTrap" parent="." unique_id=1407936587 instance=ExtResource("26_3i8ot")]
-position = Vector2(78, 165)

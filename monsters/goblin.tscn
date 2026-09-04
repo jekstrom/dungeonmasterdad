@@ -3,6 +3,7 @@
 [ext_resource type="Script" uid="uid://lo0k5p132a1x" path="res://monsters/enemy.gd" id="1_x5s1r"]
 [ext_resource type="Texture2D" uid="uid://232gyxxnbpxm" path="res://monsters/goblin.png" id="4_a1dmc"]
 [ext_resource type="Texture2D" uid="uid://dnhaymu1d41d4" path="res://sprites/Shadow.png" id="5_qqcms"]
+[ext_resource type="Script" uid="uid://bmnavawl3vkgc" path="res://monsters/enemy_state_machine.gd" id="5_ypyf5"]
 [ext_resource type="Script" uid="uid://bmbshqqf1860f" path="res://monsters/goblin/trap_state.gd" id="5_t4ult"]
 [ext_resource type="Script" uid="uid://c7vcvctq0t7x8" path="res://monsters/states/enemy_state_idle.gd" id="6_ck5xr"]
 [ext_resource type="AudioStream" uid="uid://dyanohy44dnan" path="res://monsters/hit_00.wav" id="6_yl8ja"]
@@ -551,17 +552,19 @@ libraries/ = SubResource("AnimationLibrary_57eei")
 autoplay = &"idle_down"
 
 [node name="EnemyStateMachine" type="Node" parent="." unique_id=183023580]
-script = ExtResource("5_t4ult")
+script = ExtResource("5_ypyf5")
 
-[node name="idle" type="Node" parent="EnemyStateMachine" unique_id=354581941 node_paths=PackedStringArray("next_state", "attack_state")]
+[node name="idle" type="Node" parent="EnemyStateMachine" unique_id=354581941 node_paths=PackedStringArray("next_state", "attack_state", "trap_state")]
 script = ExtResource("6_ck5xr")
 next_state = NodePath("../wander")
 attack_state = NodePath("../aggro")
+trap_state = NodePath("../trap")
 
-[node name="wander" type="Node" parent="EnemyStateMachine" unique_id=362637644 node_paths=PackedStringArray("next_state", "attack_state")]
+[node name="wander" type="Node" parent="EnemyStateMachine" unique_id=362637644 node_paths=PackedStringArray("next_state", "attack_state", "trap_state")]
 script = ExtResource("7_ck5xr")
 next_state = NodePath("../idle")
 attack_state = NodePath("../aggro")
+trap_state = NodePath("../trap")
 
 [node name="aggro" type="Node" parent="EnemyStateMachine" unique_id=1780474407 node_paths=PackedStringArray("wander_state")]
 script = ExtResource("8_aggro")

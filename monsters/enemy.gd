@@ -27,8 +27,11 @@ var aggro_target: Node2D = null
 @export var melee_range_px: float = 128.0
 @export var raids_buildings: bool = false
 @export var health_bar_title: String = ""
+@export var trap_cooldown_sec: float = 8.0
+@export var trap_start_delay_sec: float = 3.0
 var _dying: bool = false
 var _health_bar: Node2D
+var trap_cooldown: float = 0.0
 
 const HEALTH_BAR_SCENE: PackedScene = preload("res://monsters/enemy_health_bar.tscn")
 
@@ -61,6 +64,7 @@ func _ready() -> void:
 	collision_mask = collision_mask | 16
 	if raids_buildings:
 		collision_mask = collision_mask | 1
+	trap_cooldown = trap_start_delay_sec
 
 func _process(_delta: float) -> void:
 	pass
@@ -216,13 +220,54 @@ func _is_factory_building(node: Node) -> bool:
 	return node.is_in_group("factories")
 
 
-@warning_ignore("unused_parameter")
-func _physics_process(_delta: float) -> void:
+func _physics_process(delta: float) -> void:
+	if trap_cooldown > 0.0:
+		trap_cooldown = maxf(0.0, trap_cooldown - delta)
 	if _dying:
 		velocity = Vector2.ZERO
 		return
 	move_and_slide()
 	_enforce_map_interior()
+
+func can_lay_trap() -> bool:
+	if _dying:
+		return false
+	if multiplayer.multiplayer_peer != null and not multiplayer.is_server():
+		return false
+	if not bool(DmUnlocks.dm_unlocks.get("random_encounter", false)):
+		return false
+	if trap_cooldown > 0.0:
+		return false
+	var cell: Vector2i = DungeonGridScript.from_world(global_position)
+	if _cell_is_dungeon(cell):
+		return false
+	if _trap_occupies_cell(cell):
+		return false
+	return true
+
+func mark_trap_laid() -> void:
+	trap_cooldown = trap_cooldown_sec
+
+func _cell_is_dungeon(cell: Vector2i) -> bool:
+	var tree := get_tree()
+	if tree == null:
+		return false
+	var level: Node = tree.get_first_node_in_group("level_manager")
+	if level == null or not level.has_method("dungeon_cell_bounds"):
+		return false
+	var dungeon: Rect2i = level.dungeon_cell_bounds()
+	return dungeon.size.x > 0 and dungeon.size.y > 0 and dungeon.has_point(cell)
+
+func _trap_occupies_cell(cell: Vector2i) -> bool:
+	var tree := get_tree()
+	if tree == null:
+		return false
+	for node in tree.get_nodes_in_group("goblin_traps"):
+		if not (node is Node2D) or not is_instance_valid(node):
+			continue
+		if DungeonGridScript.from_world((node as Node2D).global_position) == cell:
+			return true
+	return false
 
 func _enforce_map_interior() -> void:
 	var tree := get_tree()

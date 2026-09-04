@@ -13,6 +13,10 @@ func Exit() -> void:
 	pass
 
 func Process(_delta: float) -> PlayerState:
+	if player.is_stunned():
+		player.velocity = Vector2.ZERO
+		player.direction = Vector2.ZERO
+		return null
 	if player.is_ranged_fire_playing():
 		if player.direction != Vector2.ZERO:
 			return walk

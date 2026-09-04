@@ -9,6 +9,7 @@ class_name EnemyStateWander extends EnemyState
 @export var state_cycles_max: int = 3
 @export var next_state: EnemyState
 @export var attack_state: EnemyState
+@export var trap_state: EnemyState
 @export var enemy_node: Node2D
 
 var _timer: float = 0.0
@@ -31,6 +32,8 @@ func process(_delta: float) -> EnemyState:
 	_timer -= _delta
 	if attack_state and enemy.has_aggro_target():
 		return attack_state
+	if trap_state and enemy.can_lay_trap():
+		return trap_state
 	if _timer <= 0:
 		return next_state
 	return null

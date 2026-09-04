@@ -26,14 +26,16 @@ func _enter_tree() -> void:
 	# visibility does not ERR_BUG on clients:
 	# scene_replication_interface.cpp _update_spawn_visibility.
 	set_multiplayer_authority(1)
+	_ensure_spawnable("res://doodads/goblin_trap.tscn")
 
 func _ready() -> void:
 	add_to_group("multiplayer_spawner")
 	set_multiplayer_authority(1)
 	# US-017 T001: register in code so playground.tscn does not have to list the boss.
-	add_spawnable_scene("res://monsters/baja_boss.tscn")
-	add_spawnable_scene("res://monsters/goblin.tscn")
-	add_spawnable_scene("res://monsters/gremlin.tscn")
+	_ensure_spawnable("res://monsters/baja_boss.tscn")
+	_ensure_spawnable("res://monsters/goblin.tscn")
+	_ensure_spawnable("res://monsters/gremlin.tscn")
+	_ensure_spawnable("res://doodads/goblin_trap.tscn")
 
 	if not multiplayer.connected_to_server.is_connected(_on_connected_to_server):
 		multiplayer.connected_to_server.connect(_on_connected_to_server)
@@ -178,6 +180,34 @@ func spawn_gremlin_at(world_position: Vector2) -> Node:
 
 func _pick_near_dm() -> Dictionary:
 	return DmNearSpawnPickerScript.pick_near_dm(get_tree(), DmNearSpawnPickerScript.dm_anchor_world())
+
+
+func spawn_goblin_trap_at(world_position: Vector2) -> Node:
+	if not multiplayer.is_server():
+		return null
+	_ensure_spawnable("res://doodads/goblin_trap.tscn")
+	var packed: PackedScene = load("res://doodads/goblin_trap.tscn") as PackedScene
+	if packed == null:
+		return null
+	var trap: Node = packed.instantiate()
+	_manual_spawn_seq += 1
+	trap.name = ("trap_%d" % _manual_spawn_seq).validate_node_name()
+	if trap is Node2D:
+		(trap as Node2D).position = world_position
+	var parent: Node = get_node(spawn_path)
+	if parent == null:
+		trap.free()
+		return null
+	parent.add_child(trap, true)
+	return trap
+
+
+func _ensure_spawnable(scene_path: String) -> void:
+	for i in range(get_spawnable_scene_count()):
+		var path := str(get_spawnable_scene(i))
+		if path == scene_path or path.ends_with(scene_path.get_file()):
+			return
+	add_spawnable_scene(scene_path)
 
 
 func _spawn_minion_at(scene: PackedScene, _kind: String, world_position: Vector2, name_prefix: String) -> Node:

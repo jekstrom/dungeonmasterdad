@@ -14,6 +14,10 @@ func Exit() -> void:
 
 func Process(_delta: float) -> PlayerState:
 	if !is_multiplayer_authority(): return
+	if player.is_stunned():
+		player.velocity = Vector2.ZERO
+		player.direction = Vector2.ZERO
+		return idle
 
 	if player.direction == Vector2.ZERO:
 		return idle

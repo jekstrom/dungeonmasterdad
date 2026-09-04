@@ -21,6 +21,7 @@ func reset_unlocks() -> void:
 		"bemidji_blizzard": false,
 		"overcharged": false,
 		"crib_death": false,
+		"random_encounter": false,
 	}
 	for unlock_name in dm_unlocks.keys():
 		SignalBus.on_dm_lock.emit(str(unlock_name))

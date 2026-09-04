@@ -8,6 +8,7 @@ var cardinal_direction: Vector2 = Vector2.DOWN
 var direction: Vector2 = Vector2.ZERO
 var prev_direction: Vector2 = Vector2.ZERO
 var invulnerable: bool = false
+var stun_remaining: float = 0.0
 @export var max_hp: int = 6
 @export var hitpoints: int = 6:
 	set(value):
@@ -223,12 +224,35 @@ func update_ghost(pos: Vector2):
 	else:
 		ghost_building.modulate = Color(1, 0, 0, 0.7)
 
+func is_stunned() -> bool:
+	return stun_remaining > 0.0
+
+func apply_trap_stun(duration: float = 3.0) -> void:
+	if multiplayer.multiplayer_peer != null and not multiplayer.is_server():
+		return
+	apply_trap_stun_rpc.rpc(duration)
+
+@rpc("authority", "call_local", "reliable")
+func apply_trap_stun_rpc(duration: float) -> void:
+	stun_remaining = maxf(stun_remaining, maxf(0.0, duration))
+	velocity = Vector2.ZERO
+	direction = Vector2.ZERO
+	cancel_fill()
+
 func _physics_process(_delta: float) -> void:
+	if stun_remaining > 0.0:
+		stun_remaining = maxf(0.0, stun_remaining - _delta)
 	if !is_multiplayer_authority(): return
 	if state_machine == null or state_machine.current_state == null: return
 	var state_name: String = state_machine.current_state.name
 	if state_name == "death":
 		_queued_staple_fire = false
+		enforce_map_interior()
+		return
+	if is_stunned():
+		direction = Vector2.ZERO
+		velocity = Vector2.ZERO
+		move_and_slide()
 		enforce_map_interior()
 		return
 	
@@ -272,6 +296,8 @@ func enforce_map_interior() -> void:
 		level.enforce_body_interior(self)
 
 func apply_knockback(from: Vector2, distance: float) -> void:
+	if is_stunned():
+		return
 	if multiplayer.has_multiplayer_peer() and not multiplayer.is_server():
 		return
 	if is_multiplayer_authority() or not multiplayer.has_multiplayer_peer():
@@ -963,6 +989,8 @@ func combat_sheet_path() -> String:
 
 
 func is_combat_locked() -> bool:
+	if is_stunned():
+		return true
 	if _form_choice != null and is_instance_valid(_form_choice):
 		return true
 	if current_building_data:
