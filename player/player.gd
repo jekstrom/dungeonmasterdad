@@ -9,6 +9,8 @@ var direction: Vector2 = Vector2.ZERO
 var prev_direction: Vector2 = Vector2.ZERO
 var invulnerable: bool = false
 var stun_remaining: float = 0.0
+var _stun_vfx: Node2D = null
+var _stun_spin: float = 0.0
 @export var max_hp: int = 6
 @export var hitpoints: int = 6:
 	set(value):
@@ -163,6 +165,7 @@ func update_client_name(n, c):
 	sync_color = c
 	
 func _process(_delta: float) -> void:
+	_update_stun_vfx(_delta)
 	if multiplayer.is_server():
 		tick_fill(_delta)
 	elif _filling:
@@ -232,6 +235,52 @@ func begin_trap_stun(duration: float = 3.0) -> void:
 	velocity = Vector2.ZERO
 	direction = Vector2.ZERO
 	cancel_fill()
+	_ensure_stun_vfx()
+	_update_stun_vfx(0.0)
+
+func _ensure_stun_vfx() -> void:
+	if _stun_vfx != null and is_instance_valid(_stun_vfx):
+		return
+	_stun_vfx = Node2D.new()
+	_stun_vfx.name = "StunVfx"
+	_stun_vfx.z_as_relative = false
+	_stun_vfx.z_index = 8
+	_stun_vfx.position = Vector2(0.0, -58.0)
+	_stun_vfx.visible = false
+	add_child(_stun_vfx)
+	var count: int = 6
+	for i in range(count):
+		var ang: float = TAU * float(i) / float(count)
+		var inner: Vector2 = Vector2.from_angle(ang) * 9.0
+		var outer: Vector2 = Vector2.from_angle(ang) * 18.0
+		var outline := Line2D.new()
+		outline.width = 4.0
+		outline.default_color = Color(0.12, 0.08, 0.04, 0.9)
+		outline.antialiased = false
+		outline.add_point(inner)
+		outline.add_point(outer)
+		_stun_vfx.add_child(outline)
+		var line := Line2D.new()
+		line.width = 2.0
+		line.default_color = Color(1.0, 0.94, 0.35, 1.0)
+		line.antialiased = false
+		line.add_point(inner)
+		line.add_point(outer)
+		_stun_vfx.add_child(line)
+
+func _update_stun_vfx(delta: float) -> void:
+	var show_vfx: bool = is_stunned()
+	if sprite != null and not sprite.visible:
+		show_vfx = false
+	if not show_vfx:
+		if _stun_vfx != null and is_instance_valid(_stun_vfx):
+			_stun_vfx.visible = false
+		return
+	_ensure_stun_vfx()
+	_stun_vfx.visible = true
+	_stun_spin += delta * 7.5
+	_stun_vfx.rotation = _stun_spin
+	_stun_vfx.position = Vector2(0.0, -58.0 + sin(_stun_spin * 2.2) * 2.0)
 
 func apply_trap_stun(duration: float = 3.0) -> void:
 	if multiplayer.multiplayer_peer != null and not multiplayer.is_server():
@@ -1208,6 +1257,8 @@ func _on_player_respawn_completed(player_id: int, respawn_position: Vector2) -> 
 	velocity = Vector2.ZERO
 	hitpoints = max_hp
 	invulnerable = false
+	stun_remaining = 0.0
+	_update_stun_vfx(0.0)
 	if multiplayer.is_server():
 		sync_hitpoints.rpc(hitpoints)
 	
