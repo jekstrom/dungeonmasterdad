@@ -32,11 +32,23 @@ func _ready() -> void:
 	if generate_on_host_started:
 		if not Lobby.host_started.is_connected(_on_host_started):
 			Lobby.host_started.connect(_on_host_started)
+	if not SignalBus.dungeon_generation_failed.is_connected(_on_generation_failed):
+		SignalBus.dungeon_generation_failed.connect(_on_generation_failed)
+	if not SignalBus.dungeon_generation_succeeded.is_connected(_on_generation_succeeded):
+		SignalBus.dungeon_generation_succeeded.connect(_on_generation_succeeded)
 	if generate_on_ready or generate_on_host_started:
 		call_deferred("generate")
 
 func _on_host_started(_player_name: String = "") -> void:
 	generate()
+
+
+func _on_generation_succeeded(_request_id: String, _layout_id: String) -> void:
+	_requested = true
+
+
+func _on_generation_failed(_request_id: String, _error_code: String, _message: String) -> void:
+	_requested = false
 
 func generate() -> void:
 	if _requested:
