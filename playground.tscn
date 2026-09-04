@@ -8,8 +8,8 @@
 [ext_resource type="Script" uid="uid://b2nf43frwech" path="res://scripts/multiplayer_spawner.gd" id="5_o00ia"]
 [ext_resource type="PackedScene" uid="uid://dsls3d0radb5f" path="res://dm/dm.tscn" id="5_ynsuh"]
 [ext_resource type="PackedScene" uid="uid://ckwsvw4g8ewvf" path="res://game.tscn" id="6_4bqqs"]
+[ext_resource type="PackedScene" uid="uid://x0idbps0g0d7" path="res://monsters/gremlin.tscn" id="7_gremlin"]
 [ext_resource type="PackedScene" uid="uid://c5avpnnd3seqn" path="res://monsters/goblin.tscn" id="7_h1jm5"]
-[ext_resource type="PackedScene" uid="uid://bq7gremlin013us" path="res://monsters/gremlin.tscn" id="7_gremlin"]
 [ext_resource type="PackedScene" uid="uid://dcevmqir2nyr6" path="res://gui/hud.tscn" id="8_v7dth"]
 [ext_resource type="PackedScene" uid="uid://f15sgptli5oi" path="res://gui/dm/dm_hud.tscn" id="9_pi42a"]
 [ext_resource type="PackedScene" uid="uid://bglfuu7ga823v" path="res://gui/player/player_hud.tscn" id="12_te8jg"]
@@ -24,6 +24,7 @@
 [ext_resource type="PackedScene" uid="uid://c5oa0yy7jcgde" path="res://doodads/skill_tree.tscn" id="24_2yo0f"]
 [ext_resource type="Script" uid="uid://3wvfcisfslpa" path="res://scripts/pickup_spawner.gd" id="24_vnugj"]
 [ext_resource type="Script" uid="uid://dcbuj26qlyp1r" path="res://scripts/building_spawner.gd" id="25_building"]
+[ext_resource type="PackedScene" uid="uid://chiljsdpo1sxg" path="res://doodads/goblin_trap.tscn" id="26_3i8ot"]
 [ext_resource type="PackedScene" path="res://scenes/dungeon_generator.tscn" id="26_dungeon"]
 
 [node name="Playground" type="Node2D" unique_id=1889552422 groups=["level_manager"]]
@@ -39,14 +40,14 @@ position = Vector2(128, 1024)
 base_radius = 256.0
 
 [node name="MultiplayerSpawner" type="MultiplayerSpawner" parent="." unique_id=1543425005]
-_spawnable_scenes = PackedStringArray("uid://cof1o04wsy0rc", "uid://dsls3d0radb5f", "uid://c5avpnnd3seqn", "uid://bebn5r64gbvmg", "uid://dkgdpjfkuciox", "uid://bq7gremlin013us")
+_spawnable_scenes = PackedStringArray("uid://cof1o04wsy0rc", "uid://dsls3d0radb5f", "uid://c5avpnnd3seqn", "uid://bebn5r64gbvmg", "uid://dkgdpjfkuciox", "uid://x0idbps0g0d7")
 spawn_path = NodePath("..")
 script = ExtResource("5_o00ia")
 network_player = ExtResource("4_is3ju")
 dm_player = ExtResource("5_ynsuh")
 gremlin = ExtResource("7_gremlin")
-goblin = ExtResource("7_h1jm5")
 knight = ExtResource("22_ymgag")
+goblin = ExtResource("7_h1jm5")
 
 [node name="DungeonGenerator" parent="." unique_id=281097532 instance=ExtResource("26_dungeon")]
 generate_on_ready = false
@@ -122,3 +123,6 @@ trail_scene = ExtResource("21_u2qr3")
 [node name="SkillTree" parent="." unique_id=1730333370 instance=ExtResource("24_2yo0f")]
 position = Vector2(179.99998, 57.999996)
 scale = Vector2(0.25, 0.25)
+
+[node name="GoblinTrap" parent="." unique_id=1407936587 instance=ExtResource("26_3i8ot")]
+position = Vector2(78, 165)
