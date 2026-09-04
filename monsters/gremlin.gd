@@ -64,7 +64,7 @@ func _ready() -> void:
 	_ensure_poof()
 	_ensure_carry_visual()
 	_configure_carry_replication()
-	if DmUnlocks.dm_unlocks.has("blind_one_legged_monkeys"):
+	if DmUnlocks.is_owned("blind_one_legged_monkeys"):
 		move_speed = move_speed_upgraded
 	if multiplayer.is_server():
 		phase = RelocatePhase.SEEK
@@ -119,7 +119,7 @@ func _take_damage(hurt_box: Hurtbox) -> void:
 
 func _tick_seek(delta: float) -> void:
 	var carry_capacity = 1
-	if DmUnlocks.dm_unlocks.has("minions"):
+	if DmUnlocks.is_owned("minions"):
 		carry_capacity = 2
 	if carried_item_path and carried_item_path[0] != "" and carried_item_path.size() >= carry_capacity:
 		print("go to carry")
@@ -150,7 +150,7 @@ func _tick_pick(delta: float) -> void:
 		return
 		
 	var carry_capacity = 1
-	if DmUnlocks.dm_unlocks.has("minions"):
+	if DmUnlocks.is_owned("minions"):
 		carry_capacity = 2
 		
 	if _target_pickup != null and is_instance_valid(_target_pickup) and _is_claimable(_target_pickup):

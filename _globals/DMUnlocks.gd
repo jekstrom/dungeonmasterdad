@@ -1,5 +1,7 @@
 extends Node
 
+const SkillTreeCatalogScript = preload("res://dm/skill_tree_catalog.gd")
+
 var dm_unlocks = {}
 
 func _ready() -> void:
@@ -19,12 +21,15 @@ func reset_unlocks() -> void:
 		"shadow_zone": false,
 		"knightling": false,
 		"bemidji_blizzard": false,
-		"overcharged": false,
-		"crib_death": false,
-		"random_encounter": false,
 	}
+	for node_id in SkillTreeCatalogScript.all_ids():
+		dm_unlocks[node_id] = false
 	for unlock_name in dm_unlocks.keys():
 		SignalBus.on_dm_lock.emit(str(unlock_name))
+
+
+func is_owned(unlock_name: String) -> bool:
+	return bool(dm_unlocks.get(unlock_name, false))
 
 func snapshot() -> Dictionary:
 	return dm_unlocks.duplicate()
