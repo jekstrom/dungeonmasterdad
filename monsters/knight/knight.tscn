@@ -170,6 +170,7 @@ metadata/_snap_count = 14
 collision_layer = 256
 collision_mask = 16
 script = ExtResource("1_k4rco")
+upgraded_max_hp = 4
 damage = 1000
 
 [node name="Sprite2D" type="Sprite2D" parent="." unique_id=1914717272]

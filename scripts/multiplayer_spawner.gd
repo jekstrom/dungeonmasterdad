@@ -162,6 +162,7 @@ func try_spawn_goblin_near_dm() -> bool:
 	var pick: Dictionary = _pick_near_dm()
 	if not bool(pick.get("ok", false)):
 		return false
+
 	_spawn_minion_at(scene, "goblin", pick["world"], "goblin")
 	return true
 

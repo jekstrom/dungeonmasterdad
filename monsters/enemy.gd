@@ -15,6 +15,7 @@ var player: Player
 var invulnerable: bool = false
 var aggro_target: Node2D = null
 
+@export var upgraded_max_hp: int = 10
 @export var max_hp: int = 4
 @export var hp: int = 4:
 	set(value):
@@ -44,6 +45,10 @@ func _ready() -> void:
 	if max_hp <= 0:
 		max_hp = 1
 	hp = mini(hp, max_hp)
+	if DmUnlocks.dm_unlocks.has("challenge_rating") and upgraded_max_hp > max_hp:
+		max_hp = upgraded_max_hp
+		hp = upgraded_max_hp
+		health_bar_title = str(max_hp)
 	enemy_state_machine.initialize(self)
 	player = PlayerManager.player
 	_spawn_health_bar()

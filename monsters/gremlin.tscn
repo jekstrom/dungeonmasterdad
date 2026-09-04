@@ -87,6 +87,7 @@ collision_layer = 4
 collision_mask = 16
 script = ExtResource("1_grem")
 inland_bias_strength = 0.0
+upgraded_max_hp = 4
 health_bar_title = "Gremlin"
 
 [node name="Sprite2D" type="Sprite2D" parent="." unique_id=1740566042]
