@@ -33,3 +33,33 @@ static func failure_codes() -> PackedStringArray:
 
 static func is_valid_failure_code(error_code: String) -> bool:
 	return failure_codes().has(error_code)
+
+
+static func error_payload(request_id: String, error_code: String, message: String) -> Dictionary:
+	return {
+		"ok": false,
+		"requestId": request_id,
+		"error_code": error_code,
+		"code": error_code,
+		"message": message
+	}
+
+
+static func lifecycle_name(state: int) -> String:
+	match state:
+		GenerationLifecycleState.RECEIVED:
+			return "received"
+		GenerationLifecycleState.VALIDATED:
+			return "validated"
+		GenerationLifecycleState.GENERATING_LAYOUT:
+			return "generating_layout"
+		GenerationLifecycleState.VALIDATED_LAYOUT:
+			return "validated_layout"
+		GenerationLifecycleState.POPULATING_SPAWNS:
+			return "populating_spawns"
+		GenerationLifecycleState.COMMITTED:
+			return "committed"
+		GenerationLifecycleState.REJECTED:
+			return "rejected"
+		_:
+			return "unknown"
