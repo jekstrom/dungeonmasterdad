@@ -24,7 +24,7 @@ const UNLOCK_DAD_ALL_POWERFUL: String = "dad_all_powerful"
 const ABILITIES: Dictionary = {
 	GREMLIN: {"cost": COST_GREMLIN, "unlock_id": ""},
 	KNIGHTLING: {"cost": COST_KNIGHTLING, "unlock_id": UNLOCK_KNIGHTLING},
-	#GOBLIN: {"cost": COST_GOBLIN, "unlock_id": ""},
+	GOBLIN: {"cost": COST_GOBLIN, "unlock_id": ""},
 	FIREBALL: {"cost": COST_FIREBALL, "unlock_id": UNLOCK_FIREBALL},
 	BEMIDJI_BLIZZARD: {"cost": COST_BEMIDJI_BLIZZARD, "unlock_id": UNLOCK_BEMIDJI_BLIZZARD},
 	DAD_ALL_POWERFUL: {"cost": COST_DAD_ALL_POWERFUL, "unlock_id": UNLOCK_DAD_ALL_POWERFUL},

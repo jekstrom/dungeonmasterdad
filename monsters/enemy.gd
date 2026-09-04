@@ -23,6 +23,7 @@ var aggro_target: Node2D = null
 		_refresh_health_bar()
 @export var aggro_faction: AggroFaction = AggroFaction.DM
 @export var damage: int = 1
+@export var upgraded_damage: int = 1
 @export var melee_range_px: float = 128.0
 @export var raids_buildings: bool = false
 @export var health_bar_title: String = ""
@@ -48,7 +49,8 @@ func _ready() -> void:
 	if DmUnlocks.dm_unlocks.has("challenge_rating") and upgraded_max_hp > max_hp:
 		max_hp = upgraded_max_hp
 		hp = upgraded_max_hp
-		health_bar_title = str(max_hp)
+	if DmUnlocks.dm_unlocks.has("plus_one_swords") and upgraded_max_hp > max_hp:
+		damage = upgraded_damage
 	enemy_state_machine.initialize(self)
 	player = PlayerManager.player
 	_spawn_health_bar()

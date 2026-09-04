@@ -1,7 +1,5 @@
 class_name DmNearSpawnPicker
 extends RefCounted
-## US-055: host-only near-DM walkable cell picker (Chebyshev band + soft inland bias).
-## Does not instantiate. Fail closed when no eligible cell.
 
 const MIN_CHEBYSHEV: int = 0
 const MAX_CHEBYSHEV: int = 1

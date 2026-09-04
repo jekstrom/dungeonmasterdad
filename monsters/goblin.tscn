@@ -526,6 +526,7 @@ collision_mask = 17
 motion_mode = 1
 script = ExtResource("1_x5s1r")
 aggro_faction = 1
+upgraded_damage = 3
 raids_buildings = true
 
 [node name="Sprite2D" type="Sprite2D" parent="." unique_id=1746817978]
