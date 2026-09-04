@@ -2,9 +2,9 @@
 
 **Story**: [US-054.md](../../US-054.md)  
 **Branch**: `054-skill-tree-spend`  
-**Status**: Todo
+**Status**: In progress (Gameplay T001–T005; T006 art pending, text fallback in T003)
 
-Host-authoritative SP spend for **both** DM and Dad trees: col costs 1/2/3, Row2 FL≥10, Row3 FL≥50 (no Reality Level gate), ultimate needs one unlock per row + 5 SP. Shared SP pool starts at 0; +1 SP per +1 FL. Passive **effects** stay US-036–053.
+Host-authoritative SP spend for **both** DM and Dad trees: col costs 1/2/3, Row2 FL≥10, Row3 FL≥50 (no Reality Level gate), ultimate needs one unlock per row + 5 SP. Shared SP pool starts at 0; +1 SP per 10 FL. Passive **effects** stay US-036–053.
 
 Markdown only until James signs — no Art/Gameplay handoff ping yet.
 

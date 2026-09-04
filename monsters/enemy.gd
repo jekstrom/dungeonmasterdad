@@ -49,10 +49,10 @@ func _ready() -> void:
 	if max_hp <= 0:
 		max_hp = 1
 	hp = mini(hp, max_hp)
-	if DmUnlocks.dm_unlocks.has("challenge_rating") and upgraded_max_hp > max_hp:
+	if DmUnlocks.is_owned("challenge_rating") and upgraded_max_hp > max_hp:
 		max_hp = upgraded_max_hp
 		hp = upgraded_max_hp
-	if DmUnlocks.dm_unlocks.has("plus_one_swords") and upgraded_max_hp > max_hp:
+	if DmUnlocks.is_owned("plus_one_swords") and upgraded_max_hp > max_hp:
 		damage = upgraded_damage
 	enemy_state_machine.initialize(self)
 	player = PlayerManager.player

@@ -141,7 +141,7 @@ func try_spawn_knights_near_dm() -> int:
 	if knight == null:
 		return 0
 	var number_knights := 1
-	if DmUnlocks.dm_unlocks.has("chain_lightning"):
+	if DmUnlocks.is_owned("chain_lightning"):
 		number_knights = 3
 	var spawned := 0
 	for _n in range(number_knights):
@@ -480,7 +480,7 @@ func _sync_global_state_to_peer(id: int) -> void:
 	if DmManager.dm:
 		dm_hp = int(DmManager.dm.hitpoints)
 		dm_max = int(DmManager.dm.max_hp)
-	sync_global_state.rpc_id(id, DmManager.fantasy_level, DmManager.current_mana, DmManager.max_mana, DmUnlocks.snapshot(), int(PlayerManager.reality_level), dm_hp, dm_max)
+	sync_global_state.rpc_id(id, DmManager.fantasy_level, DmManager.current_mana, DmManager.max_mana, DmUnlocks.snapshot(), int(PlayerManager.reality_level), dm_hp, dm_max, DmManager.skill_points)
 	DmManager.sync_blizzard_to_peer(id)
 	if MinimapReveal:
 		var is_dm := false
@@ -489,7 +489,7 @@ func _sync_global_state_to_peer(id: int) -> void:
 		MinimapReveal.send_late_join_snapshot(id, is_dm)
 
 @rpc("authority", "call_local", "reliable")
-func sync_global_state(f: int, mana: int = 0, mana_max: int = 100, unlocks: Dictionary = {}, reality_lv: int = -1, dm_hp: int = -1, dm_max_hp: int = -1) -> void:
+func sync_global_state(f: int, mana: int = 0, mana_max: int = 100, unlocks: Dictionary = {}, reality_lv: int = -1, dm_hp: int = -1, dm_max_hp: int = -1, skill_pts: int = 0) -> void:
 	DmManager.fantasy_level = f
 	DmManager.fantasy_level_changed.emit(f)
 	DmManager.apply_replicated_mana(mana, mana_max)
@@ -500,3 +500,4 @@ func sync_global_state(f: int, mana: int = 0, mana_max: int = 100, unlocks: Dict
 		PlayerManager.reality_level_changed.emit(reality_lv)
 	if dm_hp >= 0 and dm_max_hp >= 0:
 		DmManager.apply_replicated_health(dm_hp, dm_max_hp)
+	DmManager.apply_skill_points(skill_pts)

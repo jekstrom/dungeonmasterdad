@@ -1,4 +1,6 @@
 extends Control
+
+const SkillTreeCatalog = preload("res://dm/skill_tree_catalog.gd")
 ## US-034: DM Skill Tree UI (UI only). Tabs DM + Dad; 3x3 + ultimate; tooltips;
 ## locked/available/owned chrome from gui/dm/skill_tree/ art. No spend, unlock RPC,
 ## spawn, or passive apply.
@@ -55,7 +57,7 @@ const DAD_ICON_PATHS: Array[String] = [
 
 const DAD_PASSIVES: Array[Dictionary] = [
 	{"id": "bemidji_cold", "name": "Bemidji Cold", "effect": "Increase duration of blizzard.", "row": "Frost"},
-	{"id": "t_shirt_in_december", "name": "T-Shirt in December", "effect": "Add a frost trail behind you.", "row": "Frost"},
+	{"id": "tshirt_in_december", "name": "T-Shirt in December", "effect": "Add a frost trail behind you.", "row": "Frost"},
 	{"id": "put_a_sweater_on", "name": "Put a Sweater On", "effect": "Blizzard now does damage.", "row": "Frost"},
 	{"id": "stoke", "name": "Stoke", "effect": "Increase fireball radius.", "row": "Fire"},
 	{"id": "full_cord", "name": "Full Cord", "effect": "Reduce cooldown and mana cost of fireball.", "row": "Fire"},
@@ -122,6 +124,8 @@ var _tex_locked: Texture2D
 var _tex_available: Texture2D
 var _tex_owned: Texture2D
 var _opaque_frame_cache: Dictionary = {}
+var _sp_label: Label
+var _fail_label: Label
 
 
 func _ready() -> void:
@@ -139,7 +143,17 @@ func _ready() -> void:
 	_equalize_grid_cells(dm_grid)
 	_equalize_grid_cells(dad_grid)
 	_center_row_labels()
+	_ensure_spend_widgets()
 	_apply_mock_lock_chrome()
+	_refresh_spend_chrome()
+	if not DmManager.skill_points_changed.is_connected(_on_spend_state_changed):
+		DmManager.skill_points_changed.connect(_on_spend_state_changed)
+	if not DmManager.fantasy_level_changed.is_connected(_on_spend_state_changed):
+		DmManager.fantasy_level_changed.connect(_on_spend_state_changed)
+	if not DmManager.skill_purchase_finished.is_connected(_on_purchase_finished):
+		DmManager.skill_purchase_finished.connect(_on_purchase_finished)
+	if not SignalBus.on_dm_unlock.is_connected(_on_spend_unlock):
+		SignalBus.on_dm_unlock.connect(_on_spend_unlock)
 	# Ult bars: icon+label centered pair (same treatment for TSB and Dad All Powerful).
 	# TSB starts locked-grey like passives; bar fill only after click selection.
 	if dm_ultimate and DM_ULT_ICON:
@@ -179,6 +193,7 @@ func open_panel() -> void:
 	if tab_container:
 		tab_container.current_tab = 0
 	_refresh_tab_art()
+	_refresh_spend_chrome()
 
 
 func close_panel() -> void:
@@ -576,6 +591,7 @@ func _make_node_button(
 	btn.set_meta("skill_name", tip_name)
 	btn.set_meta("skill_effect", tip_effect)
 	btn.set_meta("tooltip_copy", "%s\n%s" % [tip_name, tip_effect])
+	_ensure_cost_badge(btn, node_id)
 	btn.pressed.connect(_on_node_pressed.bind(btn))
 	btn.mouse_entered.connect(_on_node_hover.bind(btn))
 	btn.focus_entered.connect(_on_node_hover.bind(btn))
@@ -614,6 +630,7 @@ func _configure_ultimate(
 	btn.set_meta("skill_name", tip_name)
 	btn.set_meta("skill_effect", tip_effect)
 	btn.set_meta("tooltip_copy", "%s\n%s" % [tip_name, tip_effect])
+	_ensure_cost_badge(btn, node_id)
 	for conn in btn.pressed.get_connections():
 		btn.pressed.disconnect(conn["callable"])
 	for conn in btn.mouse_entered.get_connections():
@@ -787,19 +804,14 @@ func _apply_tsb_bar_fill(btn: Button) -> void:
 
 
 func _on_node_pressed(_btn: Button) -> void:
-	# UI-only: focus / owned chrome feedback. No mana, unlock, spawn, or passive apply.
 	if _btn == null:
 		return
 	_btn.grab_focus()
 	_show_tooltip_for(_btn)
-	if _selected_btn and _selected_btn != _btn:
-		var prev_unlocked: bool = bool(_selected_btn.get_meta("unlocked_looking", false))
-		_set_lock_chrome(_selected_btn, prev_unlocked, false)
 	_selected_btn = _btn
-	var unlocked: bool = bool(_btn.get_meta("unlocked_looking", false))
-	_set_lock_chrome(_btn, unlocked, true)
-	print("emitting ", _btn.name)
-	SignalBus.unlock_skill.emit(_btn.name)
+	var node_id: String = str(_btn.get_meta("skill_id", _btn.name))
+	var tree_id: String = SkillTreeCatalog.tree_of(node_id)
+	DmManager.request_purchase(tree_id, node_id)
 
 
 func _on_node_hover(btn: Button) -> void:
@@ -824,6 +836,101 @@ func _clear_tooltip() -> void:
 	_focused_tooltip_text = ""
 	if tooltip_label:
 		tooltip_label.text = ""
+
+
+func _on_spend_state_changed(_unused = null) -> void:
+	_refresh_spend_chrome()
+
+
+func _on_spend_unlock(_unlock_name: String) -> void:
+	_refresh_spend_chrome()
+
+
+func _on_purchase_finished(node_id: String, reason: String) -> void:
+	_refresh_spend_chrome()
+	_show_fail_reason(reason, node_id)
+
+
+func _ensure_spend_widgets() -> void:
+	if header_row and _sp_label == null:
+		_sp_label = header_row.get_node_or_null("SpLabel") as Label
+		if _sp_label == null:
+			_sp_label = Label.new()
+			_sp_label.name = "SpLabel"
+			_sp_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+			header_row.add_child(_sp_label)
+			header_row.move_child(_sp_label, mini(1, header_row.get_child_count() - 1))
+	if _fail_label == null:
+		var vbox: Node = get_node_or_null("Panel/Margin/VBox")
+		if vbox:
+			_fail_label = vbox.get_node_or_null("SpendFailLabel") as Label
+			if _fail_label == null:
+				_fail_label = Label.new()
+				_fail_label.name = "SpendFailLabel"
+				_fail_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+				vbox.add_child(_fail_label)
+
+
+func _ensure_cost_badge(btn: Button, node_id: String) -> void:
+	if btn == null:
+		return
+	var badge: Label = btn.get_node_or_null("CostBadge") as Label
+	if badge == null:
+		badge = Label.new()
+		badge.name = "CostBadge"
+		badge.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		badge.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+		badge.offset_left = -36.0
+		badge.offset_top = 2.0
+		badge.offset_right = -4.0
+		badge.offset_bottom = 18.0
+		btn.add_child(badge)
+	var cost: int = SkillTreeCatalog.cost_of(node_id)
+	badge.text = "%d SP" % cost
+
+
+func _refresh_spend_chrome() -> void:
+	if _sp_label:
+		_sp_label.text = "SP %d" % DmManager.skill_points
+	for btn in get_all_node_buttons():
+		if btn == null:
+			continue
+		var node_id: String = str(btn.get_meta("skill_id", btn.name))
+		var status: String = DmManager.purchase_status(node_id)
+		var owned: bool = status == "owned"
+		var available: bool = status == "available"
+		_set_lock_chrome(btn, available or owned, owned)
+		var badge: Label = btn.get_node_or_null("CostBadge") as Label
+		if badge:
+			if owned:
+				badge.modulate = Color(0.75, 0.85, 0.55, 1)
+			elif status == SkillTreeCatalog.REASON_NOT_ENOUGH_SP:
+				badge.modulate = Color(0.95, 0.45, 0.35, 1)
+			elif status == SkillTreeCatalog.REASON_ROW_GATED or status == SkillTreeCatalog.REASON_ULTIMATE_PREREQ:
+				badge.modulate = Color(0.55, 0.55, 0.58, 1)
+			else:
+				badge.modulate = Color(1, 1, 1, 1)
+
+
+func _show_fail_reason(reason: String, _node_id: String) -> void:
+	if _fail_label == null:
+		return
+	if reason == SkillTreeCatalog.REASON_OK:
+		_fail_label.text = ""
+		return
+	var text := ""
+	if reason == SkillTreeCatalog.REASON_NOT_ENOUGH_SP:
+		text = "Not enough skill points."
+	elif reason == SkillTreeCatalog.REASON_ROW_GATED:
+		text = "Fantasy Level too low."
+	elif reason == SkillTreeCatalog.REASON_ULTIMATE_PREREQ:
+		text = "Own one skill in each row first."
+	elif reason == SkillTreeCatalog.REASON_ALREADY_OWNED:
+		text = "Already owned."
+	else:
+		text = ""
+	_fail_label.text = text
 
 
 func _clear_children(node: Node) -> void:

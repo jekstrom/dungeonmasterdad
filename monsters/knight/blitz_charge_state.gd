@@ -57,7 +57,7 @@ func process(_delta: float) -> EnemyState:
 		return next_state
 	
 	var spd = wander_speed
-	if DmUnlocks.dm_unlocks.has("overcharged"):
+	if DmUnlocks.is_owned("overcharged"):
 		spd = wander_speed_upgraded
 	
 	if _switch_timer <= 0:

@@ -7,7 +7,7 @@
 
 ## Goal
 
-Headless matrix covering: start SP 0; FL +N → +N SP; RL does **not** grant SP or gate; costs 1/2/3; Row1 open at FL 0; Row2 FL≥10; Row3 FL≥50; insufficient SP; double-buy; both trees; shared pool; ultimate prereq per-tree; ultimate 5 SP; atomicity; late-join snapshot; PP cannot spend.
+Headless matrix covering: start SP 0; +1 SP per 10 FL; RL does **not** grant SP or gate; costs 1/2/3; Row1 open at FL 0; Row2 FL≥10; Row3 FL≥50; insufficient SP; double-buy; both trees; shared pool; ultimate prereq per-tree; ultimate 5 SP; atomicity; late-join snapshot; PP cannot spend.
 
 ## Requirements
 

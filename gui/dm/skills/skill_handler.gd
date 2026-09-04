@@ -1,8 +1,10 @@
 extends Node2D
 
 func _ready() -> void:
-	SignalBus.unlock_skill.connect(_on_unlock)
+	if SignalBus.unlock_skill.is_connected(_on_unlock):
+		SignalBus.unlock_skill.disconnect(_on_unlock)
+	if not SignalBus.unlock_skill.is_connected(_on_unlock):
+		SignalBus.unlock_skill.connect(_on_unlock)
 
 func _on_unlock(skill_name: String) -> void:
-	print(skill_name, "Unlocked")
-	DmManager.unlock(skill_name)
+	DmManager.request_purchase("", skill_name)

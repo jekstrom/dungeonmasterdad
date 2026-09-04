@@ -7,6 +7,7 @@ signal interact_pressed
 
 const AbilityCatalog = preload("res://dm/dm_ability_catalog.gd")
 const DmNearSpawnPickerScript = preload("res://scripts/dm_near_spawn_picker.gd")
+const SkillTreeCatalogScript = preload("res://dm/skill_tree_catalog.gd")
 const DEFAULT_MAX_MANA: int = 100
 const BLIZZARD_DURATION: float = 8.0
 const BLIZZARD_SLOW_FACTOR: float = 0.5
@@ -14,13 +15,18 @@ const BLIZZARD_FACTORY_INTERVAL_FACTOR: float = 2.0
 const BLIZZARD_POCKET_CELLS: Vector2i = Vector2i(3, 3)
 const CRIB_DEATH_INTERVAL_SEC: float = 60.0
 const CRIB_DEATH_LIFETIME_SEC: float = 60.0
+const FANTASY_PER_SKILL_POINT: int = 10
 
 var dm: DM
 @export var fantasy_level: int = 0
 @export var max_mana: int = DEFAULT_MAX_MANA
 var current_mana: int = 0
+var skill_points: int = 0
 signal fantasy_level_changed(new_fantasy_level: int)
 signal mana_changed(new_current: int, new_max: int)
+signal skill_points_changed(new_skill_points: int)
+signal skill_point_rewarded(amount: int)
+signal skill_purchase_finished(node_id: String, reason: String)
 signal health_changed(new_hp: int, new_max_hp: int)
 signal respawn_countdown_changed(remaining_sec: float)
 signal spawn_gremlin_cast
@@ -48,6 +54,7 @@ func _on_host_started(_player_name: String = "") -> void:
 		return
 	_crib_death_elapsed = 0.0
 	_host_set_mana(0)
+	_host_set_skill_points(0)
 
 func _process(delta: float) -> void:
 	if not multiplayer.is_server():
@@ -563,6 +570,105 @@ func update_fantasy_level(level_inc: int) -> void:
 func unlock(unlock_name: String) -> void:
 	if multiplayer.is_server():
 		DmUnlocks.unlock(unlock_name)
+
+
+func _host_set_skill_points(value: int) -> void:
+	skill_points = maxi(0, value)
+	apply_skill_points.rpc(skill_points)
+
+
+func grant_skill_points(amount: int) -> void:
+	if not multiplayer.is_server():
+		return
+	if amount <= 0:
+		return
+	skill_points = maxi(0, skill_points + amount)
+	apply_skill_points.rpc(skill_points, amount)
+
+
+func request_purchase(tree: String, node_id: String) -> String:
+	if multiplayer.is_server():
+		return _host_try_purchase(tree, node_id)
+	request_purchase_rpc.rpc_id(1, tree, node_id)
+	return ""
+
+
+func purchase_status(node_id: String) -> String:
+	var entry: Dictionary = SkillTreeCatalogScript.node_for(node_id)
+	if entry.is_empty():
+		return SkillTreeCatalogScript.REASON_UNKNOWN
+	if DmUnlocks.is_owned(node_id):
+		return "owned"
+	var reason: String = _gate_reason(entry)
+	if reason != SkillTreeCatalogScript.REASON_OK:
+		return reason
+	if skill_points < int(entry.get("cost", 0)):
+		return SkillTreeCatalogScript.REASON_NOT_ENOUGH_SP
+	return "available"
+
+
+func _host_try_purchase(tree: String, node_id: String) -> String:
+	var entry: Dictionary = SkillTreeCatalogScript.node_for(node_id)
+	var reason: String = SkillTreeCatalogScript.REASON_UNKNOWN
+	if not entry.is_empty():
+		if tree != "" and str(entry.get("tree", "")) != tree:
+			reason = SkillTreeCatalogScript.REASON_UNKNOWN
+		elif DmUnlocks.is_owned(node_id):
+			reason = SkillTreeCatalogScript.REASON_ALREADY_OWNED
+		else:
+			reason = _gate_reason(entry)
+			if reason == SkillTreeCatalogScript.REASON_OK:
+				var cost: int = int(entry.get("cost", 0))
+				if skill_points < cost:
+					reason = SkillTreeCatalogScript.REASON_NOT_ENOUGH_SP
+				else:
+					skill_points -= cost
+					DmUnlocks.unlock(node_id)
+					apply_skill_points.rpc(skill_points)
+					reason = SkillTreeCatalogScript.REASON_OK
+	notify_purchase_result.rpc(node_id, reason)
+	return reason
+
+
+func _gate_reason(entry: Dictionary) -> String:
+	if bool(entry.get("ultimate", false)):
+		var tree: String = str(entry.get("tree", ""))
+		for row in range(1, 4):
+			var covered := false
+			for pid in SkillTreeCatalogScript.ids_in_tree_row(tree, row):
+				if DmUnlocks.is_owned(pid):
+					covered = true
+					break
+			if not covered:
+				return SkillTreeCatalogScript.REASON_ULTIMATE_PREREQ
+		return SkillTreeCatalogScript.REASON_OK
+	var row: int = int(entry.get("row", 0))
+	var need_fl: int = SkillTreeCatalogScript.fl_gate_for_row(row)
+	if fantasy_level < need_fl:
+		return SkillTreeCatalogScript.REASON_ROW_GATED
+	return SkillTreeCatalogScript.REASON_OK
+
+
+@rpc("any_peer", "reliable")
+func request_purchase_rpc(tree: String, node_id: String) -> void:
+	if not multiplayer.is_server():
+		return
+	if not _is_dm_peer(multiplayer.get_remote_sender_id()):
+		return
+	_host_try_purchase(tree, node_id)
+
+
+@rpc("authority", "call_local", "reliable")
+func notify_purchase_result(node_id: String, reason: String) -> void:
+	skill_purchase_finished.emit(node_id, reason)
+
+
+@rpc("authority", "call_local", "reliable")
+func apply_skill_points(value: int, rewarded: int = 0) -> void:
+	skill_points = maxi(0, value)
+	skill_points_changed.emit(skill_points)
+	if rewarded > 0:
+		skill_point_rewarded.emit(rewarded)
 		
 func is_crib_death_owned() -> bool:
 	return bool(DmUnlocks.dm_unlocks.get("crib_death", false))
@@ -621,7 +727,7 @@ func _headless_near_dm_spawn_count(ability_id: String) -> int:
 		return 0
 	var anchor: Vector2 = DmNearSpawnPickerScript.dm_anchor_world()
 	if ability_id == AbilityCatalog.KNIGHTLING:
-		var n: int = 3 if DmUnlocks.dm_unlocks.has("chain_lightning") else 1
+		var n: int = 3 if DmUnlocks.is_owned("chain_lightning") else 1
 		var ok := 0
 		for _i in range(n):
 			var pick: Dictionary = DmNearSpawnPickerScript.pick_near_dm(tree, anchor)
@@ -642,8 +748,12 @@ func _multiplayer_spawner() -> Node:
 func request_fantasy_level_incrase(new_fantasy_level: int):
 	if fantasy_level == new_fantasy_level:
 		return
+	var old_level: int = fantasy_level
 	fantasy_level = new_fantasy_level
 	fantasy_level_changed.emit(new_fantasy_level)
+	if multiplayer.is_server() and new_fantasy_level > old_level:
+		var earned: int = int(new_fantasy_level / FANTASY_PER_SKILL_POINT) - int(old_level / FANTASY_PER_SKILL_POINT)
+		grant_skill_points(earned)
 
 @rpc("authority", "call_local", "reliable")
 func request_mana_sync(new_current: int, new_max: int) -> void:

@@ -17,6 +17,8 @@ Host integer SP balance (**start 0**). On each host **+10 Fantasy Level**, grant
 ## Acceptance
 
 - **Given** a new match, **When** SP initializes, **Then** it is 0.
+- **Given** FL increases by 9, **When** income runs, **Then** SP is unchanged.
+- **Given** FL increases from 9 to 10, **When** income runs, **Then** SP increases by 1.
 - **Given** FL increases by 30, **When** income runs, **Then** SP increases by 3.
 - **Given** Reality Level changes, **When** income would run, **Then** SP is unchanged.
 - **Given** a peer, **When** SP changes, **Then** the DM UI can show the host value.

@@ -16,8 +16,12 @@ const MANA_BAR_WIDTH: float = 120.0
 @onready var mana_label: Label = $MarginContainer/HBoxContainer/ManaMeter/BarColumn/ManaLabel
 @onready var respawn_overlay: Control = $RespawnOverlay
 @onready var respawn_label: Label = $RespawnOverlay/DmRespawnCountdown
+@onready var skill_point_toast: Control = $SkillPointToast
+@onready var skill_point_toast_label: Label = $SkillPointToast/SkillPointToastLabel
 @onready var skill_tree: Control = $SkillTree
 @onready var minimap_widget: Control = $MinimapWidget
+
+var _skill_point_toast_tween: Tween
 
 func _ready() -> void:
 	turn_off()
@@ -34,6 +38,8 @@ func _ready() -> void:
 		DmManager.mana_changed.connect(_on_mana_changed)
 	if not DmManager.respawn_countdown_changed.is_connected(_on_respawn_countdown_changed):
 		DmManager.respawn_countdown_changed.connect(_on_respawn_countdown_changed)
+	if not DmManager.skill_point_rewarded.is_connected(_on_skill_point_rewarded):
+		DmManager.skill_point_rewarded.connect(_on_skill_point_rewarded)
 	if not SignalBus.on_dm_unlock.is_connected(on_dm_unlock):
 		SignalBus.on_dm_unlock.connect(on_dm_unlock)
 	if not SignalBus.on_dm_lock.is_connected(on_dm_lock):
@@ -91,6 +97,7 @@ func turn_off() -> void:
 	self.visible = false
 	inventory_ui.hide()
 	_on_respawn_countdown_changed(-1.0)
+	_hide_skill_point_toast()
 
 func _on_respawn_countdown_changed(remaining_sec: float) -> void:
 	if respawn_overlay == null or respawn_label == null:
@@ -100,6 +107,31 @@ func _on_respawn_countdown_changed(remaining_sec: float) -> void:
 		return
 	respawn_overlay.visible = true
 	respawn_label.text = "RESPAWN IN %d" % ceili(remaining_sec)
+
+func _on_skill_point_rewarded(amount: int) -> void:
+	if amount <= 0:
+		return
+	if not visible:
+		return
+	if skill_point_toast == null or skill_point_toast_label == null:
+		return
+	skill_point_toast_label.text = "+1 Skill Point"
+	skill_point_toast.visible = true
+	skill_point_toast.modulate = Color(1, 1, 1, 1)
+	if _skill_point_toast_tween != null and _skill_point_toast_tween.is_valid():
+		_skill_point_toast_tween.kill()
+	_skill_point_toast_tween = create_tween()
+	_skill_point_toast_tween.tween_interval(0.8)
+	_skill_point_toast_tween.tween_property(skill_point_toast, "modulate:a", 0.0, 1.2)
+	_skill_point_toast_tween.finished.connect(_hide_skill_point_toast)
+
+func _hide_skill_point_toast() -> void:
+	if _skill_point_toast_tween != null and _skill_point_toast_tween.is_valid():
+		_skill_point_toast_tween.kill()
+	_skill_point_toast_tween = null
+	if skill_point_toast:
+		skill_point_toast.visible = false
+		skill_point_toast.modulate = Color(1, 1, 1, 0)
 
 func on_dm_unlock(_unlock_name: String) -> void:
 	_apply_unlock_visibility()

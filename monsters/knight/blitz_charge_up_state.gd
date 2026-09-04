@@ -24,7 +24,7 @@ func init() -> void:
 	
 func enter() -> void:
 	_timer = 3
-	if DmUnlocks.dm_unlocks.has("spark"):
+	if DmUnlocks.is_owned("spark"):
 		_timer = 1
 	
 	original_pos = sprite.position

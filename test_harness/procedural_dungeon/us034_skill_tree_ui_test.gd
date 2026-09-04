@@ -206,17 +206,15 @@ func _run_suite() -> bool:
 			btn.emit_signal("pressed")
 	await get_tree().process_frame
 
-	# Selection chrome only after click (UI-only).
 	var last: Button = tree.get("_selected_btn")
-	if last == null or not bool(last.get_meta("owned_looking", false)):
-		return _fail("US-034: clicked node should show selection chrome")
-	# Prior passives stay unselected/grey (not mock-unlocked).
+	if last == null:
+		return _fail("US-034: click should keep a selected node")
+	if bool(last.get_meta("owned_looking", false)):
+		return _fail("US-034: click must not own a node without spend")
 	for i in range(dm_btns.size()):
 		var b2: Button = dm_btns[i]
-		if b2 == last:
-			continue
 		if bool(b2.get_meta("owned_looking", false)):
-			return _fail("US-034: non-selected %s should not keep owned chrome" % b2.name)
+			return _fail("US-034: %s should not look owned without spend" % b2.name)
 
 	if DmManager.current_mana != mana_before:
 		return _fail("US-034: node click must not change mana")
