@@ -7,12 +7,12 @@
 
 ## Goal
 
-Matrix: costs 1/2/3; Row2 FL≥10; Row3 FL≥50 (assert RL does **not** gate); Row1 open; ultimate prereq; insufficient SP; double-buy; both trees; late join.
+Headless matrix covering: start SP 0; FL +N → +N SP; RL does **not** grant SP or gate; costs 1/2/3; Row1 open at FL 0; Row2 FL≥10; Row3 FL≥50; insufficient SP; double-buy; both trees; shared pool; ultimate prereq per-tree; ultimate 5 SP; atomicity; late-join snapshot; PP cannot spend.
 
 ## Requirements
 
-- AC1–AC12, MR-001–MR-002
+- AC1–AC23, MR-001–MR-003
 
 ## Acceptance
 
-- **Given** the harness, **When** it runs, **Then** gate/cost/atomicity asserts pass without manual editor clicks.
+- **Given** the harness, **When** it runs, **Then** gate/cost/income/atomicity/late-join asserts pass without manual editor clicks.
