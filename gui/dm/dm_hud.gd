@@ -1,6 +1,7 @@
 extends CanvasLayer
 
 const AbilityCatalog = preload("res://dm/dm_ability_catalog.gd")
+const AbilityCooldownOverlay = preload("res://gui/dm/ability_cooldown_overlay.gd")
 const MANA_BAR_WIDTH: float = 120.0
 
 @onready var spawn_gremlin_button: TextureButton = $MarginContainer/HBoxContainer/SpawnGremlin/TextureButton
@@ -52,26 +53,63 @@ func _ready() -> void:
 		minimap_widget.configure(true)
 	if minimap_widget:
 		minimap_widget.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_attach_cooldown_overlays()
 	_ensure_debug_skill_action()
 
 func _on_gremlin_button_pressed() -> void:
+	if not _hud_ability_ready(AbilityCatalog.GREMLIN):
+		return
 	DmManager.request_cast(AbilityCatalog.GREMLIN)
 
 func _on_goblin_button_pressed() -> void:
+	if not _hud_ability_ready(AbilityCatalog.GOBLIN):
+		return
 	DmManager.request_cast(AbilityCatalog.GOBLIN)
 
 func _on_knight_button_pressed() -> void:
+	if not _hud_ability_ready(AbilityCatalog.KNIGHTLING):
+		return
 	DmManager.request_cast(AbilityCatalog.KNIGHTLING)
 		
 func _on_fireball_button_pressed() -> void:
-	if not bool(DmUnlocks.dm_unlocks.get(AbilityCatalog.FIREBALL, false)):
+	if not _hud_ability_ready(AbilityCatalog.FIREBALL):
 		return
 	SignalBus.start_spell_cast.emit(AbilityCatalog.FIREBALL)
 
 func _on_blizzard_button_pressed() -> void:
-	if not bool(DmUnlocks.dm_unlocks.get(AbilityCatalog.BEMIDJI_BLIZZARD, false)):
+	if not _hud_ability_ready(AbilityCatalog.BEMIDJI_BLIZZARD):
 		return
 	SignalBus.start_spell_cast.emit(AbilityCatalog.BEMIDJI_BLIZZARD)
+
+func _hud_ability_ready(ability_id: String) -> bool:
+	var required_unlock: String = AbilityCatalog.unlock_id(ability_id)
+	if not required_unlock.is_empty() and not bool(DmUnlocks.dm_unlocks.get(required_unlock, false)):
+		return false
+	if DmManager.ability_cooldown_remaining(ability_id) > 0.0:
+		return false
+	return true
+
+func _attach_cooldown_overlays() -> void:
+	_bind_cooldown_overlay(spawn_gremlin_button, AbilityCatalog.GREMLIN)
+	_bind_cooldown_overlay(spawn_goblin_button, AbilityCatalog.GOBLIN)
+	_bind_cooldown_overlay(spawn_knight_button, AbilityCatalog.KNIGHTLING)
+	_bind_cooldown_overlay(cast_fireball_button, AbilityCatalog.FIREBALL)
+	_bind_cooldown_overlay(cast_blizzard_button, AbilityCatalog.BEMIDJI_BLIZZARD)
+
+func _bind_cooldown_overlay(button: TextureButton, ability_id: String) -> void:
+	if button == null:
+		return
+	var slot: Control = button.get_parent() as Control
+	if slot == null:
+		return
+	for child in slot.get_children():
+		if child.get_script() == AbilityCooldownOverlay:
+			child.ability_id = ability_id
+			return
+	var overlay = AbilityCooldownOverlay.new()
+	overlay.ability_id = ability_id
+	overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	slot.add_child(overlay)
 
 func _on_mana_changed(new_current: int, new_max: int) -> void:
 	_update_mana_meter(new_current, new_max)
