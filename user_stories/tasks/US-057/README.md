@@ -2,7 +2,7 @@
 
 **Story**: [US-057.md](../../US-057.md)  
 **Branch**: `057-maze-shaped-dungeons`  
-**Status**: Todo  
+**Status**: Done  
 
 Replace L-backbone + L-hallway generation with compact, maze-like layouts; freer entrance/exit. Host-only. US-015/024 portal and east-flush AABB stay.
 

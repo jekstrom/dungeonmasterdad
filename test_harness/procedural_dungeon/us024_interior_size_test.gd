@@ -79,6 +79,35 @@ func _ready() -> void:
 		get_tree().quit(1)
 		return
 
+	var dungeon_knob := Rect2i(0, 0, 10, 8)
+	var interior_knob: Rect2i = MapBounds.interior_from_dungeon_aabb(dungeon_knob, 40)
+	if interior_knob.size != Vector2i(40, 40):
+		push_error("US-024 overworld knob: 40 should yield 40x40 square, got %s" % interior_knob.size)
+		get_tree().quit(1)
+		return
+	if interior_knob.size.x != interior_knob.size.y:
+		push_error("US-024 overworld knob: interior must be square")
+		get_tree().quit(1)
+		return
+	if interior_knob.end.x != dungeon_knob.end.x:
+		push_error("US-024 overworld knob: dungeon must stay east-flush")
+		get_tree().quit(1)
+		return
+	if not _contains_rect(interior_knob, dungeon_knob):
+		push_error("US-024 overworld knob: dungeon must sit inside overworld")
+		get_tree().quit(1)
+		return
+	var interior_fit: Rect2i = MapBounds.interior_from_dungeon_aabb(Rect2i(0, 0, 24, 24), 16)
+	if interior_fit.size != Vector2i(24, 24):
+		push_error("US-024 overworld knob: small overworld must grow to fit dungeon, got %s" % interior_fit.size)
+		get_tree().quit(1)
+		return
+	var interior_auto: Rect2i = MapBounds.interior_from_dungeon_aabb(dungeon_24, 0)
+	if interior_auto.size != Vector2i(48, 48):
+		push_error("US-024 overworld knob: size 0 must keep auto 48x48, got %s" % interior_auto.size)
+		get_tree().quit(1)
+		return
+
 	var bounds := MapBounds.new()
 	bounds.commit_interior(interior_24)
 	if bounds.is_cliff_cell(Vector2i(12, 12)):

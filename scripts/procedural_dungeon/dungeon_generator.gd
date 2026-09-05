@@ -13,11 +13,14 @@ class_name DungeonGenerator extends Node2D
 @export var exit_cell: Vector2i = Vector2i(2, 12)
 @export var bounds_origin: Vector2i = Vector2i.ZERO
 @export var bounds_size: Vector2i = Vector2i(24, 24)
+@export_range(0, 128) var overworld_size: int = DungeonConstants.DEFAULT_OVERWORLD_SIZE
 @export var profile_id: String = "standard"
 
 @export_group("Rooms")
 @export_range(3, 11, 2) var room_size: int = 5
 @export_range(3, 8) var room_count: int = 4
+@export var auto_place_portals: bool = false
+@export_range(0.0, 1.0, 0.05) var braid_rate: float = DungeonConstants.DEFAULT_BRAID_RATE
 
 @export_group("Pickups")
 @export_range(0, 16) var start_room_dew_count: int = DungeonConstants.DEFAULT_START_ROOM_DEW_COUNT
@@ -81,7 +84,10 @@ func to_payload() -> Dictionary:
 		"startRoomDewCount": start_room_dew_count,
 		"extraDewCount": extra_dew_count,
 		"d6Count": d6_count,
-		"d20Count": d20_count
+		"d20Count": d20_count,
+		"braidRate": braid_rate,
+		"autoPlacePortals": auto_place_portals,
+		"overworldSize": overworld_size
 	}
 
 func _is_generation_authority() -> bool:
@@ -93,13 +99,16 @@ func _is_generation_authority() -> bool:
 
 func _get_configuration_warnings() -> PackedStringArray:
 	var warnings: PackedStringArray = PackedStringArray()
-	if start_cell == exit_cell:
-		warnings.append("Start cell and exit cell must be different.")
 	if bounds_size.x < 16 or bounds_size.y < 16:
 		warnings.append("Generation bounds must be at least 16x16.")
 	var bounds := Rect2i(bounds_origin, bounds_size)
-	if not bounds.has_point(start_cell) or not bounds.has_point(exit_cell):
-		warnings.append("Start and exit must sit inside generation bounds.")
+	if not auto_place_portals:
+		if start_cell == exit_cell:
+			warnings.append("Start cell and exit cell must be different.")
+		if not bounds.has_point(start_cell) or not bounds.has_point(exit_cell):
+			warnings.append("Start and exit must sit inside generation bounds.")
 	if room_size % 2 == 0:
 		warnings.append("Room size should be odd so rooms have a center cell.")
+	if overworld_size != 0 and overworld_size < DungeonConstants.MIN_OVERWORLD_SIZE:
+		warnings.append("Overworld size must be 0 (auto) or at least 16.")
 	return warnings

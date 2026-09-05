@@ -99,27 +99,32 @@ func interior_world_rect() -> Rect2:
 		return Rect2()
 	return Rect2(DungeonGrid.to_world(interior.position), Vector2(interior.size) * DungeonGrid.CELL_PX)
 
-static func interior_from_dungeon_aabb(dungeon: Rect2i) -> Rect2i:
+static func interior_from_dungeon_aabb(dungeon: Rect2i, overworld_size: int = 0) -> Rect2i:
 	var wd: int = dungeon.size.x
 	var hd: int = dungeon.size.y
 	if wd <= 0 or hd <= 0:
 		return Rect2i()
-	var wi: int = wd * 2
-	var hi: int = hd * 2
-	if hi < hd + 2:
-		hi = hd + 2
-	if wi < wd:
-		wi = wd
-	var dungeon_area: int = wd * hd
-	while wi * hi < 4 * dungeon_area:
-		wi += 1
-	# Square play area: grow height to match width (letterbox N/S pads).
-	# Prefer fill-width geometry; never shrink below the area/pad floors above.
-	if hi < wi:
-		hi = wi
-	var north_pad: int = int((hi - hd) / 2)
-	var origin := Vector2i(dungeon.end.x - wi, dungeon.position.y - north_pad)
-	return Rect2i(origin, Vector2i(wi, hi))
+	var side: int = 0
+	if overworld_size > 0:
+		side = overworld_size
+	else:
+		var wi: int = wd * 2
+		var hi: int = hd * 2
+		if hi < hd + 2:
+			hi = hd + 2
+		if wi < wd:
+			wi = wd
+		var dungeon_area: int = wd * hd
+		while wi * hi < 4 * dungeon_area:
+			wi += 1
+		if hi < wi:
+			hi = wi
+		side = maxi(wi, hi)
+	side = maxi(side, wd)
+	side = maxi(side, hd)
+	var north_pad: int = int((side - hd) / 2)
+	var origin := Vector2i(dungeon.end.x - side, dungeon.position.y - north_pad)
+	return Rect2i(origin, Vector2i(side, side))
 
 func tree_scatter_candidate_cells(dungeon: Rect2i = Rect2i()) -> Array[Vector2i]:
 	var cells: Array[Vector2i] = []
@@ -159,8 +164,8 @@ func west_spawn_world(index: int, dungeon: Rect2i = Rect2i()) -> Vector2:
 	var cell: Vector2i = cells[posmod(index, cells.size())]
 	return DungeonGrid.to_world(cell) + Vector2(DungeonGrid.CELL_PX * 0.5, DungeonGrid.CELL_PX * 0.5)
 
-static func cell_translation_for_east_flush(dungeon: Rect2i) -> Vector2i:
-	var planned: Rect2i = interior_from_dungeon_aabb(dungeon)
+static func cell_translation_for_east_flush(dungeon: Rect2i, overworld_size: int = 0) -> Vector2i:
+	var planned: Rect2i = interior_from_dungeon_aabb(dungeon, overworld_size)
 	if planned.size.x <= 0 or planned.size.y <= 0:
 		return Vector2i.ZERO
 	return -planned.position

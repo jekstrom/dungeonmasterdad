@@ -43,7 +43,7 @@ func commit(layout_data: DungeonLayoutData) -> Dictionary:
 
 func translate_layout_flush_east(layout_data: DungeonLayoutData) -> void:
 	var current: Rect2i = bounds_from_walkable(layout_data.walkable_cells)
-	var delta: Vector2i = MapBounds.cell_translation_for_east_flush(current)
+	var delta: Vector2i = MapBounds.cell_translation_for_east_flush(current, layout_data.overworld_size)
 	layout_data.translate_cells(delta)
 
 

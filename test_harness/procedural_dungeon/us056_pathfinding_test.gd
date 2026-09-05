@@ -362,6 +362,9 @@ func _assert_wall_foot_occupancy(occupancy, walls: Dictionary) -> bool:
 	var north_of_south: Vector2 = cube.position + Vector2(cube.size.x * 0.5, -16.0)
 	if not occupancy.is_walkable(OccupancyScript.from_world(north_of_south)):
 		return _fail("US-056: floor immediately north of a south wall cube must stay walkable")
+	var hug: Vector2 = cube.position + Vector2(cube.size.x * 0.5, cube.size.y - 52.0)
+	if not occupancy.is_walkable(OccupancyScript.from_world(hug)):
+		return _fail("US-056: interior side of a wall must stay A* walkable so chases can hug")
 	return true
 
 

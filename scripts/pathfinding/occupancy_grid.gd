@@ -72,6 +72,7 @@ func rebuild_from_world(tree: SceneTree) -> void:
 	exit_landing = _landing_from_door(exit_door, dungeon_walk, dungeon_walls, interior)
 	_paint_world_tiles(interior, dungeon_aabb, dungeon_walk, dungeon_walls, exit_door)
 	_block_live_wall_colliders(tree)
+	_open_interior_wall_hug(dungeon_walls, dungeon_walk)
 	_block_live_tree_trunks(tree)
 	_apply_solid_nodes(tree)
 
@@ -103,6 +104,7 @@ func _paint_world_tiles(
 				_stamp_world_cell(world_cell, true, false)
 	_block_layout_wall_segments(dungeon_walls, dungeon_walk)
 	_seal_wall_exteriors(dungeon_walls, dungeon_walk)
+	_open_interior_wall_hug(dungeon_walls, dungeon_walk)
 
 
 static func layout_sprite_rect(world_cell: Vector2i) -> Rect2:
@@ -397,6 +399,10 @@ func _path_cell_on_interior_side(
 			floor_south = true
 	var vertical: bool = has_v or (not has_h and not has_v and (dungeon_walk.has(wall_cell + Vector2i.RIGHT) or dungeon_walk.has(wall_cell + Vector2i.LEFT)))
 	var horizontal: bool = has_h or (not has_h and not has_v and not vertical)
+	if vertical and floor_east and floor_west:
+		return true
+	if horizontal and floor_north and floor_south:
+		return true
 	if vertical:
 		if floor_east and center.x < col_x:
 			return false
@@ -408,6 +414,54 @@ func _path_cell_on_interior_side(
 		if floor_south and center.y < foot_mid_y:
 			return false
 	return true
+
+
+func _open_interior_wall_hug(dungeon_walls: Dictionary, dungeon_walk: Dictionary) -> void:
+	const WALL_THICK := 40.0
+	const OX := 44.0
+	const OY := 44.0
+	var foot_y0: float = OY + WALL_THICK
+	var scale: int = subdiv()
+	for wall_cell in dungeon_walls:
+		var n: bool = dungeon_walls.has(wall_cell + Vector2i.UP)
+		var e: bool = dungeon_walls.has(wall_cell + Vector2i.RIGHT)
+		var s: bool = dungeon_walls.has(wall_cell + Vector2i.DOWN)
+		var w: bool = dungeon_walls.has(wall_cell + Vector2i.LEFT)
+		var has_h: bool = e or w
+		var has_v: bool = n or s
+		var floors: Array[Vector2i] = []
+		for nb in DungeonGrid.neighbors(wall_cell):
+			if dungeon_walk.has(nb):
+				floors.append(nb)
+		if floors.is_empty():
+			continue
+		var floor_east := false
+		var floor_west := false
+		var floor_north := false
+		var floor_south := false
+		for floor_cell in floors:
+			if floor_cell.x > wall_cell.x:
+				floor_east = true
+			if floor_cell.x < wall_cell.x:
+				floor_west = true
+			if floor_cell.y < wall_cell.y:
+				floor_north = true
+			if floor_cell.y > wall_cell.y:
+				floor_south = true
+		if (floor_east and floor_west) or (floor_north and floor_south):
+			continue
+		var node_pos: Vector2 = DungeonGrid.to_world(wall_cell)
+		var col_x: float = node_pos.x + OX + WALL_THICK * 0.5 - 64.0
+		var foot_mid_y: float = node_pos.y + (foot_y0 + 128.0) * 0.5 - 127.0
+		var origin: Vector2i = layout_path_origin(wall_cell)
+		for oy in range(scale):
+			for ox in range(scale):
+				var cell: Vector2i = origin + Vector2i(ox, oy)
+				if cliffs.has(cell):
+					continue
+				var center: Vector2 = to_world_center(cell)
+				if _path_cell_on_interior_side(center, wall_cell, floors, has_h, has_v, col_x, foot_mid_y, dungeon_walk):
+					walkable[cell] = true
 
 
 func _block_tile_local_rect(node_pos: Vector2, tx0: float, ty0: float, tx1: float, ty1: float) -> void:
