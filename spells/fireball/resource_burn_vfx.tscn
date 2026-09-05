@@ -1,0 +1,13 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://spells/fireball/resource_burn_vfx.gd" id="1_script"]
+[ext_resource type="Texture2D" uid="uid://dv2ombwyf567u" path="res://sprites/explosion.png" id="2_tex"]
+
+[node name="ResourceBurnVfx" type="Node2D"]
+z_index = 20
+script = ExtResource("1_script")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+texture_filter = 1
+texture = ExtResource("2_tex")
+hframes = 17

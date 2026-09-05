@@ -316,6 +316,48 @@ func _server_cleanup():
 
 ## US-013: host-only claim for gremlin relocate (not player inventory).
 ## Returns item resource path on success, "" if already taken / invalid.
+func burn_from_fireball() -> bool:
+	if not multiplayer.is_server():
+		return false
+	if not is_inside_tree() or is_queued_for_deletion() or not visible:
+		return false
+	if item_data == null or not item_data.is_world_resource():
+		return false
+	var world_pos: Vector2 = global_position
+	_spawn_burn_vfx(world_pos)
+	_sync_burn_vfx.rpc(world_pos)
+	_disable_pickup()
+	update_client.rpc()
+	call_deferred("_server_cleanup")
+	return true
+
+
+@rpc("authority", "call_remote", "reliable")
+func _sync_burn_vfx(world_pos: Vector2) -> void:
+	_spawn_burn_vfx(world_pos)
+
+
+func _spawn_burn_vfx(world_pos: Vector2) -> void:
+	var packed: PackedScene = load("res://spells/fireball/resource_burn_vfx.tscn") as PackedScene
+	if packed == null:
+		return
+	var vfx: Node = packed.instantiate()
+	if not (vfx is Node2D):
+		vfx.queue_free()
+		return
+	var host: Node = null
+	var tree := get_tree()
+	if tree:
+		host = tree.current_scene
+	if host == null:
+		host = get_parent()
+	if host == null:
+		vfx.queue_free()
+		return
+	host.add_child(vfx)
+	(vfx as Node2D).global_position = world_pos
+
+
 func claim_for_gremlin(gremlin: Node) -> String:
 	if not multiplayer.is_server():
 		return ""

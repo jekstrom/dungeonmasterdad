@@ -1276,14 +1276,19 @@ func health_ratio() -> float:
 	return float(hitpoints) / float(maxi(1, max_hp))
 
 func take_damage(_hurt_box: Hurtbox) -> void:
+	var dmg: int = 1
+	if _hurt_box:
+		dmg = maxi(1, _hurt_box.damage)
+	apply_explosion_damage(dmg)
+
+
+func apply_explosion_damage(amount: int) -> void:
 	if not multiplayer.is_server():
 		return
 	if invulnerable:
 		return
 	cancel_fill()
-	var dmg: int = 1
-	if _hurt_box:
-		dmg = maxi(1, _hurt_box.damage)
+	var dmg: int = maxi(1, amount)
 	hitpoints = hitpoints - dmg
 	sync_hitpoints.rpc(hitpoints)
 	if hitpoints <= 0:
