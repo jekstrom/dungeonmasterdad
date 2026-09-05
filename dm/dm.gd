@@ -250,9 +250,16 @@ func update_animation(state: String) -> void:
 	# While a spell reticle is live, body stays on cast_* (d20) except melee is already blocked.
 	if current_targeting != null and state != "attack" and state != "cast":
 		state = "cast"
+	# Walk facings follow movement; idle/attack/cast keep aim (cardinal_direction).
+	if state == "walk":
+		_sync_facing_from_move()
 	_apply_state_sheet(state)
-	if animation_player:
-		animation_player.play(state + "_" + anim_direction())
+	if animation_player == null:
+		return
+	var anim := state + "_" + anim_direction()
+	# Only (re)start when the clip name changes — never restart every frame.
+	if animation_player.current_animation != anim or not animation_player.is_playing():
+		animation_player.play(anim)
 
 
 func _apply_state_sheet(state: String) -> void:
@@ -263,10 +270,29 @@ func _apply_state_sheet(state: String) -> void:
 	if tex == null:
 		push_error("US-059: missing DM wizard sheet %s (no PlayerSprite02 fallback)" % path)
 		return
-	if sprite.texture != tex:
-		sprite.texture = tex
+	# Always assign — reference compare can miss and leave walk sheet on idle.
+	sprite.texture = tex
 	sprite.hframes = 4
 	sprite.vframes = 3
+
+
+## Prefer dominant movement axis so walk_down/up/side actually swap while moving.
+func _sync_facing_from_move() -> bool:
+	if direction.length() < 0.01:
+		return false
+	var new_dir: Vector2
+	if absf(direction.x) >= absf(direction.y):
+		new_dir = Vector2.RIGHT if direction.x > 0.0 else Vector2.LEFT
+	else:
+		new_dir = Vector2.DOWN if direction.y > 0.0 else Vector2.UP
+	if new_dir == cardinal_direction:
+		return false
+	cardinal_direction = new_dir
+	if sprite:
+		sprite.scale.x = -1 if cardinal_direction == Vector2.LEFT else 1
+	DirectionChanged.emit(new_dir)
+	return true
+
 
 func anim_direction() -> String:
 	if cardinal_direction == Vector2.DOWN:

@@ -17,10 +17,16 @@ func Process(_delta: float) -> DmState:
 		return idle
 	if not DewSlickScript.any_covers_world(dm.global_position):
 		dm.velocity = dm.direction * DmManager.dm_move_speed()
-	
-	if dm.set_direction():
+	# Mouse aim still updates for attack/cast; walk clip facing comes from move.
+	dm.set_direction()
+	var move_facing_changed := dm._sync_facing_from_move()
+	var anim := ""
+	if dm.animation_player:
+		anim = str(dm.animation_player.current_animation)
+	if move_facing_changed or not anim.begins_with("walk"):
 		dm.update_animation("walk")
-	
+	else:
+		dm._apply_state_sheet("walk")
 	return null
 	
 func Physics(_delta: float) -> DmState:
