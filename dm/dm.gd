@@ -21,7 +21,7 @@ const SHEET_WALK := "res://dm/sprites/dm_walk.png"
 const SHEET_ATTACK := "res://dm/sprites/dm_attack.png"
 const SHEET_CAST := "res://dm/sprites/dm_cast.png"
 ## Visual scale for wizard sheets (~half prior on-screen size; root stays 1.2).
-const SPRITE_SCALE: float = 0.5
+const SPRITE_SCALE: float = 0.75
 
 const STATE_SHEETS := {
 	"idle": SHEET_IDLE,
