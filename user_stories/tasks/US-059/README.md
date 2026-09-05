@@ -4,7 +4,7 @@
 **Branch**: (not started)  
 **Status**: Signed — ready for Art/Gameplay
 
-James signed at `08441ab` and asked to **implement**. **Art pipeline lock:** single frames / 1-row strips + solid BG → script-stitch (no full sheet/grid prompts). Replace the DM’s `PlayerSprite02` body with 128×128 3-dir wizard sheets: idle, walk, staff melee, d20 cast. Red robe, brown hat, green Dew can on the hip. Side faces right; engine flips left.
+James signed at `08441ab` and asked to **implement**. **Art pipeline lock:** single frames / 1-row strips + solid non-green BG → script-stitch (no full sheet/grid prompts). **Style lock:** smooth/subtle deltas; quiet idle breath; no in-clip hand item-swaps; no green/near-green fringe. Replace the DM’s `PlayerSprite02` body with 128×128 3-dir wizard sheets: idle, walk, staff melee, d20 cast. Red robe, brown hat, green Dew can on the hip. Side faces right; engine flips left.
 
 ## Order
 
