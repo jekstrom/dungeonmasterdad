@@ -62,7 +62,10 @@ func _custom_spawn(data: Dictionary) -> Node2D:
 	p.shooter_id = data.shooter_id
 	p.position = data.position
 	p.target = data.target
-	p.radius += data.radius_bonus
+	if data.has("radius"):
+		p.radius = float(data.radius)
+	elif data.has("radius_bonus"):
+		p.radius += float(data.radius_bonus)
 	p.base_damage += data.base_damage_bonus
 	p.speed += data.speed_bonus
 	return p

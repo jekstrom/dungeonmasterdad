@@ -356,6 +356,7 @@ func confirm_targeted_spell() -> void:
 		"position": Vector2(global_position.x, global_position.y - 16),
 		"target": target,
 		"radius_bonus": 0,
+		"radius": DmManager.fireball_radius(),
 		"base_damage_bonus": 0,
 		"speed_bonus": 0,
 	}

@@ -60,6 +60,7 @@ func explode() -> void:
 	set_deferred("monitoring", false)
 	set_deferred("monitorable", false)
 	collision_shape_2d.set_deferred("disabled", true)
+	_apply_explosion_scale()
 	animation_player.play("explode")
 	
 	if multiplayer.is_server():
@@ -72,3 +73,14 @@ func explode() -> void:
 	
 	await animation_player.animation_finished
 	queue_free()
+
+
+func _apply_explosion_scale() -> void:
+	var visual: float = 1.0
+	if radius > 0.0:
+		visual = radius / 100.0
+	if explosion:
+		explosion.scale = Vector2(visual, visual)
+	var particles: Node = get_node_or_null("GPUParticles2D")
+	if particles is Node2D:
+		(particles as Node2D).scale = Vector2(visual, visual)

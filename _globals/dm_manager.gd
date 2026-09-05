@@ -20,6 +20,8 @@ const FROST_TRAIL_SIZE: float = 32.0
 const FROST_TRAIL_SPACING: float = 16.0
 const BLIZZARD_FACTORY_INTERVAL_FACTOR: float = 2.0
 const BLIZZARD_POCKET_CELLS: Vector2i = Vector2i(3, 3)
+const FIREBALL_RADIUS: float = 100.0
+const FIREBALL_STOKE_SCALE: float = 2.0
 const CRIB_DEATH_INTERVAL_SEC: float = 60.0
 const CRIB_DEATH_LIFETIME_SEC: float = 60.0
 const FANTASY_PER_SKILL_POINT: int = 10
@@ -184,11 +186,20 @@ func _server_request_cast(ability_id: String) -> void:
 	elif ability_id == AbilityCatalog.GOBLIN:
 		spawn_goblin_cast.emit()
 
+func fireball_radius() -> float:
+	if DmUnlocks.is_owned("stoke"):
+		return FIREBALL_RADIUS * FIREBALL_STOKE_SCALE
+	return FIREBALL_RADIUS
+
+
 func launch_fireball(spell_data: Dictionary) -> bool:
 	if not multiplayer.is_server():
 		return false
 	if not try_cast(AbilityCatalog.FIREBALL):
 		return false
+	var radius: float = fireball_radius()
+	spell_data["radius"] = radius
+	spell_data["radius_bonus"] = radius - FIREBALL_RADIUS
 	update_fantasy_level(15)
 	SignalBus.spell_cast.emit(AbilityCatalog.FIREBALL, spell_data)
 	return true
