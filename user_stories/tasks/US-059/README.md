@@ -2,9 +2,9 @@
 
 **Story**: [US-059.md](../../US-059.md)  
 **Branch**: (not started)  
-**Status**: Todo
+**Status**: Signed — ready for Art/Gameplay
 
-Replace the DM’s `PlayerSprite02` body with 128×128 3-dir wizard sheets: idle, walk, staff melee, d20 cast. Red robe, brown hat, green Dew can on the hip. Side faces right; engine flips left.
+James signed at `08441ab` and asked to **implement**. Replace the DM’s `PlayerSprite02` body with 128×128 3-dir wizard sheets: idle, walk, staff melee, d20 cast. Red robe, brown hat, green Dew can on the hip. Side faces right; engine flips left.
 
 ## Order
 
