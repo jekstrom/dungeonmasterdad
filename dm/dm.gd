@@ -15,6 +15,18 @@ var _respawn_remaining: float = 0.0
 
 const BlizzardIceDrawScript = preload("res://spells/blizzard/blizzard_ice_draw.gd")
 
+# US-059: one sheet per state (512×384, hframes=4 vframes=3). No PlayerSprite02 fallback.
+const SHEET_IDLE := "res://dm/sprites/dm_idle.png"
+const SHEET_WALK := "res://dm/sprites/dm_walk.png"
+const SHEET_ATTACK := "res://dm/sprites/dm_attack.png"
+const SHEET_CAST := "res://dm/sprites/dm_cast.png"
+const STATE_SHEETS := {
+	"idle": SHEET_IDLE,
+	"walk": SHEET_WALK,
+	"attack": SHEET_ATTACK,
+	"cast": SHEET_CAST,
+}
+
 @export var targeting_scene: PackedScene
 @export var fireball_spell: PackedScene
 var current_targeting: Node
@@ -38,6 +50,7 @@ signal DirectionChanged(new_direction: Vector2)
 func _ready() -> void:
 	z_index = DungeonConstants.WALL_Z_INDEX
 	y_sort_enabled = false
+	_apply_state_sheet("idle")
 	collision_mask = collision_mask | 16
 	if is_multiplayer_authority():
 		camera_2d.make_current()
@@ -69,6 +82,8 @@ func setup_targeting(spell_id: String):
 		_size_blizzard_reticle(current_targeting)
 		current_targeting.modulate = Color.WHITE
 	add_child(current_targeting)
+	set_direction()
+	update_animation("cast")
 
 func _blizzard_aim_origin(world: Vector2) -> Vector2i:
 	var size: Vector2i = DmManager.BLIZZARD_POCKET_CELLS
@@ -97,7 +112,10 @@ func _process(delta: float) -> void:
 	if !is_multiplayer_authority(): return
 	if current_targeting:
 		update_target(get_global_mouse_position())
-	
+		var facing_changed := set_direction()
+		var anim := str(animation_player.current_animation) if animation_player else ""
+		if facing_changed or not anim.begins_with("cast"):
+			update_animation("cast")
 func _physics_process(delta: float) -> void:
 	if _dead:
 		velocity = Vector2.ZERO
@@ -229,7 +247,26 @@ func _pulse_melee_hurtbox(facing: Vector2) -> void:
 		)
 
 func update_animation(state: String) -> void:
-	animation_player.play(state + "_" + anim_direction())
+	# While a spell reticle is live, body stays on cast_* (d20) except melee is already blocked.
+	if current_targeting != null and state != "attack" and state != "cast":
+		state = "cast"
+	_apply_state_sheet(state)
+	if animation_player:
+		animation_player.play(state + "_" + anim_direction())
+
+
+func _apply_state_sheet(state: String) -> void:
+	if sprite == null:
+		return
+	var path: String = str(STATE_SHEETS.get(state, SHEET_IDLE))
+	var tex := load(path) as Texture2D
+	if tex == null:
+		push_error("US-059: missing DM wizard sheet %s (no PlayerSprite02 fallback)" % path)
+		return
+	if sprite.texture != tex:
+		sprite.texture = tex
+	sprite.hframes = 4
+	sprite.vframes = 3
 
 func anim_direction() -> String:
 	if cardinal_direction == Vector2.DOWN:
@@ -386,6 +423,11 @@ func _clear_targeting() -> void:
 	current_targeting.queue_free()
 	current_targeting = null
 	_targeting_spell_id = ""
+	# US-059: leave cast sheet — resume staff idle/walk.
+	if direction != Vector2.ZERO:
+		update_animation("walk")
+	else:
+		update_animation("idle")
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("primary_click") and current_targeting:
