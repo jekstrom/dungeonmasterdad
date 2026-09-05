@@ -1,6 +1,9 @@
 class_name MazeInfillGenerator extends RefCounted
 
+const MazeCorridorCarverScript = preload("res://scripts/procedural_dungeon/maze_corridor_carver.gd")
+
 var _path_validator: PathValidator = PathValidator.new()
+var _maze = MazeCorridorCarverScript.new()
 
 func generate_infill(
 	bounds: Rect2i,
@@ -8,11 +11,9 @@ func generate_infill(
 	hallway_cells: Array[Vector2i],
 	entrance_cell: Vector2i,
 	exit_cell: Vector2i,
-	d_seed: int
+	d_seed: int,
+	braid_rate: float = DungeonConstants.DEFAULT_BRAID_RATE
 ) -> Dictionary:
-	var empty_hall: Array[Vector2i] = []
-	var empty_dead: Array[Dictionary] = []
-
 	var mid_count: int = 0
 	var room_set: Dictionary = {}
 	var room_centers: Array[Vector2i] = []
@@ -45,11 +46,11 @@ func generate_infill(
 	var rng: RandomNumberGenerator = RandomNumberGenerator.new()
 	rng.seed = d_seed
 
-	var branch_cells: Dictionary = {}
+	var extra_hall: Dictionary = {}
 	var deadend_regions: Array[Dictionary] = []
 	var used_roots: Dictionary = {}
 
-	for slot in range(deadend_count):
+	for _slot in range(deadend_count):
 		var placed: bool = false
 		for _try in range(8):
 			var door_neighbor_set: Dictionary = _door_neighbor_hallway_cells(room_set, hallway_set)
@@ -79,13 +80,15 @@ func generate_infill(
 			var pocket_center: Vector2i = grown["center"]
 			for cell in pocket_cells:
 				room_set[cell] = true
+				walkable[cell] = true
 				hallway_set.erase(cell)
-				branch_cells.erase(cell)
+				extra_hall.erase(cell)
 			for cell in walk_cells:
 				if room_set.has(cell):
 					continue
 				hallway_set[cell] = true
-				branch_cells[cell] = true
+				walkable[cell] = true
+				extra_hall[cell] = true
 			room_centers.append(pocket_center)
 			deadend_regions.append(_build_deadend_region(deadend_regions.size() + 1, pocket_center, pocket_cells))
 			placed = true
@@ -93,17 +96,19 @@ func generate_infill(
 		if not placed:
 			continue
 
-	if deadend_regions.is_empty():
-		return {
-			"ok": false,
-			"hallway_cells": empty_hall,
-			"deadend_regions": empty_dead,
-			"error_code": "LAYOUT_INFEASIBLE",
-			"message": "Failed to place any dead-end pockets"
-		}
+	_carve_maze_into(walkable, room_set, hallway_set, extra_hall, bounds, rng)
+	_carve_maze_into(walkable, room_set, hallway_set, extra_hall, bounds, rng)
+	var braid_cells: Array[Vector2i] = _maze.braid(walkable, room_set, bounds, rng, braid_rate)
+	for cell in braid_cells:
+		if room_set.has(cell):
+			continue
+		hallway_set[cell] = true
+		extra_hall[cell] = true
 
 	var out_hall: Array[Vector2i] = []
-	for cell in branch_cells.keys():
+	for cell in extra_hall.keys():
+		if room_set.has(cell):
+			continue
 		out_hall.append(cell)
 
 	return {
@@ -111,6 +116,29 @@ func generate_infill(
 		"hallway_cells": out_hall,
 		"deadend_regions": deadend_regions
 	}
+
+
+func _carve_maze_into(
+	walkable: Dictionary,
+	room_set: Dictionary,
+	hallway_set: Dictionary,
+	extra_hall: Dictionary,
+	target: Rect2i,
+	rng: RandomNumberGenerator
+) -> void:
+	var leftover: int = 0
+	for y in range(target.position.y, target.end.y):
+		for x in range(target.position.x, target.end.x):
+			var cell: Vector2i = Vector2i(x, y)
+			if walkable.has(cell) or room_set.has(cell):
+				continue
+			leftover += 1
+	var maze_cells: Array[Vector2i] = _maze.grow_maze(walkable, room_set, target, rng, leftover)
+	for cell in maze_cells:
+		if room_set.has(cell):
+			continue
+		hallway_set[cell] = true
+		extra_hall[cell] = true
 
 func _grow_deadend(
 	root: Vector2i,
@@ -142,6 +170,8 @@ func _grow_deadend(
 				continue
 			if neighbor == root:
 				continue
+			if _touches_existing_room(neighbor, room_set):
+				continue
 			options.append(neighbor)
 			if _nearest_center_distance(neighbor, room_centers) > current_d:
 				better.append(neighbor)
@@ -163,6 +193,8 @@ func _grow_deadend(
 			if not bounds.has_point(candidate):
 				continue
 			if room_set.has(candidate):
+				return {"ok": false}
+			if _touches_existing_room(candidate, room_set):
 				return {"ok": false}
 			pocket_cells.append(candidate)
 
@@ -214,6 +246,13 @@ func _pick_root(
 	if pool.is_empty():
 		return DungeonGrid.SENTINEL
 	return pool[rng.randi_range(0, pool.size() - 1)]
+
+func _touches_existing_room(cell: Vector2i, room_set: Dictionary) -> bool:
+	for neighbor in DungeonGrid.neighbors(cell):
+		if room_set.has(neighbor):
+			return true
+	return false
+
 
 func _door_neighbor_hallway_cells(room_set: Dictionary, hallway_set: Dictionary) -> Dictionary:
 	var result: Dictionary = {}

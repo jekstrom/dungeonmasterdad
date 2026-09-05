@@ -239,7 +239,12 @@ func get_dungeon_occupied_cells() -> Dictionary:
 
 
 func _apply_map_interior_from_dungeon() -> void:
-	var interior: Rect2i = MapBounds.interior_from_dungeon_aabb(_dungeon_cell_bounds)
+	var overworld_size: int = 0
+	if layouts_by_id.has(active_layout_id):
+		var layout: DungeonLayoutData = layouts_by_id[active_layout_id]
+		if layout != null:
+			overworld_size = layout.overworld_size
+	var interior: Rect2i = MapBounds.interior_from_dungeon_aabb(_dungeon_cell_bounds, overworld_size)
 	var level: Node = _pipeline.world_committer.level_manager_or_null()
 	if level and level.has_method("commit_map_interior"):
 		level.commit_map_interior(interior)

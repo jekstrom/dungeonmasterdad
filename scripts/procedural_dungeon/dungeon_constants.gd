@@ -18,6 +18,14 @@ const DEFAULT_EXTRA_DEW_COUNT: int = 0
 const DEFAULT_D6_COUNT: int = 1
 const DEFAULT_D20_COUNT: int = 1
 const MAX_PICKUP_COUNT: int = 16
+const COMPACT_BOUNDS_ASPECT: float = 1.2
+const MAX_WALKABLE_ASPECT: float = 1.8
+const MIN_WINDING_RATIO: float = 1.4
+const DEFAULT_BRAID_RATE: float = 0.25
+const AUTO_PORTAL_MIN_SPAN: float = 0.35
+const DEFAULT_OVERWORLD_SIZE: int = 48
+const MIN_OVERWORLD_SIZE: int = 16
+const MAX_OVERWORLD_SIZE: int = 128
 
 static func normalize_room_size(room_size: int) -> int:
 	var size: int = clampi(room_size, MIN_ROOM_SIZE, MAX_ROOM_SIZE)

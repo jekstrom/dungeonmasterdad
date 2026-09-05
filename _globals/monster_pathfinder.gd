@@ -5,7 +5,7 @@ const MAX_SEARCHES_PER_FRAME: int = 8
 const REPATH_INTERVAL_SEC: float = 0.4
 const CACHE_TTL_SEC: float = 0.25
 const INLAND_WEIGHT: float = 4.0
-const AGENT_CLEARANCE_PX: float = 8.0
+const AGENT_CLEARANCE_PX: float = 4.0
 const SEGMENT_SAMPLE_PX: float = 8.0
 
 var occupancy = OccupancyScript.new()

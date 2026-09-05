@@ -16,6 +16,7 @@ class_name DungeonLayoutData extends Resource
 @export var fountain_cell: Vector2i = DungeonGrid.SENTINEL
 @export var fountain_room_cells: Array[Vector2i] = []
 @export var generation_seed: int = 100
+@export var overworld_size: int = 0
 
 func translate_cells(delta: Vector2i) -> void:
 	if delta == Vector2i.ZERO:

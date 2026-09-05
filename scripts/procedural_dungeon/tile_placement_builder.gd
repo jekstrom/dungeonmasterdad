@@ -90,16 +90,12 @@ func _pick_exit_door(layout_data: DungeonLayoutData, wall_set: Dictionary) -> Ve
 	if exit_cells.is_empty():
 		return DungeonGrid.SENTINEL
 
-	var dirs: Array[Vector2i] = []
-	var dx: int = layout_data.exit_cell.x - layout_data.entrance_cell.x
-	var dy: int = layout_data.exit_cell.y - layout_data.entrance_cell.y
-	if dx != 0:
-		dirs.append(Vector2i.RIGHT if dx > 0 else Vector2i.LEFT)
-	if dy != 0:
-		dirs.append(Vector2i.DOWN if dy > 0 else Vector2i.UP)
-	for cardinal in DungeonGrid.cardinals():
-		if not dirs.has(cardinal):
-			dirs.append(cardinal)
+	var dirs: Array[Vector2i] = [
+		Vector2i.LEFT,
+		Vector2i.UP,
+		Vector2i.DOWN,
+		Vector2i.RIGHT,
+	]
 	for dir in dirs:
 		var door: Vector2i = _middle_face_wall(exit_cells, dir, wall_set)
 		if door != DungeonGrid.SENTINEL:

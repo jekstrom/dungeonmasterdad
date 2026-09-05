@@ -1,5 +1,7 @@
 extends RefCounted
 
+const LayoutMetricsScript = preload("res://scripts/procedural_dungeon/layout_metrics.gd")
+
 var _entrance_exit_resolver: EntranceExitResolver = EntranceExitResolver.new()
 var _room_graph_generator: RoomGraphGenerator = RoomGraphGenerator.new()
 var _hallway_carver: HallwayCarver = HallwayCarver.new()
@@ -13,7 +15,10 @@ func build(request: DungeonGenerationRequest, generation_seed: int) -> Dictionar
 	var resolved_points: Dictionary = _entrance_exit_resolver.resolve_positions(
 		request.start_position,
 		request.exit_position,
-		request.generation_bounds
+		request.generation_bounds,
+		generation_seed,
+		request.room_radius(),
+		request.should_auto_place_portals()
 	)
 	if not resolved_points.get("ok", false):
 		return resolved_points
@@ -43,7 +48,9 @@ func build(request: DungeonGenerationRequest, generation_seed: int) -> Dictionar
 	var hallway_result: Dictionary = _hallway_carver.carve_graph_hallways(
 		rooms_by_id,
 		graph_edges,
-		request.generation_bounds
+		request.generation_bounds,
+		generation_seed,
+		request.braid_rate
 	)
 	var graph_hallway_cells: Array[Vector2i] = DungeonGrid.cells_from(hallway_result.get("hallway_cells", []))
 
@@ -53,13 +60,14 @@ func build(request: DungeonGenerationRequest, generation_seed: int) -> Dictionar
 		graph_hallway_cells,
 		entrance_cell,
 		exit_cell,
-		generation_seed
+		generation_seed,
+		request.braid_rate
 	)
 	if not infill_result.get("ok", false):
 		return DungeonGenerationTypes.error_payload(
 			request.request_id,
 			str(infill_result.get("error_code", DungeonGenerationTypes.FAILURE_LAYOUT_INFEASIBLE)),
-			str(infill_result.get("message", "Failed to place dead-end pockets"))
+			str(infill_result.get("message", "Failed to place maze infill"))
 		)
 
 	var infill_hallway_cells: Array[Vector2i] = DungeonGrid.cells_from(infill_result.get("hallway_cells", []))
@@ -84,6 +92,8 @@ func build(request: DungeonGenerationRequest, generation_seed: int) -> Dictionar
 		return DungeonGenerationTypes.error_payload(request.request_id, DungeonGenerationTypes.FAILURE_LAYOUT_INFEASIBLE, "Layout missing required room roles")
 	if not rooms_meet_size_and_separation(room_regions, request.center_separation()):
 		return DungeonGenerationTypes.error_payload(request.request_id, DungeonGenerationTypes.FAILURE_LAYOUT_INFEASIBLE, "Room size or separation failed")
+	if not rooms_have_hallway_doors(room_regions, hallway_regions):
+		return DungeonGenerationTypes.error_payload(request.request_id, DungeonGenerationTypes.FAILURE_LAYOUT_INFEASIBLE, "A room is missing a hallway door")
 
 	var walkable_set: Dictionary = DungeonGrid.set_from(walkable_cells)
 
@@ -91,6 +101,12 @@ func build(request: DungeonGenerationRequest, generation_seed: int) -> Dictionar
 		return DungeonGenerationTypes.error_payload(request.request_id, DungeonGenerationTypes.FAILURE_LAYOUT_INFEASIBLE, "Entrance and exit are not connected")
 
 	var main_path: Array[Vector2i] = _path_validator.build_shortest_path(entrance_cell, exit_cell, walkable_cells)
+	if not LayoutMetricsScript.passes(request, walkable_cells, entrance_cell, exit_cell, main_path.size()):
+		return DungeonGenerationTypes.error_payload(
+			request.request_id,
+			DungeonGenerationTypes.FAILURE_LAYOUT_INFEASIBLE,
+			"Layout failed compactness or winding metrics"
+		)
 	var blocked_cells: Array[Vector2i] = DungeonGrid.blocked_cells(request.generation_bounds, walkable_set)
 
 	var layout_data: DungeonLayoutData = DungeonLayoutData.new()
@@ -105,6 +121,7 @@ func build(request: DungeonGenerationRequest, generation_seed: int) -> Dictionar
 	layout_data.hallway_regions = hallway_regions
 	layout_data.main_path_cells = main_path
 	layout_data.generation_seed = generation_seed
+	layout_data.overworld_size = request.overworld_size
 	layout_data.tile_placements = _tile_placement_builder.build(layout_data, walkable_set)
 
 	return {
@@ -121,7 +138,13 @@ static func rooms_by_id_from(room_regions: Array[Dictionary]) -> Dictionary:
 	var rooms: Dictionary = {}
 	for region in room_regions:
 		var room_id: String = str(region.get("roomId", ""))
-		rooms[room_id] = {"center": DungeonGrid.cell_from(region.get("center", {}))}
+		var cells: Array[Vector2i] = []
+		for point in region.get("cells", []):
+			cells.append(DungeonGrid.cell_from(point))
+		rooms[room_id] = {
+			"center": DungeonGrid.cell_from(region.get("center", {})),
+			"cells": cells
+		}
 	return rooms
 
 
@@ -131,6 +154,29 @@ static func roles_present(room_regions: Array[Dictionary], required: Array) -> b
 		found[str(region.get("role", ""))] = true
 	for role in required:
 		if not found.has(str(role)):
+			return false
+	return true
+
+
+static func rooms_have_hallway_doors(room_regions: Array[Dictionary], hallway_regions: Array[Dictionary]) -> bool:
+	var hallway_set: Dictionary = {}
+	for region in hallway_regions:
+		for point in region.get("cells", []):
+			hallway_set[DungeonGrid.cell_from(point)] = true
+	for region in room_regions:
+		var role: String = str(region.get("role", ""))
+		if role != "start" and role != "mid" and role != "exit":
+			continue
+		var has_door: bool = false
+		for point in region.get("cells", []):
+			var cell: Vector2i = DungeonGrid.cell_from(point)
+			for neighbor in DungeonGrid.neighbors(cell):
+				if hallway_set.has(neighbor):
+					has_door = true
+					break
+			if has_door:
+				break
+		if not has_door:
 			return false
 	return true
 

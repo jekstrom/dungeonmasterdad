@@ -15,6 +15,14 @@ class_name DungeonGenerationRequest extends Resource
 @export var requested_by_peer_id: int = 1
 @export var skip_boss: bool = false
 @export var skip_fountain: bool = false
+@export var braid_rate: float = DungeonConstants.DEFAULT_BRAID_RATE
+@export var auto_place_portals: bool = false
+@export var overworld_size: int = 0
+
+func should_auto_place_portals() -> bool:
+	return auto_place_portals \
+		or start_position == DungeonGrid.SENTINEL \
+		or exit_position == DungeonGrid.SENTINEL
 
 func validate() -> Dictionary:
 	if request_id.strip_edges().is_empty():
@@ -37,13 +45,21 @@ func validate() -> Dictionary:
 	if resolved_profile != DungeonConstants.DEFAULT_PROFILE_ID:
 		return DungeonGrid.fail("INVALID_REQUEST", "Unknown generation profile")
 
-	if start_position == exit_position:
-		return DungeonGrid.fail("START_EQUALS_EXIT", "Start and exit positions must be different")
-
-	if not generation_bounds.has_point(start_position) or not generation_bounds.has_point(exit_position):
-		return DungeonGrid.fail("POSITION_OUT_OF_BOUNDS", "Start and exit must be inside generation bounds")
+	if should_auto_place_portals():
+		auto_place_portals = true
+	else:
+		if start_position == exit_position:
+			return DungeonGrid.fail("START_EQUALS_EXIT", "Start and exit positions must be different")
+		if not generation_bounds.has_point(start_position) or not generation_bounds.has_point(exit_position):
+			return DungeonGrid.fail("POSITION_OUT_OF_BOUNDS", "Start and exit must be inside generation bounds")
 
 	room_size = DungeonConstants.normalize_room_size(room_size)
+	if overworld_size != 0:
+		overworld_size = clampi(
+			overworld_size,
+			DungeonConstants.MIN_OVERWORLD_SIZE,
+			DungeonConstants.MAX_OVERWORLD_SIZE
+		)
 	if room_count != 0 and (room_count < DungeonConstants.MIN_ROOM_COUNT or room_count > DungeonConstants.MAX_ROOM_COUNT):
 		return DungeonGrid.fail(
 			"INVALID_REQUEST",
@@ -87,6 +103,18 @@ func from_payload(payload: Dictionary) -> void:
 	request_time_unix = int(Time.get_unix_time_from_system())
 	skip_boss = _payload_bool(payload, "skipBoss", "skip_boss", false)
 	skip_fountain = _payload_bool(payload, "skipFountain", "skip_fountain", false)
+	braid_rate = clampf(_payload_float(payload, "braidRate", "braid_rate", DungeonConstants.DEFAULT_BRAID_RATE), 0.0, 1.0)
+	auto_place_portals = _payload_bool(payload, "autoPlacePortals", "auto_place_portals", false)
+	if start_position == DungeonGrid.SENTINEL or exit_position == DungeonGrid.SENTINEL:
+		auto_place_portals = true
+	overworld_size = _payload_int(
+		payload,
+		"overworldSize",
+		"overworld_size",
+		0,
+		0,
+		DungeonConstants.MAX_OVERWORLD_SIZE
+	)
 
 func pickup_counts() -> Dictionary:
 	return {
@@ -133,6 +161,30 @@ func _payload_bool(payload: Dictionary, camel: String, snake: String, default_va
 		return true
 	if token == "false" or token == "0" or token.is_empty():
 		return false
+	return default_value
+
+
+func _payload_int(
+	payload: Dictionary,
+	camel: String,
+	snake: String,
+	default_value: int,
+	min_value: int,
+	max_value: int
+) -> int:
+	var raw: int = default_value
+	if payload.has(camel):
+		raw = int(payload[camel])
+	elif payload.has(snake):
+		raw = int(payload[snake])
+	return clampi(raw, min_value, max_value)
+
+
+func _payload_float(payload: Dictionary, camel: String, snake: String, default_value: float) -> float:
+	if payload.has(camel):
+		return float(payload[camel])
+	if payload.has(snake):
+		return float(payload[snake])
 	return default_value
 
 

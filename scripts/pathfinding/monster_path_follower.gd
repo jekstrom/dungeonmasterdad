@@ -86,7 +86,7 @@ func _discard_passed(pos: Vector2, finder: Node, start: Vector2i) -> void:
 func _next_point(pos: Vector2, finder: Node) -> Vector2:
 	if path.is_empty():
 		return pos
-	if path.size() == 1 and bool(finder.world_segment_walkable(pos, goal_world, true)):
+	if path.size() == 1 and bool(finder.world_segment_walkable(pos, goal_world, false)):
 		return goal_world
 	return finder.cell_center(path[0])
 
