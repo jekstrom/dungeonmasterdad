@@ -24,6 +24,7 @@ const MANA_BAR_WIDTH: float = 120.0
 var _skill_point_toast_tween: Tween
 
 func _ready() -> void:
+	process_mode = Node.PROCESS_MODE_ALWAYS
 	turn_off()
 	spawn_gremlin_button.connect("button_down", _on_gremlin_button_pressed)
 	if spawn_goblin_button:
@@ -51,6 +52,7 @@ func _ready() -> void:
 		minimap_widget.configure(true)
 	if minimap_widget:
 		minimap_widget.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_ensure_debug_skill_action()
 
 func _on_gremlin_button_pressed() -> void:
 	DmManager.request_cast(AbilityCatalog.GREMLIN)
@@ -155,8 +157,58 @@ func _toggle_skill_tree_hud() -> void:
 	else:
 		skill_tree.visible = not skill_tree.visible
 
+
+func open_skill_tree_hud() -> void:
+	if not visible:
+		turn_on()
+	if skill_tree == null:
+		return
+	if skill_tree.has_method("open_panel"):
+		skill_tree.open_panel()
+	else:
+		skill_tree.visible = true
+
+
+func _ensure_debug_skill_action() -> void:
+	const ACTION := "debug_skill_cheat"
+	if not InputMap.has_action(ACTION):
+		InputMap.add_action(ACTION)
+	var has_f9 := false
+	var has_shift_f9 := false
+	for ev in InputMap.action_get_events(ACTION):
+		if not (ev is InputEventKey):
+			continue
+		var key: InputEventKey = ev
+		var is_f9: bool = key.keycode == KEY_F9 or key.physical_keycode == KEY_F9
+		if not is_f9:
+			continue
+		if key.shift_pressed:
+			has_shift_f9 = true
+		else:
+			has_f9 = true
+	if not has_f9:
+		var bind := InputEventKey.new()
+		bind.keycode = KEY_F9
+		bind.physical_keycode = KEY_F9
+		InputMap.action_add_event(ACTION, bind)
+	if not has_shift_f9:
+		var shift_bind := InputEventKey.new()
+		shift_bind.keycode = KEY_F9
+		shift_bind.physical_keycode = KEY_F9
+		shift_bind.shift_pressed = true
+		InputMap.action_add_event(ACTION, shift_bind)
+
+
 func _input(event: InputEvent) -> void:
-	# F10 via _input so focused ability buttons / GUI cannot swallow it before unhandled.
+	if event is InputEventKey and (event as InputEventKey).echo:
+		return
+	if event.is_action_pressed("debug_skill_cheat"):
+		var tree := get_tree()
+		if tree:
+			tree.paused = false
+		DmManager.debug_open_skills_and_grant_sp(100)
+		get_viewport().set_input_as_handled()
+		return
 	if not visible:
 		return
 	if not event.is_action_pressed("toggle_minimap_debug_reveal"):
