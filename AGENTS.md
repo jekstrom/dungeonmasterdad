@@ -1,8 +1,19 @@
 # AGENTS.md - Development Guidelines for Dungeon Master Dad
 
-This file contains development guidelines, coding standards, and build instructions for AI coding agents working on the **Dungeon Master Dad** Godot 4.7 multiplayer RPG game.
+This file is **project conventions** for the **Dungeon Master Dad** Godot 4.7 multiplayer RPG: naming, architecture, multiplayer rules, and build commands. Do not copy skill procedures into this file.
 
-Project skills live in `.grok/skills/` (`game-dev`, `godot`, `testing`). Copy `.grok/templates/skill/SKILL.md` when adding a new one. Grok also loads these as slash commands (`/godot`, `/testing`, `/game-dev`). See https://docs.x.ai/build/features/skills-plugins-marketplaces
+For **general work**, follow the Grok skills in `.grok/skills/` (and Grok's bundled skills they name). Read the matching skill before implementing. Slash commands: `/<skill-name>` or `/skills <skill-name>`. Add a skill by copying `.grok/templates/skill/SKILL.md`. Docs: https://docs.x.ai/build/features/skills-plugins-marketplaces
+
+| Skill | Use when |
+|---|---|
+| `/game-dev` | gameplay, content, feel, vertical slice |
+| `/godot` | GDScript, `.tscn`, spawners, y-sort, dungeon generator |
+| `/testing` | headless contract tests, host+client join, QA |
+| `/create-sprite-animation` | 128px character sheets: down/side/up × 4 frames |
+| `/setup-godot-2d-sprite-animation` | wire Sprite2D / AnimationPlayer / SpriteFrames |
+| `/generate-2d-sprite-sheet` | generic 3/4 64/128 sheets (not the 3-dir 4-frame contract) |
+
+Default art/animation for this game is `/create-sprite-animation`, then `/setup-godot-2d-sprite-animation` to hook it up. `/game-dev` also points at bundled `game-asset-core` specialists for tiles, UI, and identity.
 
 ## 🎮 Project Overview
 
@@ -41,7 +52,7 @@ godot --path /home/james/dungeon-master-dad --headless --quit-after 20 \
 cd test_harness && ./run_tests.sh quick
 ```
 
-Use the `testing` skill for join-log failures and which check matches a change.
+Use `/testing` for which check matches a change and for join-log failures.
 
 ### Development Tools
 ```bash
@@ -61,7 +72,7 @@ godot --path /home/james/dungeon-master-dad --import
 - **Game systems**: `buildings/`, `pickups/`, `spells/`, `zones/`, `level/`
 - **Procedural dungeon**: `scripts/procedural_dungeon/`, scene node `scenes/dungeon_generator.tscn`
 - **Shared utilities**: `scripts/` directory
-- **Agent skills**: `.grok/skills/`
+- **Grok skills (general workflows)**: `.grok/skills/` — see the table at the top of this file
 
 ### Naming Conventions
 - **Files**: `snake_case.gd` (e.g., `player_idle_state.gd`)
