@@ -47,6 +47,12 @@ func _apply_slots(raw_slots: Array) -> void:
 		if cell == null:
 			continue
 		cell.slot_index = i
+		var local_id: int = 1
+		if multiplayer.has_multiplayer_peer():
+			local_id = multiplayer.get_unique_id()
+		var usable: bool = PlayerManager.is_slot_usable(local_id, i)
+		cell.visible = true
+		cell.set_locked(not usable)
 		var entry: Dictionary = {}
 		if i < raw_slots.size() and typeof(raw_slots[i]) == TYPE_DICTIONARY:
 			entry = raw_slots[i]
