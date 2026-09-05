@@ -89,6 +89,7 @@ func enable() -> void:
 	set_deferred("collision_mask", 1)
 	sync_blizzard_interval()
 	_refresh_health_bar()
+	SignalBus.occupancy_solids_changed.emit()
 
 func is_operating() -> bool:
 	if destroyed:
@@ -146,6 +147,7 @@ func destroy() -> void:
 		return
 	hitpoints = 0
 	destroyed = true
+	SignalBus.occupancy_solids_changed.emit()
 
 func production_remaining() -> float:
 	return maxf(0.0, interval - timer)

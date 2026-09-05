@@ -38,6 +38,8 @@ var phase: RelocatePhase = RelocatePhase.SEEK
 		_refresh_carry_visual()
 
 var _target_pickup: Node2D = null
+var _carry_goal: Vector2 = Vector2.INF
+var _wander_goal: Vector2 = Vector2.INF
 var _drop_timer: float = 0.0
 var _anim_t: float = 0.0
 var _pick_t: float = 0.0
@@ -97,7 +99,6 @@ func _physics_process(delta: float) -> void:
 				_tick_carry(delta)
 			RelocatePhase.WANDER:
 				_tick_wander(delta)
-	_steer_velocity_walkable()
 	move_and_slide()
 	_enforce_map_interior()
 	_anim_t += delta
@@ -122,8 +123,8 @@ func _tick_seek(delta: float) -> void:
 	if DmUnlocks.is_owned("minions"):
 		carry_capacity = 2
 	if carried_item_path and carried_item_path[0] != "" and carried_item_path.size() >= carry_capacity:
-		print("go to carry")
 		phase = RelocatePhase.CARRY
+		_carry_goal = Vector2.INF
 		_arm_drop_timer()
 		return
 	if _target_pickup == null or not is_instance_valid(_target_pickup) or not _is_claimable(_target_pickup):
@@ -138,9 +139,7 @@ func _tick_seek(delta: float) -> void:
 		phase = RelocatePhase.PICK
 		_pick_t = 0.25
 		return
-	var steered := _steer_inland(to)
-	SetDirection(steered)
-	velocity = steered * move_speed
+	follow_path_to(goal, move_speed, delta, true)
 
 
 func _tick_pick(delta: float) -> void:
@@ -159,6 +158,7 @@ func _tick_pick(delta: float) -> void:
 			carried_item_path.append(path)
 			if carried_item_path.size() >= carry_capacity:
 				phase = RelocatePhase.CARRY
+				_carry_goal = Vector2.INF
 				_arm_drop_timer()
 				_target_pickup = null
 				return
@@ -168,15 +168,15 @@ func _tick_pick(delta: float) -> void:
 
 func _tick_carry(delta: float) -> void:
 	_drop_timer -= delta
-	# Walk away from claim spot so drop relocates the pile.
-	if velocity.length() < 1.0:
-		var dir := _random_walkable_dir()
-		SetDirection(dir)
-		velocity = dir * move_speed
 	if _drop_timer <= 0.0:
 		_drop_carried_now()
 		phase = RelocatePhase.SEEK
+		_carry_goal = Vector2.INF
 		_retarget_pickup()
+		return
+	if not is_finite(_carry_goal.x) or global_position.distance_to(_carry_goal) <= pickup_range_px:
+		_carry_goal = _inland_wander_goal()
+	follow_path_to(_carry_goal, move_speed, delta, true)
 
 
 func _tick_wander(delta: float) -> void:
@@ -184,11 +184,10 @@ func _tick_wander(delta: float) -> void:
 	phase = RelocatePhase.SEEK
 
 
-func _wander_step(_delta: float) -> void:
-	if velocity.length() < 1.0 or randf() < 0.02:
-		var dir := _random_walkable_dir()
-		SetDirection(dir)
-		velocity = dir * (move_speed * 0.55)
+func _wander_step(delta: float) -> void:
+	if not is_finite(_wander_goal.x) or velocity.length() < 1.0 or global_position.distance_to(_wander_goal) <= pickup_range_px or randf() < 0.02:
+		_wander_goal = _inland_wander_goal()
+	follow_path_to(_wander_goal, move_speed * 0.55, delta, true)
 
 
 func _arm_drop_timer() -> void:
@@ -312,9 +311,11 @@ func _try_flee_paper_pushers(delta: float) -> bool:
 	else:
 		away = away.normalized()
 	# James live: prefer inland over running toward/along cliffs while fleeing.
-	var steered := _steer_inland(away)
-	SetDirection(steered)
-	velocity = steered * move_speed
+	var dest: Vector2 = global_position + away * (DungeonGrid.CELL_PX * 4.0)
+	var finder: Node = get_tree().root.get_node_or_null("MonsterPathfinder") if get_tree() else null
+	if finder and finder.has_method("flee_world"):
+		dest = finder.flee_world(global_position, threat.global_position)
+	follow_path_to(dest, move_speed, delta, true)
 	return true
 
 
@@ -398,11 +399,6 @@ func _inland_push() -> Vector2:
 		push.y += (m - top_d) / m
 	if bottom_d < m:
 		push.y -= (m - bottom_d) / m
-	# Soft center pull so wander doesn't hug the rim once clear of the margin.
-	var center := rect.get_center()
-	var to_center := center - p
-	if to_center.length() > 0.001:
-		push += to_center.normalized() * 0.35
 	if push.length() < 0.001:
 		return Vector2.ZERO
 	return push.normalized()
@@ -470,25 +466,12 @@ func _random_walkable_dir() -> Vector2:
 	return best.normalized()
 
 
-func _steer_velocity_walkable() -> void:
-	if velocity.length() < 1.0:
-		return
-	var speed := velocity.length()
-	var steered := _steer_inland(velocity)
-	var ahead := global_position + steered * 28.0
-	if not _is_walkable(ahead):
-		var inland := _inland_push()
-		if inland.length() > 0.001:
-			steered = inland
-		else:
-			var clamped := _clamp_to_walkable(ahead)
-			var alt := clamped - global_position
-			if alt.length() < 0.001:
-				velocity = Vector2.ZERO
-				return
-			steered = alt.normalized()
-	SetDirection(steered)
-	velocity = steered * speed
+func _inland_wander_goal() -> Vector2:
+	var finder: Node = get_tree().root.get_node_or_null("MonsterPathfinder") if get_tree() else null
+	var dest: Vector2 = global_position + _random_walkable_dir() * (DungeonGrid.CELL_PX * 3.0)
+	if finder and finder.has_method("nearest_walkable_world"):
+		return finder.nearest_walkable_world(dest)
+	return _clamp_to_walkable(dest)
 
 
 # --- visuals / sheet --------------------------------------------------------

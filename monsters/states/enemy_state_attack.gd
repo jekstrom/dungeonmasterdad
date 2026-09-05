@@ -21,9 +21,10 @@ func process(_delta: float) -> EnemyState:
 	if not enemy.has_aggro_target():
 		return _lose_target_state()
 	var target: Node2D = enemy.aggro_target
-	var to_target: Vector2 = enemy.global_position.direction_to(target.global_position)
-	enemy.velocity = to_target * walk_speed
-	enemy.SetDirection(to_target)
+	if enemy.can_melee_current_target():
+		enemy.velocity = Vector2.ZERO
+	else:
+		enemy.follow_path_to(target.global_position, walk_speed, _delta)
 	enemy.UpdateAnimation(anim_name)
 	_update_melee(_delta)
 	return null
