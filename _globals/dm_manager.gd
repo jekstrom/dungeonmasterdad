@@ -10,6 +10,7 @@ const DmNearSpawnPickerScript = preload("res://scripts/dm_near_spawn_picker.gd")
 const SkillTreeCatalogScript = preload("res://dm/skill_tree_catalog.gd")
 const DEFAULT_MAX_MANA: int = 100
 const BLIZZARD_DURATION: float = 8.0
+const BLIZZARD_COLD_DURATION_SCALE: float = 1.5
 const BLIZZARD_SLOW_FACTOR: float = 0.5
 const BLIZZARD_FACTORY_INTERVAL_FACTOR: float = 2.0
 const BLIZZARD_POCKET_CELLS: Vector2i = Vector2i(3, 3)
@@ -180,6 +181,12 @@ func launch_fireball(spell_data: Dictionary) -> bool:
 	SignalBus.spell_cast.emit(AbilityCatalog.FIREBALL, spell_data)
 	return true
 
+func blizzard_duration() -> float:
+	if DmUnlocks.is_owned("bemidji_cold"):
+		return BLIZZARD_DURATION * BLIZZARD_COLD_DURATION_SCALE
+	return BLIZZARD_DURATION
+
+
 func request_launch_blizzard(spell_data: Dictionary) -> void:
 	if multiplayer.is_server():
 		launch_blizzard(spell_data)
@@ -194,9 +201,7 @@ func launch_blizzard(spell_data: Dictionary) -> bool:
 	var fantasy: FantasyZone = _fantasy_zone()
 	if fantasy == null:
 		return false
-	var duration: float = float(spell_data.get("duration", BLIZZARD_DURATION))
-	if duration <= 0.0:
-		duration = BLIZZARD_DURATION
+	var duration: float = blizzard_duration()
 	var slow_factor: float = float(spell_data.get("slow_factor", BLIZZARD_SLOW_FACTOR))
 	if slow_factor <= 0.0:
 		slow_factor = BLIZZARD_SLOW_FACTOR
