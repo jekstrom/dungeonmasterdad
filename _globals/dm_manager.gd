@@ -13,6 +13,8 @@ const DEFAULT_MAX_MANA: int = 100
 const BLIZZARD_DURATION: float = 8.0
 const BLIZZARD_COLD_DURATION_SCALE: float = 1.5
 const BLIZZARD_SLOW_FACTOR: float = 0.5
+const BLIZZARD_SWEATER_DAMAGE: int = 1
+const BLIZZARD_SWEATER_INTERVAL: float = 1.0
 const FROST_TRAIL_DURATION: float = 3.0
 const FROST_TRAIL_SIZE: float = 32.0
 const FROST_TRAIL_SPACING: float = 16.0
@@ -44,6 +46,7 @@ var _frost_trail: Array[Dictionary] = []
 var _frost_last_world: Vector2 = Vector2.INF
 var dm_player_name: String = "DM"
 var _crib_death_elapsed: float = 0.0
+var _blizzard_damage_elapsed: float = 0.0
 
 func _ready() -> void:
 	if not Lobby.host_started.is_connected(_on_host_started):
@@ -68,6 +71,7 @@ func _process(delta: float) -> void:
 	if not multiplayer.is_server():
 		return
 	_tick_frost_trail()
+	_tick_blizzard_sweater_damage(delta)
 	if not is_crib_death_owned():
 		_crib_death_elapsed = 0.0
 		return
@@ -334,6 +338,39 @@ func blizzard_factory_interval_factor_at(world: Vector2, ignore_pocket_id: int =
 
 func live_blizzard_count() -> int:
 	return _blizzard_effects.size()
+
+
+func _tick_blizzard_sweater_damage(delta: float) -> void:
+	if not DmUnlocks.is_owned("put_a_sweater_on"):
+		_blizzard_damage_elapsed = 0.0
+		return
+	if live_blizzard_count() < 1:
+		return
+	_blizzard_damage_elapsed += delta
+	if _blizzard_damage_elapsed < BLIZZARD_SWEATER_INTERVAL:
+		return
+	_blizzard_damage_elapsed = 0.0
+	apply_blizzard_sweater_damage()
+
+
+func apply_blizzard_sweater_damage() -> int:
+	if not multiplayer.is_server():
+		return 0
+	if not DmUnlocks.is_owned("put_a_sweater_on"):
+		return 0
+	var tree := get_tree()
+	if tree == null:
+		return 0
+	var hits: int = 0
+	for node in tree.get_nodes_in_group("players"):
+		if not (node is Player) or not is_instance_valid(node):
+			continue
+		var paper: Player = node as Player
+		if not is_in_blizzard_slow_rect(paper.global_position):
+			continue
+		paper.take_damage(null)
+		hits += 1
+	return hits
 
 func live_blizzard_rects() -> Array[Rect2i]:
 	var rects: Array[Rect2i] = []
@@ -765,6 +802,26 @@ func grant_skill_points(amount: int) -> void:
 		return
 	skill_points = maxi(0, skill_points + amount)
 	apply_skill_points.rpc(skill_points, amount)
+
+
+func debug_open_skills_and_grant_sp(amount: int = 100) -> void:
+	if DmHud and DmHud.has_method("open_skill_tree_hud"):
+		DmHud.open_skill_tree_hud()
+	else:
+		_show_skill_tree_hud()
+	if multiplayer.is_server():
+		grant_skill_points(amount)
+	else:
+		request_debug_grant_sp.rpc_id(1, amount)
+
+
+@rpc("any_peer", "reliable")
+func request_debug_grant_sp(amount: int) -> void:
+	if not multiplayer.is_server():
+		return
+	if not _is_dm_peer(multiplayer.get_remote_sender_id()):
+		return
+	grant_skill_points(amount)
 
 
 func request_purchase(tree: String, node_id: String) -> String:
