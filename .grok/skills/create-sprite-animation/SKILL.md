@@ -187,3 +187,10 @@ re-composite. Do not regenerate the whole set.
 - Identity, palette, scale, and foot baseline hold across all 12 cells.
 - Side is right-facing only.
 - Path and clip names (`{state}_down|_side|_up`) are reported to the user.
+
+## Rules
+- "NEVER ask the diffusion model to generate a multi-row grid or sprite sheet in a single canvas."
+  - "Generate only 1D horizontal strips for a single animation state at a time, or generate isolated keyframes sequentially."
+  - "Enforce a solid chroma background (e.g., pure green #00FF00 or pure black #000000), never mixed or boxed backgrounds."
+  - "Pass an approved canonical character reference via IP-Adapter/Image-Prompt to lock proportions, palette, and equipment."
+  - "Negative prompt MUST include: sprite sheet, collage, multiple views, ui, borders, boxes, text, varying scale."
