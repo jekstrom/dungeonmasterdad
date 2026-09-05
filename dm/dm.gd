@@ -366,7 +366,7 @@ func confirm_targeted_spell() -> void:
 			origin = current_targeting.get_meta("blizzard_origin")
 		spell_data["origin"] = origin
 		spell_data["size"] = size
-		spell_data["duration"] = DmManager.BLIZZARD_DURATION
+		spell_data["duration"] = DmManager.blizzard_duration()
 		spell_data["slow_factor"] = DmManager.BLIZZARD_SLOW_FACTOR
 	_clear_targeting()
 	_targeting_spell_id = ""
