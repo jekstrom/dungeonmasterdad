@@ -7,7 +7,7 @@
 
 ## Goal
 
-Headless or harness: not-owned baseline, force-own applies **Dad Reflexes**, peers agree on outcome.
+Headless or harness: not-owned baseline speed, force-own applies **1.5× DM movement speed**, no dash action exists, peers agree on locomotion.
 
 ## Requirements
 
@@ -15,4 +15,5 @@ Headless or harness: not-owned baseline, force-own applies **Dad Reflexes**, pee
 
 ## Acceptance
 
-- **Given** the harness, **When** it runs, **Then** owned vs not-owned asserts pass without manual editor clicks.
+- **Given** the harness, **When** it runs, **Then** owned vs not-owned speed asserts pass without manual editor clicks.
+- **Given** owned, **When** queried, **Then** the harness MUST NOT require or grant a dash input.

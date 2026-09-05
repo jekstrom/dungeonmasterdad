@@ -7,8 +7,8 @@
 
 ## Goal
 
-Optional dash smear VFX.
+No dedicated VFX. A 1.5× movement-speed multiplier uses existing DM walk animation. Do **not** add dash smear or dash VFX.
 
 ## Acceptance
 
-- **Given** art imported, **When** the effect plays, **Then** VFX reads clearly without changing gameplay numbers.
+- **Given** the effect is owned, **When** the DM moves, **Then** no new art asset is required and no dash smear plays.
