@@ -28,11 +28,17 @@ signal smoke_amt_changed(new_smoke_amt: int)
 # slots[0..3] active, slots[4..7] static. Each entry is {} or { "path": String, "qty": int }.
 const SLOT_COUNT := 8
 const ACTIVE_SLOT_COUNT := 4
+const STATIC_SLOT_COUNT := 4
+const THERMOSTAT_LOCK_STATIC_TRIM := 1
 var players_data = {}
 var local_inventory: Dictionary = {}
 var local_slots: Array = []
 
 func _ready() -> void:
+	if not SignalBus.on_dm_unlock.is_connected(_on_thermostat_lock_changed):
+		SignalBus.on_dm_unlock.connect(_on_thermostat_lock_changed)
+	if not SignalBus.on_dm_lock.is_connected(_on_thermostat_lock_changed):
+		SignalBus.on_dm_lock.connect(_on_thermostat_lock_changed)
 	add_player_instance()
 	await get_tree().create_timer(0.2).timeout
 	player_spawned = true
@@ -102,6 +108,86 @@ func _slot_row_start(item_data: ItemData) -> int:
 		return 0
 	return ACTIVE_SLOT_COUNT
 
+
+func thermostat_lock_applies(player_id: int) -> bool:
+	if not DmUnlocks.is_owned("thermostat_lock"):
+		return false
+	var node: Node = get_player_node_by_id(player_id)
+	if node is DM:
+		return false
+	if node != null and node.is_in_group("dm"):
+		return false
+	if node is Player:
+		return true
+	return node == null
+
+
+func static_slot_count_for(player_id: int) -> int:
+	if thermostat_lock_applies(player_id):
+		return maxi(1, STATIC_SLOT_COUNT - THERMOSTAT_LOCK_STATIC_TRIM)
+	return STATIC_SLOT_COUNT
+
+
+func is_slot_usable(player_id: int, index: int) -> bool:
+	if index < 0 or index >= SLOT_COUNT:
+		return false
+	if index < ACTIVE_SLOT_COUNT:
+		return true
+	return index < ACTIVE_SLOT_COUNT + static_slot_count_for(player_id)
+
+
+func _row_end(player_id: int, start: int) -> int:
+	if start < ACTIVE_SLOT_COUNT:
+		return ACTIVE_SLOT_COUNT
+	return ACTIVE_SLOT_COUNT + static_slot_count_for(player_id)
+
+
+func _on_thermostat_lock_changed(unlock_name: String) -> void:
+	if unlock_name != "thermostat_lock":
+		return
+	apply_thermostat_lock()
+
+
+func apply_thermostat_lock() -> int:
+	if not multiplayer.is_server():
+		SignalBus.inventory_slots_changed.emit()
+		return 0
+	var dropped: int = 0
+	for key in players_data.keys():
+		dropped += _trim_unusable_slots(int(key))
+	SignalBus.inventory_slots_changed.emit()
+	return dropped
+
+
+func _trim_unusable_slots(player_id: int) -> int:
+	if not players_data.has(player_id):
+		return 0
+	var slots: Array = _ensure_slots(player_id)
+	var dropped: int = 0
+	var drop_at := Vector2.ZERO
+	var body: Node = get_player_node_by_id(player_id)
+	if body is Node2D:
+		drop_at = (body as Node2D).global_position
+	for i in SLOT_COUNT:
+		if is_slot_usable(player_id, i):
+			continue
+		var slot: Dictionary = slots[i] if typeof(slots[i]) == TYPE_DICTIONARY else {}
+		var path := str(slot.get("path", ""))
+		var qty: int = int(slot.get("qty", 0))
+		if path.is_empty() or qty <= 0:
+			slots[i] = {}
+			continue
+		for _j in qty:
+			SignalBus.on_item_drop.emit({
+				"item_type": path,
+				"position": drop_at,
+			})
+			dropped += 1
+		slots[i] = {}
+	players_data[player_id]["slots"] = slots
+	_push_inventory(player_id, _rebuild_inventory_dict(player_id))
+	return dropped
+
 func _rebuild_inventory_dict(player_id: int) -> Dictionary:
 	var counts: Dictionary = {}
 	var slots: Array = _ensure_slots(player_id)
@@ -134,7 +220,7 @@ func add_item_to_inventory(player_id: int, item_data: ItemData, amount: int = 1)
 	var item_id: String = item_data.resource_path
 	var slots: Array = _ensure_slots(player_id)
 	var start: int = _slot_row_start(item_data)
-	var end: int = start + ACTIVE_SLOT_COUNT
+	var end: int = _row_end(player_id, start)
 	var remaining: int = amount
 	for i in range(start, end):
 		var slot: Dictionary = slots[i] if typeof(slots[i]) == TYPE_DICTIONARY else {}
@@ -165,6 +251,8 @@ func swap_slots(player_id: int, from_index: int, to_index: int) -> bool:
 	if from_index == to_index:
 		return true
 	if from_index < 0 or to_index < 0 or from_index >= SLOT_COUNT or to_index >= SLOT_COUNT:
+		return false
+	if not is_slot_usable(player_id, from_index) or not is_slot_usable(player_id, to_index):
 		return false
 	var from_row: int = 0 if from_index < ACTIVE_SLOT_COUNT else 1
 	var to_row: int = 0 if to_index < ACTIVE_SLOT_COUNT else 1
