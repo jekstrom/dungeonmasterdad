@@ -8,10 +8,14 @@ signal interact_pressed
 const AbilityCatalog = preload("res://dm/dm_ability_catalog.gd")
 const DmNearSpawnPickerScript = preload("res://scripts/dm_near_spawn_picker.gd")
 const SkillTreeCatalogScript = preload("res://dm/skill_tree_catalog.gd")
+const BlizzardIceDrawScript = preload("res://spells/blizzard/blizzard_ice_draw.gd")
 const DEFAULT_MAX_MANA: int = 100
 const BLIZZARD_DURATION: float = 8.0
 const BLIZZARD_COLD_DURATION_SCALE: float = 1.5
 const BLIZZARD_SLOW_FACTOR: float = 0.5
+const FROST_TRAIL_DURATION: float = 3.0
+const FROST_TRAIL_SIZE: float = 32.0
+const FROST_TRAIL_SPACING: float = 16.0
 const BLIZZARD_FACTORY_INTERVAL_FACTOR: float = 2.0
 const BLIZZARD_POCKET_CELLS: Vector2i = Vector2i(3, 3)
 const CRIB_DEATH_INTERVAL_SEC: float = 60.0
@@ -36,6 +40,8 @@ signal spawn_goblin_cast
 var player_spawned: bool = false
 var _blizzard_effects: Array[Dictionary] = []
 var _blizzard_broadcast_queued: bool = false
+var _frost_trail: Array[Dictionary] = []
+var _frost_last_world: Vector2 = Vector2.INF
 var dm_player_name: String = "DM"
 var _crib_death_elapsed: float = 0.0
 
@@ -56,10 +62,12 @@ func _on_host_started(_player_name: String = "") -> void:
 	_crib_death_elapsed = 0.0
 	_host_set_mana(0)
 	_host_set_skill_points(0)
+	clear_frost_trail()
 
 func _process(delta: float) -> void:
 	if not multiplayer.is_server():
 		return
+	_tick_frost_trail()
 	if not is_crib_death_owned():
 		_crib_death_elapsed = 0.0
 		return
@@ -306,6 +314,9 @@ func blizzard_slow_factor_at(world: Vector2) -> float:
 	for effect in _blizzard_effects:
 		if _effect_world_rect(effect).has_point(world):
 			factor = minf(factor, float(effect["slow_factor"]))
+	for patch in _frost_trail:
+		if _frost_patch_rect(patch).has_point(world):
+			factor = minf(factor, float(patch.get("slow_factor", BLIZZARD_SLOW_FACTOR)))
 	return factor
 
 func is_in_blizzard_slow_rect(world: Vector2, ignore_pocket_id: int = -1) -> bool:
@@ -342,6 +353,167 @@ func clear_blizzard_effects() -> void:
 	_blizzard_effects.clear()
 	_queue_blizzard_broadcast()
 
+
+func frost_trail_count() -> int:
+	return _frost_trail.size()
+
+
+func frost_trail_covers_world(world: Vector2) -> bool:
+	for patch in _frost_trail:
+		if _frost_patch_rect(patch).has_point(world):
+			return true
+	return false
+
+
+func clear_frost_trail() -> void:
+	_frost_trail.clear()
+	_frost_last_world = Vector2.INF
+	_sync_frost_trail_visuals()
+	_queue_blizzard_broadcast()
+
+
+func stamp_frost_world(world: Vector2) -> bool:
+	if not DmUnlocks.is_owned("tshirt_in_december"):
+		return false
+	_stamp_frost_world(world, blizzard_now())
+	_frost_last_world = world
+	_sync_frost_trail_visuals()
+	_queue_blizzard_broadcast()
+	return true
+
+
+func _frost_patch_rect(patch: Dictionary) -> Rect2:
+	var origin: Vector2 = patch.get("world", Vector2.ZERO)
+	var half: float = FROST_TRAIL_SIZE * 0.5
+	return Rect2(origin - Vector2(half, half), Vector2(FROST_TRAIL_SIZE, FROST_TRAIL_SIZE))
+
+
+func _tick_frost_trail() -> void:
+	var now: float = blizzard_now()
+	var expired: bool = _expire_frost_trail(now)
+	if not DmUnlocks.is_owned("tshirt_in_december"):
+		if not _frost_trail.is_empty() or is_finite(_frost_last_world.x):
+			clear_frost_trail()
+		return
+	if dm == null or not is_instance_valid(dm) or bool(dm.is_downed()):
+		if expired:
+			_sync_frost_trail_visuals()
+			_queue_blizzard_broadcast()
+		return
+	var world: Vector2 = dm.global_position
+	if not is_finite(_frost_last_world.x):
+		_frost_last_world = world
+		if expired:
+			_sync_frost_trail_visuals()
+			_queue_blizzard_broadcast()
+		return
+	if world.distance_to(_frost_last_world) < FROST_TRAIL_SPACING:
+		if expired:
+			_sync_frost_trail_visuals()
+			_queue_blizzard_broadcast()
+		return
+	_stamp_frost_world(world, now)
+	_frost_last_world = world
+	_sync_frost_trail_visuals()
+	_queue_blizzard_broadcast()
+
+
+func _stamp_frost_world(world: Vector2, now: float) -> void:
+	_frost_trail.append({
+		"world": world,
+		"expires_at": now + FROST_TRAIL_DURATION,
+		"slow_factor": BLIZZARD_SLOW_FACTOR,
+	})
+
+
+func _expire_frost_trail(now: float) -> bool:
+	var remaining: Array[Dictionary] = []
+	var dropped := false
+	for patch in _frost_trail:
+		if float(patch.get("expires_at", 0.0)) <= now:
+			dropped = true
+			continue
+		remaining.append(patch)
+	_frost_trail = remaining
+	return dropped
+
+
+func pack_frost_trail(now: float = -1.0) -> Array:
+	var t: float = blizzard_now() if now < 0.0 else now
+	var packed: Array = []
+	for patch in _frost_trail:
+		var remaining: float = maxf(0.0, float(patch.get("expires_at", 0.0)) - t)
+		if remaining <= 0.0:
+			continue
+		var world: Vector2 = patch.get("world", Vector2.INF)
+		if not is_finite(world.x):
+			continue
+		packed.append({
+			"x": world.x,
+			"y": world.y,
+			"remaining": remaining,
+			"slow_factor": float(patch.get("slow_factor", BLIZZARD_SLOW_FACTOR)),
+		})
+	return packed
+
+
+func apply_frost_trail(packed: Array, now: float = -1.0) -> void:
+	var t: float = blizzard_now() if now < 0.0 else now
+	var patches: Array[Dictionary] = []
+	for item in packed:
+		if typeof(item) != TYPE_DICTIONARY:
+			continue
+		var remaining: float = float(item.get("remaining", 0.0))
+		if remaining <= 0.0:
+			continue
+		patches.append({
+			"world": Vector2(float(item.get("x", 0.0)), float(item.get("y", 0.0))),
+			"expires_at": t + remaining,
+			"slow_factor": float(item.get("slow_factor", BLIZZARD_SLOW_FACTOR)),
+		})
+	_frost_trail = patches
+	_sync_frost_trail_visuals()
+
+
+func _sync_frost_trail_visuals() -> void:
+	var root: Node2D = _ensure_frost_overlay_root()
+	if root == null:
+		return
+	for child in root.get_children():
+		root.remove_child(child)
+		child.queue_free()
+	var scale: float = FROST_TRAIL_SIZE / BlizzardIceDrawScript.TILE_PX
+	for patch in _frost_trail:
+		var world: Vector2 = patch.get("world", Vector2.INF)
+		if not is_finite(world.x):
+			continue
+		var sprite: Sprite2D = BlizzardIceDrawScript.make_tile(Vector2i.ONE, Vector2i.ZERO)
+		sprite.scale = Vector2(scale, scale)
+		sprite.z_index = -1
+		sprite.position = world - root.global_position
+		root.add_child(sprite)
+
+
+func _ensure_frost_overlay_root() -> Node2D:
+	var tree := get_tree()
+	if tree == null:
+		return null
+	var host: Node = tree.get_first_node_in_group("level_manager")
+	if host == null:
+		host = tree.current_scene
+	if host == null:
+		host = self
+	var existing: Node = host.get_node_or_null("FrostTrailOverlay")
+	if existing is Node2D:
+		return existing as Node2D
+	var root := Node2D.new()
+	root.name = "FrostTrailOverlay"
+	root.z_index = -1
+	root.z_as_relative = false
+	root.y_sort_enabled = false
+	host.add_child(root)
+	return root
+
 func expire_blizzard_due(now: float) -> void:
 	var remaining: Array[Dictionary] = []
 	var expired_ids: Array[int] = []
@@ -363,6 +535,7 @@ func _on_fantasy_pocket_expired(pocket_id: int) -> void:
 
 func _on_map_bounds_cleared_blizzard() -> void:
 	clear_blizzard_effects()
+	clear_frost_trail()
 
 func blizzard_now() -> float:
 	var fantasy: FantasyZone = _fantasy_zone()
@@ -508,6 +681,7 @@ func late_join_blizzard_snapshot() -> Dictionary:
 		"unlocks": DmUnlocks.snapshot(),
 		"claim": claim_payload,
 		"slows": pack_blizzard_slows(),
+		"frost": pack_frost_trail(),
 		"slowed": pack_slowed_players(),
 		"factories": pack_factory_timers(),
 	}
@@ -524,6 +698,8 @@ func apply_late_join_blizzard_snapshot(payload: Dictionary) -> void:
 			fantasy.apply_claim_sync_payload(claim_payload)
 	if payload.has("slows") and typeof(payload["slows"]) == TYPE_ARRAY:
 		apply_blizzard_slows(payload["slows"])
+	if payload.has("frost") and typeof(payload["frost"]) == TYPE_ARRAY:
+		apply_frost_trail(payload["frost"])
 	if payload.has("factories") and typeof(payload["factories"]) == TYPE_ARRAY:
 		apply_factory_timers(payload["factories"])
 
