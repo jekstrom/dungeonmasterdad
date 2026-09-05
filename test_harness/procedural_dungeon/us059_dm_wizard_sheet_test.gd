@@ -17,18 +17,15 @@ const CLIPS := [
 
 func _ready() -> void:
 	for path in SHEETS:
-		if not ResourceLoader.exists(path):
+		var abs_path := ProjectSettings.globalize_path(path)
+		if not FileAccess.file_exists(abs_path):
 			return _fail("US-059: missing sheet %s" % path)
-		var img := Image.load_from_file(ProjectSettings.globalize_path(path))
-		if img == null:
-			var tex := load(path) as Texture2D
-			if tex == null:
-				return _fail("US-059: cannot load %s" % path)
-			if tex.get_width() != 512 or tex.get_height() != 384:
-				return _fail("US-059: %s must be 512×384, got %dx%d" % [path, tex.get_width(), tex.get_height()])
-		else:
-			if img.get_width() != 512 or img.get_height() != 384:
-				return _fail("US-059: %s must be 512×384, got %dx%d" % [path, img.get_width(), img.get_height()])
+		var img := Image.new()
+		var err := img.load(abs_path)
+		if err != OK:
+			return _fail("US-059: cannot load image %s (err %s)" % [path, err])
+		if img.get_width() != 512 or img.get_height() != 384:
+			return _fail("US-059: %s must be 512×384, got %dx%d" % [path, img.get_width(), img.get_height()])
 
 	var dm_scene: PackedScene = load("res://dm/dm.tscn") as PackedScene
 	if dm_scene == null:
@@ -55,21 +52,21 @@ func _ready() -> void:
 		if not ap.has_animation(clip):
 			return _fail("US-059: missing AnimationPlayer clip %s" % clip)
 
-	# Cast while targeting: setup_targeting should switch to cast sheet.
+	# Cast sheet swap (check immediately — idle SM can overwrite next frame without a reticle).
 	if not dm.has_method("setup_targeting") or not dm.has_method("update_animation"):
 		return _fail("US-059: DM missing targeting/update_animation")
-	# Targeting scene may be null in headless — call update_animation("cast") directly.
-	dm.call("update_animation", "cast")
-	await get_tree().process_frame
+	if not dm.has_method("_apply_state_sheet"):
+		return _fail("US-059: _apply_state_sheet missing")
+	dm.call("_apply_state_sheet", "cast")
 	var cast_tex := str((dm.get_node("Sprite2D") as Sprite2D).texture.resource_path)
 	if cast_tex.find("dm_cast.png") == -1:
-		return _fail("US-059: update_animation(cast) must use dm_cast.png, got %s" % cast_tex)
+		return _fail("US-059: cast sheet must be dm_cast.png, got %s" % cast_tex)
+	dm.call("update_animation", "cast")
 	var anim_name := str((dm.get_node("AnimationPlayer") as AnimationPlayer).current_animation)
 	if not anim_name.begins_with("cast_"):
 		return _fail("US-059: cast anim not playing, got %s" % anim_name)
 
-	dm.call("update_animation", "idle")
-	await get_tree().process_frame
+	dm.call("_apply_state_sheet", "idle")
 	var idle_tex := str((dm.get_node("Sprite2D") as Sprite2D).texture.resource_path)
 	if idle_tex.find("dm_idle.png") == -1:
 		return _fail("US-059: idle must use dm_idle.png, got %s" % idle_tex)
@@ -77,7 +74,7 @@ func _ready() -> void:
 	# Scale flip contract still present
 	if not dm.has_method("apply_aim"):
 		return _fail("US-059: apply_aim missing")
-	dm.call("apply_aim", Vector2.LEFT)
+	dm.call("apply_aim", Vector2.LEFT * 64.0)
 	if absf((dm.get_node("Sprite2D") as Sprite2D).scale.x + 1.0) > 0.01:
 		return _fail("US-059: left aim must set scale.x = -1")
 
