@@ -30,6 +30,7 @@ const CRIB_DEATH_LIFETIME_SEC: float = 60.0
 const FANTASY_PER_SKILL_POINT: int = 10
 const DM_MOVE_SPEED: float = 300.0
 const DAD_REFLEXES_SPEED_SCALE: float = 1.5
+const GROUNDED_FANTASY_SEC: float = 3.0
 
 var dm: DM
 @export var fantasy_level: int = 0
@@ -56,6 +57,7 @@ var _crib_death_elapsed: float = 0.0
 var _blizzard_damage_elapsed: float = 0.0
 var _ability_cooldown_left: Dictionary = {}
 var _ability_cooldown_duration: Dictionary = {}
+var _grounded_elapsed: Dictionary = {}
 
 func _ready() -> void:
 	if not Lobby.host_started.is_connected(_on_host_started):
@@ -75,6 +77,7 @@ func _on_host_started(_player_name: String = "") -> void:
 	_host_set_mana(0)
 	_host_set_skill_points(0)
 	clear_all_ability_cooldowns()
+	clear_grounded_timers()
 	clear_frost_trail()
 
 func _process(delta: float) -> void:
@@ -83,6 +86,7 @@ func _process(delta: float) -> void:
 	_tick_frost_trail()
 	_tick_blizzard_sweater_damage(delta)
 	_tick_ability_cooldowns(delta)
+	_tick_grounded(delta)
 	if not is_crib_death_owned():
 		_crib_death_elapsed = 0.0
 		return
@@ -521,6 +525,88 @@ func apply_blizzard_sweater_damage() -> int:
 		paper.take_damage(null)
 		hits += 1
 	return hits
+
+
+func clear_grounded_timers() -> void:
+	_grounded_elapsed.clear()
+
+
+func grounded_elapsed_for(player_id: int) -> float:
+	return float(_grounded_elapsed.get(player_id, 0.0))
+
+
+func grounded_remaining_for(player_id: int) -> float:
+	if not DmUnlocks.is_owned("grounded"):
+		return 0.0
+	if not _grounded_elapsed.has(player_id):
+		return 0.0
+	return maxf(0.0, GROUNDED_FANTASY_SEC - float(_grounded_elapsed[player_id]))
+
+
+func apply_grounded_tick(delta: float) -> int:
+	return _tick_grounded(delta)
+
+
+func _tick_grounded(delta: float) -> int:
+	if not multiplayer.is_server():
+		return 0
+	if not DmUnlocks.is_owned("grounded"):
+		_clear_all_grounded_remaining()
+		_grounded_elapsed.clear()
+		return 0
+	var fantasy: FantasyZone = _fantasy_zone()
+	if fantasy == null:
+		_clear_all_grounded_remaining()
+		_grounded_elapsed.clear()
+		return 0
+	var tree := get_tree()
+	if tree == null:
+		return 0
+	var killed: int = 0
+	var seen: Dictionary = {}
+	for node in tree.get_nodes_in_group("players"):
+		if not (node is Player) or not is_instance_valid(node):
+			continue
+		var paper: Player = node as Player
+		var player_id: int = paper.get_multiplayer_authority()
+		if paper.name.is_valid_int():
+			player_id = int(paper.name)
+		if paper.hitpoints <= 0:
+			_grounded_elapsed.erase(player_id)
+			_set_grounded_remaining(paper, 0.0)
+			continue
+		if not fantasy.is_claimed_world(paper.global_position):
+			_grounded_elapsed.erase(player_id)
+			_set_grounded_remaining(paper, 0.0)
+			continue
+		seen[player_id] = true
+		var elapsed: float = float(_grounded_elapsed.get(player_id, 0.0)) + delta
+		if elapsed < GROUNDED_FANTASY_SEC:
+			_grounded_elapsed[player_id] = elapsed
+			_set_grounded_remaining(paper, GROUNDED_FANTASY_SEC - elapsed)
+			continue
+		_grounded_elapsed.erase(player_id)
+		_set_grounded_remaining(paper, 0.0)
+		paper.apply_explosion_damage(maxi(paper.hitpoints, paper.max_hp))
+		killed += 1
+	var stale: Array = _grounded_elapsed.keys()
+	for player_id in stale:
+		if not seen.has(player_id):
+			_grounded_elapsed.erase(player_id)
+	return killed
+
+
+func _set_grounded_remaining(paper: Player, remaining: float) -> void:
+	paper.grounded_remaining = remaining
+
+
+func _clear_all_grounded_remaining() -> void:
+	var tree := get_tree()
+	if tree == null:
+		return
+	for node in tree.get_nodes_in_group("players"):
+		if node is Player:
+			(node as Player).grounded_remaining = 0.0
 
 func live_blizzard_rects() -> Array[Rect2i]:
 	var rects: Array[Rect2i] = []

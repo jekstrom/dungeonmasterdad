@@ -1,0 +1,32 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://player/grounded_countdown.gd" id="1_script"]
+[ext_resource type="Texture2D" path="res://sprites/grounded_skull.png" id="2_skull"]
+
+[node name="GroundedCountdown" type="Node2D"]
+z_index = 100
+z_as_relative = false
+script = ExtResource("1_script")
+
+[node name="Skull" type="Sprite2D" parent="."]
+z_index = 1
+texture_filter = 1
+position = Vector2(0, 0)
+scale = Vector2(1.6, 1.6)
+texture = ExtResource("2_skull")
+
+[node name="BarBg" type="ColorRect" parent="."]
+offset_left = -24.0
+offset_top = 18.0
+offset_right = 24.0
+offset_bottom = 26.0
+mouse_filter = 2
+color = Color(0.08, 0.08, 0.08, 0.9)
+
+[node name="BarFill" type="ColorRect" parent="."]
+offset_left = -24.0
+offset_top = 18.0
+offset_right = 24.0
+offset_bottom = 26.0
+mouse_filter = 2
+color = Color(0.9, 0.2, 0.15, 1)

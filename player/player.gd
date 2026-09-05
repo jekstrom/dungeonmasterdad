@@ -66,7 +66,10 @@ const TEX_SWORD_FALLBACK: Texture2D = preload("res://player/sprites/PlayerSprite
 signal staple_count_changed(count: int)
 
 const HEALTH_BAR_SCENE: PackedScene = preload("res://monsters/enemy_health_bar.tscn")
+const GROUNDED_COUNTDOWN_SCENE: PackedScene = preload("res://player/grounded_countdown.tscn")
 var _health_bar: Node2D
+var _grounded_countdown: Node2D
+@export var grounded_remaining: float = 0.0
 
 @export var sync_name: String:
 	set(val):
@@ -106,7 +109,9 @@ func _ready() -> void:
 		
 	_ensure_combat_visuals()
 	_spawn_health_bar()
+	_spawn_grounded_countdown()
 	_configure_hp_replication()
+	_configure_grounded_replication()
 	if state_machine:
 		state_machine.Initialize(self)
 	staple_count = staple_magazine_max
@@ -1322,6 +1327,32 @@ func _refresh_health_bar() -> void:
 	_health_bar.visible = hitpoints > 0
 	if _health_bar.has_method("set_health_ratio"):
 		_health_bar.call("set_health_ratio", health_ratio())
+
+func _spawn_grounded_countdown() -> void:
+	if GROUNDED_COUNTDOWN_SCENE == null:
+		return
+	if get_node_or_null("GroundedCountdown") != null:
+		_grounded_countdown = get_node("GroundedCountdown") as Node2D
+		return
+	_grounded_countdown = GROUNDED_COUNTDOWN_SCENE.instantiate() as Node2D
+	_grounded_countdown.name = "GroundedCountdown"
+	_grounded_countdown.position = Vector2(0.0, -96.0)
+	_grounded_countdown.z_as_relative = false
+	_grounded_countdown.z_index = 100
+	add_child(_grounded_countdown)
+
+
+func _configure_grounded_replication() -> void:
+	var sync := get_node_or_null("MultiplayerSynchronizer")
+	if sync == null or sync.replication_config == null:
+		return
+	var config: SceneReplicationConfig = sync.replication_config
+	var path := NodePath(".:grounded_remaining")
+	if not config.has_property(path):
+		config.add_property(path)
+	config.property_set_spawn(path, true)
+	config.property_set_replication_mode(path, SceneReplicationConfig.REPLICATION_MODE_ON_CHANGE)
+
 
 func _configure_hp_replication() -> void:
 	var sync := get_node_or_null("MultiplayerSynchronizer")
