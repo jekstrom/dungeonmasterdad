@@ -140,6 +140,16 @@ func take_damage(hurt_box: Hurtbox) -> void:
 	if hitpoints <= 0:
 		destroy()
 
+
+func apply_explosion_damage(amount: int) -> void:
+	if not multiplayer.is_server():
+		return
+	if destroyed or is_ghost or not is_operating():
+		return
+	hitpoints = hitpoints - maxi(1, amount)
+	if hitpoints <= 0:
+		destroy()
+
 func destroy() -> void:
 	if destroyed:
 		return

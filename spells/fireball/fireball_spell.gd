@@ -69,7 +69,7 @@ func explode() -> void:
 			"damage": base_damage,
 			"radius": radius,
 		}
-		SignalBus.on_explosion.emit(position, explosion_data)
+		SignalBus.on_explosion.emit(global_position, explosion_data)
 	
 	await animation_player.animation_finished
 	queue_free()

@@ -270,6 +270,44 @@ func fireball_radius() -> float:
 	return FIREBALL_RADIUS
 
 
+func apply_everything_burns(explosion_data: Dictionary) -> int:
+	if not multiplayer.is_server():
+		return 0
+	if not DmUnlocks.is_owned("everything_burns"):
+		return 0
+	if str(explosion_data.get("type", "")) != "fire":
+		return 0
+	var origin: Vector2 = Vector2.ZERO
+	if explosion_data.get("position") is Vector2:
+		origin = explosion_data["position"]
+	var radius: float = float(explosion_data.get("radius", FIREBALL_RADIUS))
+	if radius <= 0.0:
+		radius = FIREBALL_RADIUS
+	return destroy_resource_pickups_in_radius(origin, radius)
+
+
+func destroy_resource_pickups_in_radius(origin: Vector2, radius: float) -> int:
+	if not multiplayer.is_server():
+		return 0
+	var tree := get_tree()
+	if tree == null:
+		return 0
+	var burned: int = 0
+	for node in tree.get_nodes_in_group("item_pickup"):
+		if not (node is ItemPickup):
+			continue
+		var pickup: ItemPickup = node
+		if not pickup.visible or pickup.is_queued_for_deletion():
+			continue
+		if pickup.item_data == null or not pickup.item_data.is_world_resource():
+			continue
+		if pickup.global_position.distance_to(origin) > radius:
+			continue
+		if pickup.burn_from_fireball():
+			burned += 1
+	return burned
+
+
 func launch_fireball(spell_data: Dictionary) -> bool:
 	if not multiplayer.is_server():
 		return false
