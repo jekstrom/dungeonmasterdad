@@ -56,6 +56,5 @@ func RequestChangeStateTo(state_name: String) -> void:
 func ChangeStateTo(state_name: String) -> void:
 	for i in range(0, states.size()):
 		if states[i].name == state_name:
-			print("changing state to ", state_name, " on mp ",  multiplayer.get_unique_id())
 			ChangeState(states[i])
 			return
