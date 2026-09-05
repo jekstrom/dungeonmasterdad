@@ -6,6 +6,7 @@ const MANA_BAR_WIDTH: float = 120.0
 
 @onready var spawn_gremlin_button: TextureButton = $MarginContainer/HBoxContainer/SpawnGremlin/TextureButton
 @onready var spawn_goblin_button: TextureButton = $MarginContainer/HBoxContainer/SpawnGoblin/TextureButton
+@onready var spawn_goblin: ColorRect = $MarginContainer/HBoxContainer/SpawnGoblin
 @onready var cast_fireball_button: TextureButton = $MarginContainer/HBoxContainer/Fireball/TextureButton
 @onready var spawn_knight_button: TextureButton = $MarginContainer/HBoxContainer/SpawnKnight/TextureButton
 @onready var spawn_knight: ColorRect = $MarginContainer/HBoxContainer/SpawnKnight
@@ -184,6 +185,8 @@ func _apply_unlock_visibility() -> void:
 		fireball.visible = bool(DmUnlocks.dm_unlocks.get(AbilityCatalog.FIREBALL, false))
 	if spawn_knight:
 		spawn_knight.visible = bool(DmUnlocks.dm_unlocks.get(AbilityCatalog.KNIGHTLING, false))
+	if spawn_goblin:
+		spawn_goblin.visible = bool(DmUnlocks.dm_unlocks.get(AbilityCatalog.UNLOCK_GOBLIN, false))
 	if blizzard:
 		blizzard.visible = bool(DmUnlocks.dm_unlocks.get(AbilityCatalog.BEMIDJI_BLIZZARD, false))
 

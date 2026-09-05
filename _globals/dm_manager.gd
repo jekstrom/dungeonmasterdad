@@ -58,6 +58,7 @@ var _blizzard_damage_elapsed: float = 0.0
 var _ability_cooldown_left: Dictionary = {}
 var _ability_cooldown_duration: Dictionary = {}
 var _grounded_elapsed: Dictionary = {}
+var _dm_was_in_dungeon: bool = false
 
 func _ready() -> void:
 	if not Lobby.host_started.is_connected(_on_host_started):
@@ -74,6 +75,7 @@ func _on_host_started(_player_name: String = "") -> void:
 	if not Lobby.is_network_server():
 		return
 	_crib_death_elapsed = 0.0
+	_dm_was_in_dungeon = false
 	_host_set_mana(0)
 	_host_set_skill_points(0)
 	clear_all_ability_cooldowns()
@@ -87,6 +89,7 @@ func _process(delta: float) -> void:
 	_tick_blizzard_sweater_damage(delta)
 	_tick_ability_cooldowns(delta)
 	_tick_grounded(delta)
+	_tick_goblin_exit_unlock()
 	if not is_crib_death_owned():
 		_crib_death_elapsed = 0.0
 		return
@@ -1024,6 +1027,77 @@ func update_fantasy_level(level_inc: int) -> void:
 func unlock(unlock_name: String) -> void:
 	if multiplayer.is_server():
 		DmUnlocks.unlock(unlock_name)
+
+
+func notify_first_dungeon_exit() -> void:
+	if not multiplayer.is_server():
+		return
+	if DmUnlocks.is_owned(AbilityCatalog.UNLOCK_GOBLIN):
+		return
+	unlock(AbilityCatalog.UNLOCK_GOBLIN)
+	_flip_goblins_post_exit()
+
+
+func _tick_goblin_exit_unlock() -> void:
+	if DmUnlocks.is_owned(AbilityCatalog.UNLOCK_GOBLIN):
+		return
+	if dm == null or not is_instance_valid(dm) or not dm.is_inside_tree():
+		return
+	var manager: Node = get_node_or_null("/root/DungeonGenerationManager")
+	if manager == null or not manager.has_method("is_world_position_in_dungeon"):
+		return
+	var bounds: Rect2i = manager.get_dungeon_cell_bounds()
+	if bounds.size.x <= 0 or bounds.size.y <= 0:
+		return
+	if bool(manager.is_world_position_in_dungeon(dm.global_position)):
+		_dm_was_in_dungeon = true
+		return
+	if not _dm_was_in_dungeon:
+		return
+	if not _dm_is_on_overworld():
+		return
+	notify_first_dungeon_exit()
+
+
+func _dm_is_on_overworld() -> bool:
+	var level: Node = get_tree().get_first_node_in_group("level_manager")
+	if level == null or not level.has_method("get_map_bounds"):
+		return false
+	var bounds = level.get_map_bounds()
+	if bounds == null or not bool(bounds.has_method("is_interior_cell")):
+		return false
+	if not bool(bounds.has_committed_bounds()):
+		return false
+	var cell: Vector2i = DungeonGrid.from_world(dm.global_position)
+	if not bool(bounds.is_interior_cell(cell)):
+		return false
+	if bool(bounds.is_cliff_cell(cell)):
+		return false
+	return true
+
+
+func _flip_goblins_post_exit() -> void:
+	var tree: SceneTree = get_tree()
+	if tree == null:
+		return
+	var seen: Dictionary = {}
+	var nodes: Array = []
+	nodes.append_array(tree.get_nodes_in_group("goblins"))
+	nodes.append_array(tree.get_nodes_in_group("generated_dungeon_monsters"))
+	for node in nodes:
+		if not (node is Enemy) or not is_instance_valid(node):
+			continue
+		var enemy: Enemy = node as Enemy
+		if not enemy.raids_buildings:
+			continue
+		var id: int = enemy.get_instance_id()
+		if seen.has(id):
+			continue
+		seen[id] = true
+		enemy.add_to_group("goblins")
+		enemy.aggro_faction = Enemy.AggroFaction.PLAYERS
+		if enemy.aggro_target is DM:
+			enemy.aggro_target = null
 
 
 func _host_set_skill_points(value: int) -> void:

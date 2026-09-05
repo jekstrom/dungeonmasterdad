@@ -114,6 +114,19 @@ func plan_spawns(
 		spawns.append(hall_spawn)
 		spawn_index += 1
 
+	_place_dungeon_goblins(
+		spawns,
+		room_regions,
+		hallway_set,
+		excluded,
+		occupied,
+		door_set,
+		layout_id,
+		spawn_index,
+		rng
+	)
+	spawn_index = spawns.size()
+
 	# US-017 T001: skip-boss tests keep skeletons; live matches force one boss in the exit room.
 	if skip_boss:
 		return _strip_baja_bosses(spawns)
@@ -179,6 +192,62 @@ func _force_exit_boss(
 		occupied.erase(chosen)
 		return {}
 	return spawn
+
+func _place_dungeon_goblins(
+	spawns: Array[Dictionary],
+	room_regions: Array[Dictionary],
+	hallway_set: Dictionary,
+	excluded: Dictionary,
+	occupied: Dictionary,
+	door_set: Dictionary,
+	layout_id: String,
+	spawn_index: int,
+	rng: RandomNumberGenerator
+) -> void:
+	var mid_count: int = 0
+	var pool: Array[Vector2i] = []
+	for region in room_regions:
+		var role: String = str(region.get("role", ""))
+		if role == "mid":
+			mid_count += 1
+		if role != "mid":
+			continue
+		for point in region.get("cells", []):
+			var cell: Vector2i = DungeonGrid.cell_from(point)
+			if excluded.has(cell) or occupied.has(cell):
+				continue
+			pool.append(cell)
+	for cell in hallway_set.keys():
+		if excluded.has(cell) or occupied.has(cell):
+			continue
+		pool.append(cell)
+	if pool.is_empty():
+		return
+	_shuffle_cells(pool, rng)
+	var want: int = clampi(mid_count + 1, DungeonConstants.MIN_DUNGEON_GOBLINS, DungeonConstants.MAX_DUNGEON_GOBLINS)
+	var placed: int = 0
+	var index: int = spawn_index
+	for cell in pool:
+		if placed >= want:
+			break
+		if occupied.has(cell):
+			continue
+		var spawn: Dictionary = _make_spawn(layout_id, index, "goblin", cell)
+		if spawn.is_empty():
+			continue
+		occupied[cell] = true
+		spawns.append(spawn)
+		index += 1
+		placed += 1
+
+
+func _shuffle_cells(cells: Array[Vector2i], rng: RandomNumberGenerator) -> void:
+	for i in range(cells.size() - 1, 0, -1):
+		var j: int = rng.randi_range(0, i)
+		var tmp: Vector2i = cells[i]
+		cells[i] = cells[j]
+		cells[j] = tmp
+
 
 func _exit_room_cells(room_regions: Array[Dictionary]) -> Array[Vector2i]:
 	var cells: Array[Vector2i] = []

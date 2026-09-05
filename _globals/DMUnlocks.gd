@@ -20,6 +20,7 @@ func reset_unlocks() -> void:
 		"fireball": false,
 		"shadow_zone": false,
 		"knightling": false,
+		"goblin": false,
 		"bemidji_blizzard": false,
 	}
 	for node_id in SkillTreeCatalogScript.all_ids():
