@@ -151,7 +151,7 @@ func _run_suite() -> bool:
 		"Reduce cooldown and mana cost of fireball.",
 		"Fireball now destroys resources.",
 		"Paper Pushers lose one inventory slot.",
-		"Gain dash ability.",
+		"Increase DM movement speed 1.5×.",
 		"Paper Pushers can only survive in Fantasy for 3 seconds.",
 	]
 	var got_dad: Array[String] = tree.get_dad_passive_names()

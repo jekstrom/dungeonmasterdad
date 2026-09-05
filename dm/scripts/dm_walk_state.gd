@@ -16,7 +16,7 @@ func Process(_delta: float) -> DmState:
 	if dm.direction == Vector2.ZERO:
 		return idle
 	if not DewSlickScript.any_covers_world(dm.global_position):
-		dm.velocity = dm.direction * move_speed
+		dm.velocity = dm.direction * DmManager.dm_move_speed()
 	
 	if dm.set_direction():
 		dm.update_animation("walk")
