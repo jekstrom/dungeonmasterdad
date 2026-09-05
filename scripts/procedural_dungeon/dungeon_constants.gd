@@ -26,6 +26,8 @@ const AUTO_PORTAL_MIN_SPAN: float = 0.35
 const DEFAULT_OVERWORLD_SIZE: int = 48
 const MIN_OVERWORLD_SIZE: int = 16
 const MAX_OVERWORLD_SIZE: int = 128
+const MIN_DUNGEON_GOBLINS: int = 2
+const MAX_DUNGEON_GOBLINS: int = 5
 
 static func normalize_room_size(room_size: int) -> int:
 	var size: int = clampi(room_size, MIN_ROOM_SIZE, MAX_ROOM_SIZE)

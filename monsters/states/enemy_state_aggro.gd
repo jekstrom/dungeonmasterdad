@@ -57,10 +57,7 @@ func _chase_character(target: Node2D, delta: float) -> void:
 	else:
 		enemy.follow_path_to(target.global_position, run_speed, delta)
 		enemy.UpdateAnimation(anim_name)
-	if target is Player:
-		_strike_player(target as Player, delta)
-	else:
-		_update_melee(delta)
+	_strike_character(target, delta)
 
 func _raid_building(building: Building, delta: float) -> void:
 	var origin: Vector2 = building.factory_origin()
@@ -217,7 +214,7 @@ func _random_retreat_dir(origin: Vector2) -> Vector2:
 			return dir
 	return away
 
-func _strike_player(player: Player, delta: float) -> void:
+func _strike_character(target: Node2D, delta: float) -> void:
 	_melee_timer = maxf(0.0, _melee_timer - delta)
 	if not enemy.can_melee_current_target():
 		_set_hurtbox_monitoring(false)
@@ -229,19 +226,14 @@ func _strike_player(player: Player, delta: float) -> void:
 	if not enemy.multiplayer.is_server():
 		return
 	var hurtbox: Node = enemy.get_node_or_null("Hurtbox")
-	if hurtbox is Hurtbox:
-		player.take_damage(hurtbox as Hurtbox)
-
-func _update_melee(delta: float) -> void:
-	_melee_timer = maxf(0.0, _melee_timer - delta)
-	if not enemy.can_melee_current_target():
-		_set_hurtbox_monitoring(false)
+	if not (hurtbox is Hurtbox):
 		return
-	if _melee_timer > 0.0:
+	if target is Player:
+		(target as Player).take_damage(hurtbox as Hurtbox)
 		return
-	_set_hurtbox_monitoring(false)
-	_set_hurtbox_monitoring(true)
-	_melee_timer = melee_cooldown
+	var hitbox: Node = target.get_node_or_null("Hitbox")
+	if hitbox is Hitbox:
+		(hitbox as Hitbox).take_damage(hurtbox as Hurtbox)
 
 func _set_hurtbox_monitoring(enabled: bool) -> void:
 	var hurtbox := enemy.get_node_or_null("Hurtbox")

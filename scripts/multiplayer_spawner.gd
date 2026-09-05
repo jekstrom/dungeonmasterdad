@@ -216,8 +216,23 @@ func _spawn_minion_at(scene: PackedScene, _kind: String, world_position: Vector2
 	node.name = ("%s_%d" % [name_prefix, _manual_spawn_seq]).validate_node_name()
 	if node is Node2D:
 		(node as Node2D).position = world_position
+	if name_prefix == "goblin":
+		_apply_goblin_phase(node)
 	get_node(spawn_path).call_deferred("add_child", node, true)
 	return node
+
+
+func _apply_goblin_phase(monster: Node) -> void:
+	if not (monster is Enemy):
+		return
+	var enemy: Enemy = monster as Enemy
+	if not enemy.raids_buildings:
+		return
+	enemy.add_to_group("goblins")
+	if DmUnlocks.is_owned("goblin"):
+		enemy.aggro_faction = Enemy.AggroFaction.PLAYERS
+	else:
+		enemy.aggro_faction = Enemy.AggroFaction.DM
 	
 func cast_spell(spell_id: String) -> void:
 	if !multiplayer.is_server(): return
@@ -254,6 +269,7 @@ func spawn_monster_from_scene_path(scene_path: String, world_position: Vector2, 
 		monster.set_meta("generated_spawn_id", spawn_id)
 		monster.name = spawn_id.validate_node_name()
 	monster.add_to_group("generated_dungeon_monsters")
+	_apply_goblin_phase(monster)
 
 	# Synchronous add_child so swap-on-success commit/rollback is not racing a deferred spawn.
 	get_node(spawn_path).add_child(monster, true)

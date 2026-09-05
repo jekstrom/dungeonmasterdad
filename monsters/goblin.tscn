@@ -602,7 +602,7 @@ position = Vector2(0, -4)
 shape = SubResource("CapsuleShape2D_57eei")
 
 [node name="Hurtbox" parent="." unique_id=921519090 instance=ExtResource("16_hurt")]
-collision_mask = 34
+collision_mask = 38
 monitoring = false
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Hurtbox" unique_id=686140487]
