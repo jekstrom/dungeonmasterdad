@@ -20,6 +20,9 @@ const SHEET_IDLE := "res://dm/sprites/dm_idle.png"
 const SHEET_WALK := "res://dm/sprites/dm_walk.png"
 const SHEET_ATTACK := "res://dm/sprites/dm_attack.png"
 const SHEET_CAST := "res://dm/sprites/dm_cast.png"
+## Visual scale for wizard sheets (~half prior on-screen size; root stays 1.2).
+const SPRITE_SCALE: float = 0.5
+
 const STATE_SHEETS := {
 	"idle": SHEET_IDLE,
 	"walk": SHEET_WALK,
@@ -51,6 +54,7 @@ func _ready() -> void:
 	z_index = DungeonConstants.WALL_Z_INDEX
 	y_sort_enabled = false
 	_apply_state_sheet("idle")
+	_apply_sprite_scale()
 	collision_mask = collision_mask | 16
 	if is_multiplayer_authority():
 		camera_2d.make_current()
@@ -203,7 +207,7 @@ func apply_aim(aim: Vector2) -> bool:
 		return false
 	cardinal_direction = new_dir
 	if sprite:
-		sprite.scale.x = -1 if cardinal_direction == Vector2.LEFT else 1
+		sprite.scale = Vector2(-SPRITE_SCALE if cardinal_direction == Vector2.LEFT else SPRITE_SCALE, SPRITE_SCALE)
 	DirectionChanged.emit(new_dir)
 	return true
 
@@ -262,6 +266,13 @@ func update_animation(state: String) -> void:
 		animation_player.play(anim)
 
 
+func _apply_sprite_scale() -> void:
+	if sprite == null:
+		return
+	var sx: float = -SPRITE_SCALE if cardinal_direction == Vector2.LEFT else SPRITE_SCALE
+	sprite.scale = Vector2(sx, SPRITE_SCALE)
+
+
 func _apply_state_sheet(state: String) -> void:
 	if sprite == null:
 		return
@@ -289,7 +300,7 @@ func _sync_facing_from_move() -> bool:
 		return false
 	cardinal_direction = new_dir
 	if sprite:
-		sprite.scale.x = -1 if cardinal_direction == Vector2.LEFT else 1
+		sprite.scale = Vector2(-SPRITE_SCALE if cardinal_direction == Vector2.LEFT else SPRITE_SCALE, SPRITE_SCALE)
 	DirectionChanged.emit(new_dir)
 	return true
 

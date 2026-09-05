@@ -44,6 +44,8 @@ func _ready() -> void:
 		return _fail("US-059: live texture should be a dm_*.png sheet, got %s" % live)
 	if spr.hframes != 4 or spr.vframes != 3:
 		return _fail("US-059: Sprite2D must be hframes=4 vframes=3, got %d×%d" % [spr.hframes, spr.vframes])
+	if absf(absf(spr.scale.x) - 0.5) > 0.01 or absf(spr.scale.y - 0.5) > 0.01:
+		return _fail("US-059: Sprite2D scale must be ~0.5, got %s" % spr.scale)
 
 	var ap: AnimationPlayer = dm.get_node_or_null("AnimationPlayer") as AnimationPlayer
 	if ap == null:
@@ -75,8 +77,9 @@ func _ready() -> void:
 	if not dm.has_method("apply_aim"):
 		return _fail("US-059: apply_aim missing")
 	dm.call("apply_aim", Vector2.LEFT * 64.0)
-	if absf((dm.get_node("Sprite2D") as Sprite2D).scale.x + 1.0) > 0.01:
-		return _fail("US-059: left aim must set scale.x = -1")
+	var left_sx: float = (dm.get_node("Sprite2D") as Sprite2D).scale.x
+	if absf(left_sx + 0.5) > 0.01:
+		return _fail("US-059: left aim must set scale.x = -0.5, got %s" % left_sx)
 
 	print("US-059 dm wizard sheet test passed")
 	get_tree().quit(0)
