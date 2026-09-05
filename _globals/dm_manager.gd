@@ -22,6 +22,9 @@ const BLIZZARD_FACTORY_INTERVAL_FACTOR: float = 2.0
 const BLIZZARD_POCKET_CELLS: Vector2i = Vector2i(3, 3)
 const FIREBALL_RADIUS: float = 100.0
 const FIREBALL_STOKE_SCALE: float = 2.0
+const FIREBALL_COOLDOWN: float = 30.0
+const FIREBALL_CORD_COST_DELTA: int = 5
+const FIREBALL_CORD_COOLDOWN: float = 10.0
 const CRIB_DEATH_INTERVAL_SEC: float = 60.0
 const CRIB_DEATH_LIFETIME_SEC: float = 60.0
 const FANTASY_PER_SKILL_POINT: int = 10
@@ -49,6 +52,8 @@ var _frost_last_world: Vector2 = Vector2.INF
 var dm_player_name: String = "DM"
 var _crib_death_elapsed: float = 0.0
 var _blizzard_damage_elapsed: float = 0.0
+var _ability_cooldown_left: Dictionary = {}
+var _ability_cooldown_duration: Dictionary = {}
 
 func _ready() -> void:
 	if not Lobby.host_started.is_connected(_on_host_started):
@@ -67,6 +72,7 @@ func _on_host_started(_player_name: String = "") -> void:
 	_crib_death_elapsed = 0.0
 	_host_set_mana(0)
 	_host_set_skill_points(0)
+	clear_all_ability_cooldowns()
 	clear_frost_trail()
 
 func _process(delta: float) -> void:
@@ -74,6 +80,7 @@ func _process(delta: float) -> void:
 		return
 	_tick_frost_trail()
 	_tick_blizzard_sweater_damage(delta)
+	_tick_ability_cooldowns(delta)
 	if not is_crib_death_owned():
 		_crib_death_elapsed = 0.0
 		return
@@ -139,10 +146,13 @@ func try_cast(ability_id: String) -> bool:
 	var required_unlock: String = AbilityCatalog.unlock_id(ability_id)
 	if not required_unlock.is_empty() and not bool(DmUnlocks.dm_unlocks.get(required_unlock, false)):
 		return false
-	var cost: int = AbilityCatalog.cost(ability_id)
+	var cost: int = ability_cost(ability_id)
 	if current_mana < cost:
 		return false
+	if ability_cooldown_remaining(ability_id) > 0.0:
+		return false
 	_host_set_mana(current_mana - cost)
+	start_ability_cooldown(ability_id)
 	return true
 
 func request_cast(ability_id: String) -> void:
@@ -185,6 +195,74 @@ func _server_request_cast(ability_id: String) -> void:
 		spawn_knight_cast.emit()
 	elif ability_id == AbilityCatalog.GOBLIN:
 		spawn_goblin_cast.emit()
+
+func ability_cost(ability_id: String) -> int:
+	var cost: int = AbilityCatalog.cost(ability_id)
+	if cost < 0:
+		return cost
+	if ability_id == AbilityCatalog.FIREBALL and DmUnlocks.is_owned("full_cord"):
+		return maxi(1, cost - FIREBALL_CORD_COST_DELTA)
+	return cost
+
+
+func ability_cooldown(ability_id: String) -> float:
+	if ability_id == AbilityCatalog.FIREBALL:
+		return fireball_cooldown()
+	return 0.0
+
+
+func ability_cooldown_remaining(ability_id: String) -> float:
+	return float(_ability_cooldown_left.get(ability_id, 0.0))
+
+
+func ability_cooldown_duration(ability_id: String) -> float:
+	var stored: float = float(_ability_cooldown_duration.get(ability_id, 0.0))
+	if stored > 0.0:
+		return stored
+	return ability_cooldown(ability_id)
+
+
+func ability_cooldown_ratio(ability_id: String) -> float:
+	var remaining: float = ability_cooldown_remaining(ability_id)
+	if remaining <= 0.0:
+		return 0.0
+	var duration: float = ability_cooldown_duration(ability_id)
+	if duration <= 0.0:
+		return 0.0
+	return clampf(remaining / duration, 0.0, 1.0)
+
+
+func start_ability_cooldown(ability_id: String) -> void:
+	var duration: float = ability_cooldown(ability_id)
+	if duration <= 0.0:
+		return
+	_ability_cooldown_left[ability_id] = duration
+	_ability_cooldown_duration[ability_id] = duration
+
+
+func clear_ability_cooldown(ability_id: String) -> void:
+	_ability_cooldown_left.erase(ability_id)
+	_ability_cooldown_duration.erase(ability_id)
+
+
+func clear_all_ability_cooldowns() -> void:
+	_ability_cooldown_left.clear()
+	_ability_cooldown_duration.clear()
+
+
+func fireball_cooldown() -> float:
+	if DmUnlocks.is_owned("full_cord"):
+		return FIREBALL_CORD_COOLDOWN
+	return FIREBALL_COOLDOWN
+
+
+func fireball_cooldown_remaining() -> float:
+	return ability_cooldown_remaining(AbilityCatalog.FIREBALL)
+
+
+func clear_fireball_cooldown() -> void:
+	clear_ability_cooldown(AbilityCatalog.FIREBALL)
+
 
 func fireball_radius() -> float:
 	if DmUnlocks.is_owned("stoke"):
@@ -269,7 +347,21 @@ func _can_try_cast(ability_id: String) -> bool:
 	var required_unlock: String = AbilityCatalog.unlock_id(ability_id)
 	if not required_unlock.is_empty() and not bool(DmUnlocks.dm_unlocks.get(required_unlock, false)):
 		return false
-	return current_mana >= AbilityCatalog.cost(ability_id)
+	if ability_cooldown_remaining(ability_id) > 0.0:
+		return false
+	return current_mana >= ability_cost(ability_id)
+
+
+func _tick_ability_cooldowns(delta: float) -> void:
+	if _ability_cooldown_left.is_empty():
+		return
+	var ids: Array = _ability_cooldown_left.keys()
+	for ability_id in ids:
+		var left: float = maxf(0.0, float(_ability_cooldown_left[ability_id]) - delta)
+		if left <= 0.0:
+			clear_ability_cooldown(str(ability_id))
+		else:
+			_ability_cooldown_left[ability_id] = left
 
 func _blizzard_rect_from_spell(spell_data: Dictionary) -> Rect2i:
 	if spell_data.get("rect") is Rect2i:
