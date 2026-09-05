@@ -1,6 +1,7 @@
 class_name PickupSpawnPlanner extends RefCounted
 
 const GREEN_DEW_PATH: String = "res://pickups/mtdew.tres"
+const CODE_RED_PATH: String = "res://pickups/code_red.tres"
 const D6_PATH: String = "res://pickups/d6.tres"
 const D20_PATH: String = "res://pickups/d20.tres"
 
@@ -25,6 +26,7 @@ func plan_dungeon_pickups(
 	var d20_count: int = _count_from(pickup_counts, "d20", D20_COUNT)
 	var pickups: Array[Dictionary] = []
 	pickups.append_array(plan_start_room_dew(room_regions, entrance_cell, exit_cell, start_dew_count))
+	pickups.append_array(plan_start_room_code_red(room_regions, entrance_cell, exit_cell, pickups))
 
 	var occupied: Dictionary = {
 		entrance_cell: true,
@@ -95,6 +97,30 @@ func plan_dungeon_pickups(
 			break
 
 	return pickups
+
+func plan_start_room_code_red(
+	room_regions: Array[Dictionary],
+	entrance_cell: Vector2i,
+	exit_cell: Vector2i,
+	existing: Array[Dictionary] = []
+) -> Array[Dictionary]:
+	var occupied: Dictionary = {
+		entrance_cell: true,
+		exit_cell: true
+	}
+	for pickup in existing:
+		occupied[DungeonGrid.cell_from(pickup.get("position", {}))] = true
+	var start_set: Dictionary = _start_room_set(room_regions)
+	for step in DungeonGrid.cardinals():
+		var neighbor: Vector2i = entrance_cell + step
+		if start_set.has(neighbor) and not occupied.has(neighbor):
+			return [_pickup(CODE_RED_PATH, neighbor)]
+	for cell in start_set.keys():
+		if occupied.has(cell):
+			continue
+		return [_pickup(CODE_RED_PATH, cell)]
+	return []
+
 
 func plan_start_room_dew(
 	room_regions: Array[Dictionary],
