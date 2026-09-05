@@ -44,13 +44,12 @@ func physics(_delta: float) -> EnemyState:
 	return null
 
 func _chase_character(target: Node2D, delta: float) -> void:
-	var to_target: Vector2 = enemy.global_position.direction_to(target.global_position)
-	if to_target.length_squared() < 0.0001:
+	if enemy.can_melee_current_target():
 		enemy.velocity = Vector2.ZERO
+		enemy.UpdateAnimation("idle")
 	else:
-		enemy.velocity = to_target * run_speed
-		enemy.SetDirection(to_target)
-	enemy.UpdateAnimation(anim_name)
+		enemy.follow_path_to(target.global_position, run_speed, delta)
+		enemy.UpdateAnimation(anim_name)
 	if target is Player:
 		_strike_player(target as Player, delta)
 	else:
@@ -89,9 +88,7 @@ func _raid_building(building: Building, delta: float) -> void:
 				enemy.velocity = Vector2.ZERO
 				enemy.UpdateAnimation("idle")
 			else:
-				var dir: Vector2 = to_stand.normalized()
-				enemy.velocity = dir * run_speed
-				enemy.SetDirection(dir)
+				enemy.follow_path_to(stand, run_speed, delta)
 				enemy.UpdateAnimation(anim_name)
 				_set_hurtbox_monitoring(false)
 

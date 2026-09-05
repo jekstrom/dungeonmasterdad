@@ -73,6 +73,8 @@ signal dungeon_generation_state_changed(state: int)
 signal map_bounds_committed(interior: Rect2i)
 @warning_ignore("unused_signal")
 signal map_bounds_cleared
+@warning_ignore("unused_signal")
+signal occupancy_solids_changed
 
 @warning_ignore("unused_signal")
 signal reality_home_changed(home_rect: Rect2i)

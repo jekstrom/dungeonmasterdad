@@ -38,6 +38,7 @@ TrailManager="*res://_globals/trail_manager.gd"
 DeathSystem="*res://scripts/multiplayer/DeathSystem.gd"
 ItemPickupPool="*res://_globals/item_pickup_pool.gd"
 DungeonGenerationManager="*res://_globals/dungeon_generation_manager.gd"
+MonsterPathfinder="*res://_globals/monster_pathfinder.gd"
 MinimapReveal="*res://_globals/minimap_reveal.gd"
 SkillHandler="*uid://cwwh3h3n1kblb"
 

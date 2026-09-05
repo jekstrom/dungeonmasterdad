@@ -23,7 +23,7 @@ func enter() -> void:
 	if next:
 		state_machine.change_state(next)
 		return
-	_chase()
+	_chase(0.016)
 
 func exit() -> void:
 	pass
@@ -34,7 +34,7 @@ func process(_delta: float) -> EnemyState:
 	var next := _pick_combat()
 	if next:
 		return next
-	_chase()
+	_chase(_delta)
 	return null
 
 func physics(_delta: float) -> EnemyState:
@@ -74,7 +74,7 @@ func _in_jet_range() -> bool:
 		return bool(enemy.call("in_jet_range_of", enemy.aggro_target))
 	return false
 
-func _chase() -> void:
+func _chase(delta: float) -> void:
 	if enemy == null or enemy._dying:
 		return
 	enemy.acquire_aggro_target()
@@ -82,12 +82,9 @@ func _chase() -> void:
 	if target == null or not is_instance_valid(target):
 		enemy.velocity = Vector2.ZERO
 		return
-	var to_target: Vector2 = enemy.global_position.direction_to(target.global_position)
-	enemy.SetDirection(to_target)
-	# Stop at melee range instead of walking into the DM.
-	if enemy.global_position.distance_to(target.global_position) <= enemy.melee_range_px:
+	if enemy.can_melee_current_target():
 		enemy.velocity = Vector2.ZERO
 		enemy.UpdateAnimation("idle")
 		return
-	enemy.velocity = to_target * chase_speed
+	enemy.follow_path_to(target.global_position, chase_speed, delta)
 	enemy.UpdateAnimation(anim_name)

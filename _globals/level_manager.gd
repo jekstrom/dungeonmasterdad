@@ -662,6 +662,7 @@ func rebuild_tree_scatter() -> void:
 		doodad.add_to_group("scattered_trees")
 		parent.add_child(doodad)
 	strip_scattered_trees_from_blocked_cells()
+	SignalBus.occupancy_solids_changed.emit()
 
 func rebuild_mine_scatter() -> void:
 	var parent: Node2D = _scattered_mines_parent()

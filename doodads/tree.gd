@@ -174,11 +174,19 @@ func apply_replicated_harvest_state(hits: int, stump: bool) -> void:
 	if stump:
 		_apply_stump_visual()
 
+func _exit_tree() -> void:
+	if Engine.is_editor_hint():
+		return
+	if SignalBus:
+		SignalBus.occupancy_solids_changed.emit()
+
+
 func _become_stump() -> void:
 	if is_stump:
 		return
 	is_stump = true
 	_apply_stump_visual()
+	SignalBus.occupancy_solids_changed.emit()
 
 func _apply_stump_visual() -> void:
 	is_stump = true

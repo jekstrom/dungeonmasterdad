@@ -1,6 +1,7 @@
 class_name Enemy extends CharacterBody2D
 
 const DungeonGridScript = preload("res://scripts/procedural_dungeon/dungeon_grid.gd")
+const PathFollowerScript = preload("res://scripts/pathfinding/monster_path_follower.gd")
 
 signal direction_changed(new_direction: Vector2)
 #signal enemy_damaged(hurt_box: Hurtbox)
@@ -25,12 +26,14 @@ var aggro_target: Node2D = null
 @export var damage: int = 1
 @export var upgraded_damage: int = 1
 @export var melee_range_px: float = 128.0
+@export var melee_engage_px: float = 24.0
 @export var raids_buildings: bool = false
 @export var health_bar_title: String = ""
 @export var trap_cooldown_sec: float = 8.0
 @export var trap_start_delay_sec: float = 3.0
 var _dying: bool = false
 var _health_bar: Node2D
+var _path_follower = PathFollowerScript.new()
 var trap_cooldown: float = 0.0
 
 const HEALTH_BAR_SCENE: PackedScene = preload("res://monsters/enemy_health_bar.tscn")
@@ -127,6 +130,34 @@ func aggros_on_dm() -> bool:
 	return aggro_faction != AggroFaction.PLAYERS
 
 
+func follow_path_to(goal_world: Vector2, speed: float, delta: float, inland: bool = false) -> void:
+	if _dying:
+		velocity = Vector2.ZERO
+		return
+	if _path_follower == null:
+		_path_follower = PathFollowerScript.new()
+	velocity = _path_follower.velocity_toward(self, goal_world, speed, delta, inland)
+	if velocity.length_squared() > 0.0001:
+		SetDirection(velocity)
+
+
+func clear_path_follow() -> void:
+	if _path_follower:
+		_path_follower.clear()
+
+
+func debug_follow_path() -> Array:
+	if _path_follower == null:
+		return []
+	return _path_follower.path
+
+
+func debug_follow_goal() -> Vector2:
+	if _path_follower == null:
+		return Vector2.INF
+	return _path_follower.goal_world
+
+
 func can_melee_current_target() -> bool:
 	return is_melee_close_to(aggro_target)
 
@@ -141,10 +172,9 @@ func is_melee_close_to(node: Node2D) -> bool:
 	var origin: Vector2 = node.global_position
 	if node is Building:
 		origin = (node as Building).factory_origin()
-	if global_position.distance_to(origin) > melee_range_px:
+		return global_position.distance_to(origin) <= melee_range_px
+	if global_position.distance_to(origin) > melee_engage_px:
 		return false
-	if node is Building:
-		return true
 	var self_cell: Vector2i = DungeonGridScript.from_world(global_position)
 	var other_cell: Vector2i = DungeonGridScript.from_world(node.global_position)
 	return DungeonGridScript.chebyshev(self_cell, other_cell) <= 1
@@ -343,6 +373,7 @@ func play_death() -> void:
 		return
 	_dying = true
 	velocity = Vector2.ZERO
+	clear_path_follow()
 	if enemy_state_machine:
 		enemy_state_machine.process_mode = Node.PROCESS_MODE_DISABLED
 	if _health_bar and is_instance_valid(_health_bar):
