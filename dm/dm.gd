@@ -113,7 +113,7 @@ func _physics_process(delta: float) -> void:
 		Input.get_axis("left", "right"),
 		Input.get_axis("up", "down")
 	).normalized()
-	var desired: Vector2 = direction * 300.0
+	var desired: Vector2 = direction * DmManager.dm_move_speed()
 	if DewSlickScript.any_covers_world(global_position):
 		velocity = DewSlickScript.slide_velocity(velocity, desired, delta)
 	else:

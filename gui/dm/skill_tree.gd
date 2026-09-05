@@ -63,7 +63,7 @@ const DAD_PASSIVES: Array[Dictionary] = [
 	{"id": "full_cord", "name": "Full Cord", "effect": "Reduce cooldown and mana cost of fireball.", "row": "Fire"},
 	{"id": "everything_burns", "name": "Everything Burns", "effect": "Fireball now destroys resources.", "row": "Fire"},
 	{"id": "thermostat_lock", "name": "Thermostat Lock", "effect": "Paper Pushers lose one inventory slot.", "row": "Control"},
-	{"id": "dad_reflexes", "name": "Dad Reflexes", "effect": "Gain dash ability.", "row": "Control"},
+	{"id": "dad_reflexes", "name": "Dad Reflexes", "effect": "Increase DM movement speed 1.5×.", "row": "Control"},
 	{"id": "grounded", "name": "Grounded", "effect": "Paper Pushers can only survive in Fantasy for 3 seconds.", "row": "Control"},
 ]
 

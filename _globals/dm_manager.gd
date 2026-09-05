@@ -28,6 +28,8 @@ const FIREBALL_CORD_COOLDOWN: float = 10.0
 const CRIB_DEATH_INTERVAL_SEC: float = 60.0
 const CRIB_DEATH_LIFETIME_SEC: float = 60.0
 const FANTASY_PER_SKILL_POINT: int = 10
+const DM_MOVE_SPEED: float = 300.0
+const DAD_REFLEXES_SPEED_SCALE: float = 1.5
 
 var dm: DM
 @export var fantasy_level: int = 0
@@ -262,6 +264,13 @@ func fireball_cooldown_remaining() -> float:
 
 func clear_fireball_cooldown() -> void:
 	clear_ability_cooldown(AbilityCatalog.FIREBALL)
+
+
+func dm_move_speed() -> float:
+	var speed: float = DM_MOVE_SPEED
+	if DmUnlocks.is_owned("dad_reflexes"):
+		speed *= DAD_REFLEXES_SPEED_SCALE
+	return speed
 
 
 func fireball_radius() -> float:
