@@ -6,7 +6,9 @@ enum RaidPhase { APPROACH, STRIKE, RETREAT }
 @export var run_speed: float = 220
 @export var wander_state: EnemyState
 @export var melee_cooldown: float = 1.0
-@export var raid_standoff_px: float = 56.0
+@export var raid_standoff_px: float = 12.0
+@export var raid_melee_px: float = 40.0
+@export var raid_strike_px: float = 28.0
 @export var raid_retreat_px: float = 168.0
 @export var raid_strike_time: float = 0.28
 @export var raid_retreat_time: float = 0.5
@@ -17,12 +19,17 @@ var _raid_timer: float = 0.0
 var _raid_retreat_dir: Vector2 = Vector2.DOWN
 var _raid_hp_before: int = 0
 var _raid_hit_landed: bool = false
+var _raid_in_melee: bool = false
+var _raid_target_id: int = 0
 
 func enter() -> void:
 	_melee_timer = 0.0
 	_raid_phase = RaidPhase.APPROACH
 	_raid_timer = 0.0
 	_raid_hit_landed = false
+	_raid_in_melee = false
+	_raid_target_id = 0
+	enemy.clear_path_follow()
 	enemy.acquire_aggro_target()
 	enemy.UpdateAnimation(anim_name)
 
@@ -58,8 +65,17 @@ func _chase_character(target: Node2D, delta: float) -> void:
 func _raid_building(building: Building, delta: float) -> void:
 	var origin: Vector2 = building.factory_origin()
 	var dist: float = enemy.global_position.distance_to(origin)
+	var building_id: int = building.get_instance_id()
+	if building_id != _raid_target_id:
+		_raid_target_id = building_id
+		_raid_in_melee = false
+		_raid_phase = RaidPhase.APPROACH
+		enemy.clear_path_follow()
+	if building.hull_distance(enemy.global_position) <= raid_melee_px:
+		_raid_in_melee = true
 	match _raid_phase:
 		RaidPhase.STRIKE:
+			enemy.clear_path_follow()
 			enemy.velocity = Vector2.ZERO
 			_set_hurtbox_monitoring(false)
 			if building.destroyed or building.hitpoints < _raid_hp_before:
@@ -72,6 +88,7 @@ func _raid_building(building: Building, delta: float) -> void:
 			else:
 				_raid_phase = RaidPhase.APPROACH
 		RaidPhase.RETREAT:
+			enemy.clear_path_follow()
 			enemy.velocity = _raid_retreat_dir * run_speed
 			enemy.SetDirection(_raid_retreat_dir)
 			enemy.UpdateAnimation(anim_name)
@@ -80,34 +97,69 @@ func _raid_building(building: Building, delta: float) -> void:
 			if dist >= raid_retreat_px or _raid_timer <= 0.0:
 				_raid_phase = RaidPhase.APPROACH
 		_:
-			var stand: Vector2 = _raid_stand_point(building, origin)
-			var to_stand: Vector2 = stand - enemy.global_position
-			if _can_strike_building(building, dist, to_stand.length()):
-				_begin_strike(building)
-			elif to_stand.length() < 6.0:
-				enemy.velocity = Vector2.ZERO
-				enemy.UpdateAnimation("idle")
+			if _raid_in_melee:
+				_raid_melee_close(building, origin, dist)
 			else:
-				enemy.follow_path_to(stand, run_speed, delta)
+				enemy.follow_path_to(_raid_path_goal(building, origin), run_speed, delta)
 				enemy.UpdateAnimation(anim_name)
 				_set_hurtbox_monitoring(false)
+				if building.hull_distance(enemy.global_position) <= raid_melee_px:
+					_raid_in_melee = true
+					enemy.clear_path_follow()
+					if _can_strike_building(building, dist):
+						_begin_strike(building)
 
-func _can_strike_building(building: Building, dist: float, stand_dist: float) -> bool:
+
+func _raid_melee_close(building: Building, origin: Vector2, dist: float) -> void:
+	enemy.clear_path_follow()
+	if _can_strike_building(building, dist):
+		_begin_strike(building)
+		return
+	if dist < 10.0:
+		var away: Vector2 = _away_from(origin)
+		enemy.velocity = away * run_speed
+		enemy.SetDirection(away)
+		enemy.UpdateAnimation(anim_name)
+		_set_hurtbox_monitoring(false)
+		return
+	var closest: Vector2 = building.closest_hull_point(enemy.global_position)
+	var to_hull: Vector2 = closest - enemy.global_position
+	if to_hull.length_squared() < 0.0001:
+		to_hull = origin - enemy.global_position
+	if to_hull.length_squared() < 0.0001:
+		enemy.velocity = Vector2.ZERO
+		enemy.UpdateAnimation("idle")
+		return
+	enemy.velocity = to_hull.normalized() * run_speed
+	enemy.SetDirection(to_hull)
+	enemy.UpdateAnimation(anim_name)
+	_set_hurtbox_monitoring(false)
+
+
+func _raid_path_goal(building: Building, origin: Vector2) -> Vector2:
+	var closest: Vector2 = building.closest_hull_point(enemy.global_position)
+	var out: Vector2 = enemy.global_position - closest
+	if out.length_squared() < 1.0:
+		out = _away_from(origin)
+	var stand: Vector2 = closest + out.normalized() * raid_standoff_px
+	var tree := enemy.get_tree()
+	if tree:
+		var finder: Node = tree.root.get_node_or_null("MonsterPathfinder")
+		if finder and finder.has_method("nearest_walkable_world"):
+			return finder.nearest_walkable_world(stand)
+	return stand
+
+func _can_strike_building(building: Building, dist: float) -> bool:
 	if building.destroyed or not building.is_operating():
-		return false
-	if not enemy.is_melee_close_to(building):
 		return false
 	if dist < 10.0:
 		return false
 	if _blocked_by_building(building):
 		return true
-	if stand_dist <= 24.0:
-		return true
-	var hull: Rect2 = building.raid_hull_rect(8.0)
-	var closest: Vector2 = _closest_point_on_rect(hull, enemy.global_position)
-	return enemy.global_position.distance_to(closest) <= 20.0
+	return building.hull_distance(enemy.global_position) <= raid_strike_px
 
 func _begin_strike(building: Building) -> void:
+	enemy.clear_path_follow()
 	enemy.velocity = Vector2.ZERO
 	_set_hurtbox_monitoring(false)
 	_raid_phase = RaidPhase.STRIKE
@@ -132,6 +184,7 @@ func _land_raid_hit(building: Building) -> void:
 		_raid_hit_landed = true
 
 func _start_retreat(origin: Vector2) -> void:
+	enemy.clear_path_follow()
 	_raid_retreat_dir = _random_retreat_dir(origin)
 	_raid_phase = RaidPhase.RETREAT
 	_raid_timer = raid_retreat_time
@@ -139,34 +192,6 @@ func _start_retreat(origin: Vector2) -> void:
 	_set_hurtbox_monitoring(false)
 	enemy.SetDirection(_raid_retreat_dir)
 	enemy.UpdateAnimation(anim_name)
-
-func _raid_stand_point(building: Building, origin: Vector2) -> Vector2:
-	var hull: Rect2 = building.raid_hull_rect(12.0)
-	var closest: Vector2 = _closest_point_on_rect(hull, enemy.global_position)
-	var out: Vector2 = enemy.global_position - closest
-	if out.length_squared() < 1.0:
-		out = enemy.global_position - hull.get_center()
-	if out.length_squared() < 1.0:
-		out = _away_from(origin)
-	return closest + out.normalized() * 10.0
-
-func _closest_point_on_rect(rect: Rect2, p: Vector2) -> Vector2:
-	var min_p: Vector2 = rect.position
-	var max_p: Vector2 = rect.end
-	if not rect.has_point(p):
-		return Vector2(clampf(p.x, min_p.x, max_p.x), clampf(p.y, min_p.y, max_p.y))
-	var dl: float = p.x - min_p.x
-	var dr: float = max_p.x - p.x
-	var dt: float = p.y - min_p.y
-	var db: float = max_p.y - p.y
-	var m: float = minf(minf(dl, dr), minf(dt, db))
-	if is_equal_approx(m, dl):
-		return Vector2(min_p.x, p.y)
-	if is_equal_approx(m, dr):
-		return Vector2(max_p.x, p.y)
-	if is_equal_approx(m, dt):
-		return Vector2(p.x, min_p.y)
-	return Vector2(p.x, max_p.y)
 
 func _blocked_by_building(building: Building) -> bool:
 	for i in enemy.get_slide_collision_count():

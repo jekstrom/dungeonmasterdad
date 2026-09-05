@@ -126,6 +126,18 @@ func raid_hull_rect(pad: float = 16.0) -> Rect2:
 	var grow := Vector2(pad, pad)
 	return Rect2(center - size * 0.5 - grow, size + grow * 2.0)
 
+
+func closest_hull_point(world: Vector2, pad: float = 0.0) -> Vector2:
+	var hull: Rect2 = raid_hull_rect(pad)
+	return Vector2(
+		clampf(world.x, hull.position.x, hull.end.x),
+		clampf(world.y, hull.position.y, hull.end.y)
+	)
+
+
+func hull_distance(world: Vector2, pad: float = 0.0) -> float:
+	return world.distance_to(closest_hull_point(world, pad))
+
 func health_ratio() -> float:
 	return float(hitpoints) / float(maxi(1, max_hitpoints))
 

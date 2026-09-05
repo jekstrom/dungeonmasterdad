@@ -13,6 +13,7 @@ func _ready() -> void:
 	await get_tree().process_frame
 	factory.enable()
 	factory.is_ghost = false
+	_stamp_factory_occupancy(factory)
 
 	var goblin: Enemy = load("res://monsters/goblin.tscn").instantiate() as Enemy
 	goblin.position = Vector2.ZERO
@@ -44,6 +45,19 @@ func _ready() -> void:
 			factory.hitpoints,
 			goblin.global_position.distance_to(origin),
 		])
+		return
+	var hull_at_hit: float = factory.hull_distance(goblin.global_position)
+	if hull_at_hit > 40.0:
+		_fail("US-011 hit-and-run: strike must be next to the hull, hull_dist=%s origin_dist=%s" % [
+			hull_at_hit,
+			dist_at_hit,
+		])
+		return
+	if not _raid_in_melee(goblin):
+		_fail("US-011 hit-and-run: after a strike the goblin must be in melee hit-and-run, not A*")
+		return
+	if not goblin.debug_follow_path().is_empty():
+		_fail("US-011 hit-and-run: melee raid must not keep an A* path")
 		return
 	var saw_retreat := false
 	for _k in range(90):
@@ -120,6 +134,30 @@ func _assert_north_side_raid() -> bool:
 		_fail("US-011 hit-and-run: north-side raid must retreat after a hit, dist %s" % goblin.global_position.distance_to(origin))
 		return false
 	return true
+
+func _stamp_factory_occupancy(factory: Building) -> void:
+	var finder: Node = get_node_or_null("/root/MonsterPathfinder")
+	if finder == null or not finder.has_method("configure_test_map"):
+		return
+	var hull: Rect2 = factory.raid_hull_rect(8.0)
+	var region := Rect2i(Vector2i(-8, -10), Vector2i(28, 20))
+	var walkable: Array[Vector2i] = []
+	for y in range(region.position.y, region.end.y):
+		for x in range(region.position.x, region.end.x):
+			var center := Vector2((float(x) + 0.5) * 32.0, (float(y) + 0.5) * 32.0)
+			if hull.has_point(center):
+				continue
+			walkable.append(Vector2i(x, y))
+	var cliffs: Array[Vector2i] = []
+	finder.configure_test_map(region, walkable, cliffs)
+
+
+func _raid_in_melee(goblin: Enemy) -> bool:
+	var aggro: Node = goblin.get_node_or_null("EnemyStateMachine/aggro")
+	if aggro == null:
+		return false
+	return bool(aggro.get("_raid_in_melee"))
+
 
 func _tick_goblin(goblin: Enemy, ticks: int) -> void:
 	var sm: Node = goblin.get_node_or_null("EnemyStateMachine")

@@ -169,10 +169,9 @@ func can_damage_dm() -> bool:
 func is_melee_close_to(node: Node2D) -> bool:
 	if node == null or not is_instance_valid(node):
 		return false
-	var origin: Vector2 = node.global_position
 	if node is Building:
-		origin = (node as Building).factory_origin()
-		return global_position.distance_to(origin) <= melee_range_px
+		return (node as Building).hull_distance(global_position) <= melee_range_px
+	var origin: Vector2 = node.global_position
 	if global_position.distance_to(origin) > melee_engage_px:
 		return false
 	var self_cell: Vector2i = DungeonGridScript.from_world(global_position)
